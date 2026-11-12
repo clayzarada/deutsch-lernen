@@ -25,11 +25,19 @@ Made by {author}. {copyright}
 A desktop app for learning German. Everything runs on your own computer.
 
 START
- 1. Unzip this whole folder somewhere you keep programs (for example Documents).
- 2. Double-click "Deutsch lernen.exe".
+ 1. Before unzipping (for a fast start): right-click the downloaded zip > Properties > tick "Unblock"
+    at the bottom > OK. Without this the app still works, but Windows checks every file each time it
+    starts, which makes starting take about half a minute instead of a few seconds.
+ 2. Unzip this whole folder somewhere you keep programs (for example Documents).
+ 3. Double-click "Deutsch lernen.exe". It opens in its own window (Microsoft Edge, which every Windows
+    10/11 PC has). Closing that window quits the app.
     If Windows says "Windows protected your PC": click "More info", then "Run anyway".
     (The app isn't code-signed yet, so Windows doesn't recognise it.)
- 3. Optional: right-click "Deutsch lernen.exe" > Show more options > Send to > Desktop (create shortcut).
+ 4. Optional: right-click "Deutsch lernen.exe" > Show more options > Send to > Desktop (create shortcut).
+
+UPDATING
+ When the app says a new version is out, download it, unzip it, and replace this folder with the new one.
+ Your progress, flashcards, books and keys are kept.
 
 FIRST STEPS IN THE APP
  - Settings: pick English or Türkçe under "App language", then set your level, daily minutes and goal.
@@ -77,11 +85,11 @@ def main():
     sys.path.insert(0, str(ROOT))
     from app.version import AUTHOR, COPYRIGHT, OWNER, VERSION, WEBSITE
 
-    # 2. A separate build environment with the app's packages plus PyInstaller and pywebview.
+    # 2. A separate build environment with the app's packages plus PyInstaller. (No pywebview: see launch_windows.py.)
     if not PY.exists():
         run(sys.executable, "-m", "venv", VENV)
     run(PY, "-m", "pip", "install", "--quiet", "--upgrade", "pip")
-    run(PY, "-m", "pip", "install", "--quiet", "-r", "requirements.txt", "pyinstaller", "pywebview>=5")
+    run(PY, "-m", "pip", "install", "--quiet", "-r", "requirements.txt", "pyinstaller")
 
     # 3. Build. --windowed: no console window. version.json goes in so the app knows its version.
     shutil.rmtree(DIST, ignore_errors=True)
@@ -94,7 +102,8 @@ def main():
         "--name", "Deutsch lernen", "--icon", "static/icon.ico", "--version-file", info,
         "--add-data", "static;static", "--add-data", "version.json;.",
         "--hidden-import", "app.main", "--collect-submodules", "app",
-        "--collect-submodules", "uvicorn", "--collect-all", "webview", "--collect-data", "genanki",
+        "--collect-submodules", "uvicorn", "--collect-data", "genanki",
+        "--exclude-module", "webview", "--exclude-module", "clr", "--exclude-module", "pythonnet",
         "launch_windows.py")
     exe = DIST / "Deutsch lernen.exe"
     if not exe.exists():
@@ -102,6 +111,8 @@ def main():
 
     # 4. Safety check: nothing personal may end up in the package.
     bad = [p for p in DIST.rglob("*") if p.name in (".env", "keys.env", "study.db", "app.log")]
+    # The .NET window layer can't load from a downloaded zip (see launch_windows.py), so it must not be in here.
+    bad += [p for p in DIST.rglob("Python.Runtime.dll")]
     if bad:
         raise SystemExit(f"Refusing to package personal files: {bad}")
 
