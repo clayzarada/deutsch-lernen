@@ -16,6 +16,14 @@ for (const [en, tr] of Object.entries(KINDS)) {
 export default {
   ...kindEntries,
 
+  // ---------- credits ----------
+  'About': 'Hakkında',
+  'Made by': 'Yapımcı:',
+  'by {}': 'Yapımcı: {1}',
+  '© {} {}. All rights reserved.': '© {1} {2}. Tüm hakları saklıdır.',
+  'Personal, non-commercial use only. Copying, changing, redistributing or selling the app requires written permission.':
+    'Yalnızca kişisel, ticari olmayan kullanım içindir. Uygulamayı kopyalamak, değiştirmek, dağıtmak veya satmak yazılı izin gerektirir.',
+
   // ---------- added after the first screen-by-screen check ----------
   '{} Up next: {}.': '{1} Sıradaki: {2}.',
   '{} of {} steps': '{2} adımdan {1} tanesi',

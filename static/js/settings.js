@@ -55,6 +55,11 @@ function loadSettings() {
   $('#gkey-state').innerHTML = keyPill(s.has_gemini_key);
   loadUsage().catch(() => {});
   loadBackups().catch(() => {});
+  $('#about-version').textContent = s.version ? `v${s.version}` : '';
+  if (s.credits) {
+    $('#about-author').textContent = s.credits.author;
+    $('#about-copyright').textContent = s.credits.copyright;
+  }
 }
 
 const money = v => v < 0.01 && v > 0 ? '< $0.01' : '$' + v.toFixed(2);

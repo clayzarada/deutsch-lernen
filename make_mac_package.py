@@ -40,7 +40,7 @@ def main():
     with zipfile.ZipFile(out, "w") as z:
         add_tree(z, ROOT / "app", "app")
         add_tree(z, ROOT / "static", "static")
-        for name in ("requirements.txt", "launch_mac.py", "README.md", "version.json"):
+        for name in ("requirements.txt", "launch_mac.py", "README.md", "version.json", "LICENSE"):
             add(z, ROOT / name, name)
         add(z, ROOT / "build_mac.command", "build_mac.command", executable=True)
         add(z, ROOT / "mac" / "CLAUDE.md", "CLAUDE.md")

@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import ai, anki, backup, course, db, decl, mistakelink, pdfs, planner, srs, tts, usage, writing
-from .version import VERSION
+from .version import AUTHOR, COPYRIGHT, OWNER, VERSION, WEBSITE
 from .i18n import localize
 
 DOC_TYPES = (".pdf", ".html", ".htm", ".txt", ".md")
@@ -96,7 +96,7 @@ def get_version():
 
 @app.get("/api/settings")
 def get_settings():
-    return {**db.get_settings(), "voices": tts.VOICES, "version": VERSION,
+    return {**db.get_settings(), "voices": tts.VOICES, "version": VERSION, "credits": {"author": AUTHOR, "owner": OWNER, "copyright": COPYRIGHT, "website": WEBSITE},
             "has_key": bool(os.environ.get("ANTHROPIC_API_KEY", "").strip()),
             "has_gemini_key": bool(os.environ.get("GEMINI_API_KEY", "").strip())}
 

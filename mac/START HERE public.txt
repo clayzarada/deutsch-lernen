@@ -1,5 +1,6 @@
 DEUTSCH LERNEN FOR MAC
 ======================
+Made by Clay Zarada. © 2026 Zarada Holdings Group. All rights reserved.
 
 A desktop app for learning German. Everything runs on your own Mac; your books and progress stay there.
 
@@ -27,3 +28,7 @@ FIRST STEPS IN THE APP
 
 Your data and keys are kept in ~/Library/Application Support/Deutsch lernen. Reinstalling or updating the
 app never deletes them. You can delete this folder once the app is installed.
+
+LICENSE
+ Personal, non-commercial use only. Copying, changing, redistributing or selling the app requires
+ written permission from Zarada Holdings Group. See LICENSE. https://zaradaholdingsgroup.com

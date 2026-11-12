@@ -1,4 +1,6 @@
-# German Study
+# Deutsch lernen
+
+**Made by Clay Zarada · © 2026 Zarada Holdings Group. All rights reserved.** See [LICENSE](LICENSE).
 
 A local study app for German textbooks: read your PDFs, write answers on the pages, get them marked, generate practice sets and flashcards per chapter, and let an AI coach plan your study days.
 
@@ -79,3 +81,7 @@ AI features use your Claude API key and are billed per use. Generating a practic
 
 ## Costs and backups
 Settings shows an estimate of what the AI features cost this month, by feature, and lets you set a monthly budget that pauses Claude features once it's reached. The app also backs up your data once a day (the last 14 are kept in `data/backups`); Settings lists them and can restore one.
+
+## License
+
+© 2026 Zarada Holdings Group. Created by Clay Zarada. All rights reserved: you may use the released app for personal learning, but not copy, modify, redistribute or sell it without written permission. See [LICENSE](LICENSE).

@@ -65,3 +65,12 @@ def check():
 
 
 VERSION = check()
+
+# Who made and owns the app. Shown in the sidebar, Settings > About, the download READ ME and the .exe's
+# file properties. See LICENSE.
+APP_NAME = "Deutsch lernen"
+AUTHOR = "Clay Zarada"
+OWNER = "Zarada Holdings Group"
+YEAR = "2026"
+COPYRIGHT = f"© {YEAR} {OWNER}. All rights reserved."
+WEBSITE = "https://zaradaholdingsgroup.com"

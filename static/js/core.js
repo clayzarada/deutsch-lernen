@@ -220,6 +220,8 @@ export function updateNavStatus(stats) {
   $('#nav-ai').innerHTML = `<i class="dot ${ok ? 'on' : ''}"></i><span>${ok ? 'AI ready' : 'Add API key'}</span>`;
   const v = S.settings?.version;
   $('#nav-version').textContent = v ? `v${v}` : '';
+  const c = S.settings?.credits;
+  if (c) $('#nav-credit').textContent = `by ${c.author}`;
 }
 
 export async function refreshNav() {
