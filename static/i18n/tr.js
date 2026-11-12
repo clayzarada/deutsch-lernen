@@ -2,6 +2,7 @@
 // a key is the English text of one piece of text on screen; "{}" matches anything, {1}, {2} put it back.
 // German words (case names, planet names, "Hallo!", "Richtig!") are left as they are on purpose.
 const KINDS = {
+  'Text message': 'Kısa mesaj (SMS)',
   'Informal email': 'Gayriresmî e-posta', 'Short formal message': 'Kısa resmî mesaj', 'Forum post': 'Forum gönderisi',
   'Formal letter': 'Resmî mektup', 'Argumentative essay': 'Tartışmacı deneme', 'Opinion piece': 'Görüş yazısı',
 };
@@ -11,6 +12,7 @@ for (const [en, tr] of Object.entries(KINDS)) {
   kindEntries[`{} ${en}`] = `{1} ${tr}`;
   kindEntries[`{} ${en} · {} min in the exam`] = `{1} ${tr} · sınavda {2} dk`;
   kindEntries[`{} · {} · ${en}`] = `{1} · {2} · ${tr}`;
+  kindEntries[`${en} · about {} words`] = `${tr} · yaklaşık {1} kelime`;  // the task list
 }
 
 export default {
@@ -93,7 +95,6 @@ export default {
   'Read': 'Okuma',
   'Library': 'Kitaplık',
   'Reader': 'Okuyucu',
-  'Practise': 'Alıştırma',
   'Practice': 'Alıştırmalar',
   'Declensions': 'Çekimler',
   'Writing': 'Yazma',

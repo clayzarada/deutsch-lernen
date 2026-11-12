@@ -3,7 +3,7 @@
 import { $, $$, S, api, esc, icon, busy, toast, store, registerView, refreshNav, isActive, confirmDialog } from './core.js';
 
 const W = { tasks: [], history: [], task: null, view: 'write', piece: null, started: 0, seconds: 0, timer: null, level: null };
-const LEVELS = ['B1', 'B2', 'C1'];
+const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1'];
 const draftKey = t => 'writing-draft:' + (t?.id || t?.title || 'own');
 
 registerView('writing', loadWriting);
@@ -12,7 +12,7 @@ async function loadWriting() {
   const r = await api('/writing');
   W.tasks = r.tasks;
   W.history = r.history;
-  W.level ||= LEVELS.includes(S.settings.level) ? S.settings.level : S.settings.level < 'B1' ? 'B1' : 'C1';
+  W.level ||= LEVELS.includes(S.settings.level) ? S.settings.level : 'C1';  // C2 learners start at the top level
   if (S.writingTask) { openTask(S.writingTask); S.writingTask = null; }
   else if (!W.task) openTask(W.tasks.find(t => t.level === W.level) || W.tasks[0]);
   renderSide();

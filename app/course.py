@@ -593,7 +593,7 @@ def parse_reading(text):
 
 
 def reading_brief(stage_id):
-    """What a freshly written reading for this stage should practise (for the AI writer)."""
+    """What a freshly written reading for this stage should practice (for the AI writer)."""
     stage = STAGE[stage_id]
     return {"focus": f"{stage['title']}: {stage['blurb']}", "example": stage["reading"][1]}
 

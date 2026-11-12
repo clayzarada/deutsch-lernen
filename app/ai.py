@@ -156,7 +156,7 @@ def generate_exercises(title, text, count, focus):
     system = ("You are an experienced teacher of German as a foreign language who writes practice material "
               "that matches a specific textbook chapter. " + _learner(s))
     task = (
-        f"Write {count} NEW practice exercises for this chapter. They must practise the chapter's vocabulary and "
+        f"Write {count} NEW practice exercises for this chapter. They must practice the chapter's vocabulary and "
         "grammar at the learner's level, in a mix of types similar to what the book uses. Don't copy the book's "
         "own exercises; write fresh items.\n"
         f"{'Focus especially on: ' + focus if focus else ''}\n"
@@ -217,7 +217,7 @@ def drill_mistakes(mistakes, count):
               "that fix a learner's recurring mistakes. " + _learner(s))
     task = (
         f"Here are mistakes this learner made: the original task (question), what they wrote, the correct answer "
-        f"and the corrected sentence. Write {count} NEW exercises that practise exactly the rules and words behind "
+        f"and the corrected sentence. Write {count} NEW exercises that practice exactly the rules and words behind "
         "them. Don't reuse the original sentences; make fresh ones of the same exercise type and difficulty. "
         "Every exercise must be fully self-contained: a clear instruction plus a complete sentence, never a lone "
         "word or a reference to the textbook. Spread the "
@@ -331,7 +331,7 @@ def decl_reading(brief, topic):
     task = (
         f"Write a new German text of 90-130 words for this stage of a declension course: {brief['focus']}\n"
         + (f"Topic the learner asked for: {topic}\n" if topic else "Pick an everyday topic.\n")
-        + "Use vocabulary at or below the learner's level. Turn 10-14 words or endings that practise this stage into gaps, "
+        + "Use vocabulary at or below the learner's level. Turn 10-14 words or endings that practice this stage into gaps, "
         "written exactly like this: {answer|hint}. For a whole word the hint is its meaning in "
         f"{s['native_language']} (one or two words), e.g. in English 'Ich sehe {{den|the}} Mann.' For an ending, attach the gap to the stem and leave the hint empty, e.g. "
         "'ein klein{es|} Kind'. Each gap must have exactly one correct answer given the rest of the sentence, so make "
@@ -408,10 +408,12 @@ def writing_task(level, topic):
     s = db.get_settings()
     system = "You write exam-style German writing tasks in the format of the Goethe-Zertifikat. " + _learner(s)
     task = (f"Write one new writing task for level {level}" + (f" about: {topic}" if topic else "") + ". "
-            "Choose a format that fits the level (B1: informal email, forum post, short formal message; B2: forum post, "
+            "Choose a format that fits the level (A1: short informal email or short formal message; A2: text message (SMS), "
+            "informal email, short formal message; B1: informal email, forum post, short formal message; B2: forum post, "
             "formal letter; C1: argumentative essay, opinion piece, formal letter). The task and points are in German, "
             "addressing the learner with Sie. kind is the format in English. words is the target length "
-            "(B1 40-80, B2 100-150, C1 200-250); minutes is the exam time for it.")
+            "(A1 about 30, A2 20-40, B1 40-80, B2 100-150, C1 200-250); minutes is the exam time for it. "
+            "At A1 and A2 keep the task and points very short and simple, like the Goethe A1/A2 papers.")
     schema = _obj({"title": S, "kind": S, "task": S, "points": _arr(S), "words": I, "minutes": I})
     return call(system, task, schema, effort="low")
 
