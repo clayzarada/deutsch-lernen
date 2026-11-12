@@ -995,3 +995,15 @@ mark.w-err sup { font-size: 10px; font-weight: 700; color: var(--bad); margin-le
 .flash-hint .a { display: none; }
 .flash-hint.shown { border-style: solid; border-color: var(--gold); color: var(--text); background: var(--gold-soft); }
 .flash-hint.shown .q { display: none; } .flash-hint.shown .a { display: inline; }
+
+/* update notice */
+.update-banner { display: flex; align-items: flex-start; gap: 14px; margin: 16px 24px 0; padding: 14px 16px;
+  background: var(--gold-soft); border: 1px solid var(--gold); border-radius: var(--r); color: var(--text); }
+.update-banner > .icon { flex: none; width: 20px; height: 20px; margin-top: 2px; color: var(--gold); }
+.update-banner p { margin: 2px 0 0; }
+.update-banner details { margin-top: 6px; }
+.update-banner ul { margin: 6px 0 0; padding-left: 18px; }
+.update-banner .button, .update-banner button { flex: none; }
+.update-banner .button { display: inline-flex; align-items: center; text-decoration: none; }
+.about-update { align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px !important; }
+@media (max-width: 700px) { .update-banner { flex-wrap: wrap; margin: 12px; } }

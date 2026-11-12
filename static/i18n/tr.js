@@ -16,6 +16,17 @@ for (const [en, tr] of Object.entries(KINDS)) {
 export default {
   ...kindEntries,
 
+  // ---------- update notice ----------
+  'Version {} is available': '{1} sürümü çıktı',
+  'Version {} is available.': '{1} sürümü çıktı.',
+  'You have {}. Your progress, cards and keys are kept when you update.': 'Sizdeki sürüm: {1}. Güncellediğinizde ilerlemeniz, kartlarınız ve anahtarlarınız korunur.',
+  "What's new": 'Yenilikler',
+  'Download update': 'Güncellemeyi indir',
+  'Later': 'Sonra',
+  'Check for updates': 'Güncellemeleri denetle',
+  "Couldn't reach the update server. Check your internet connection.": 'Güncelleme sunucusuna ulaşılamadı. İnternet bağlantınızı kontrol edin.',
+  'You have the newest version ({}).': 'En yeni sürüm sizde ({1}).',
+
   // ---------- credits ----------
   'About': 'Hakkında',
   'Made by': 'Yapımcı:',

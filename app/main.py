@@ -10,7 +10,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import ai, anki, backup, course, db, decl, mistakelink, pdfs, planner, srs, tts, usage, writing
+from . import ai, anki, backup, course, db, decl, mistakelink, pdfs, planner, srs, tts, update, usage, writing
 from .version import AUTHOR, COPYRIGHT, OWNER, VERSION, WEBSITE
 from .i18n import localize
 
@@ -92,6 +92,12 @@ def _write_env_key(name, key):
 @app.get("/api/version")
 def get_version():
     return {"version": VERSION}
+
+
+@app.get("/api/update")
+def get_update(force: bool = False):
+    """Is a newer release out? Checked at most once a day unless force=true (the Settings button)."""
+    return update.status(force)
 
 
 @app.get("/api/settings")
