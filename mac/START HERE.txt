@@ -1,0 +1,29 @@
+DEUTSCH LERNEN FOR MAC
+======================
+
+Your own copy of the German study app. It starts fresh: your own books, progress, flashcards and settings.
+
+INSTALL (about 5-10 minutes, once)
+
+ 1. Python: the app needs Python 3.10 or newer. If you don't have it, the installer opens the download page
+    for you: get the macOS installer from python.org, install it, then do step 2 again.
+
+ 2. Double-click "build_mac.command" in this folder.
+    If macOS says it can't be opened because it's from an unidentified developer: right-click it, choose
+    Open, then Open again.
+    A Terminal window shows the progress. When it says "Done!", the app opens by itself.
+
+ 3. Drag "Deutsch lernen" from your Applications folder to the Dock.
+
+ If anything goes wrong: open this folder in Claude Code and say "Build and install this app". The notes in
+ CLAUDE.md tell it exactly what to do, so it won't need long.
+
+FIRST STEPS IN THE APP
+
+ - Settings: set your level, daily minutes and goal. The API keys are already filled in.
+ - Library: import a textbook PDF. Some free Goethe practice exams are in the "Goethe practice exams" folder.
+ - Today: press "Plan my day".
+ - Declensions: start the journey on the first planet.
+
+Your data is kept in ~/Library/Application Support/Deutsch lernen. Reinstalling or updating the app never
+deletes it. You can delete this folder once the app is installed.

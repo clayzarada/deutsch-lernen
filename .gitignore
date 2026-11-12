@@ -1,0 +1,14 @@
+# your own data and keys: never commit
+.env
+keys.env
+data/
+downloads/
+# environments and build output
+.venv/
+.build-venv/
+.build-venv-win/
+build/
+dist/
+*.spec
+__pycache__/
+*.zip

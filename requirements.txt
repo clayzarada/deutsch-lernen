@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-multipart
+python-dotenv
+anthropic
+pymupdf
+genanki
+psutil
+google-genai>=2.25.0

@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deutsch lernen</title>
+<link rel="icon" href="/static/icon.png">
+<script>
+  // Pick light/dark before anything draws: the saved choice, else the system setting.
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem('theme'); } catch (e) { /* storage unavailable */ }
+    var dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  })();
+</script>
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/vendor/pdf.min.js"></script>
+</head>
+<body>
+<nav id="nav">
+  <div class="brand"><span class="flag"><i></i><i></i><i></i></span>Deutsch <em>lernen</em></div>
+  <a data-view="today" data-icon="today"><span>Today</span></a>
+  <a data-view="coach" data-icon="coach"><span>Coach</span></a>
+  <p class="nav-label">Read</p>
+  <a data-view="library" data-icon="library"><span>Library</span></a>
+  <a data-view="reader" data-icon="reader"><span>Reader</span></a>
+  <p class="nav-label">Practise</p>
+  <a data-view="practice" data-icon="practice"><span>Practice</span></a>
+  <a data-view="decl" data-icon="rocket"><span>Declensions</span></a>
+  <a data-view="writing" data-icon="edit"><span>Writing</span></a>
+  <a data-view="cards" data-icon="cards"><span>Flashcards</span><b class="badge hidden"></b></a>
+  <a data-view="listening" data-icon="headphones"><span>Listening</span></a>
+  <a data-view="mistakes" data-icon="mistake"><span>Mistakes</span></a>
+  <p class="nav-label">More</p>
+  <a data-view="resources" data-icon="resources"><span>Resources</span></a>
+  <div class="nav-foot">
+    <div class="row nav-tools"><div id="nav-streak" class="streak grow"></div>
+      <button id="theme-toggle" class="icon-btn" title="Switch day / night mode"></button></div>
+    <a data-view="settings" data-icon="settings"><span>Settings</span></a>
+    <a id="nav-ai" class="ai-status" data-go="settings"></a>
+    <p id="nav-version" class="nav-version" title="App version"></p>
+  </div>
+</nav>
+
+<main>
+  <!-- TODAY -->
+  <section id="view-today" class="view hidden">
+    <header class="page-head">
+      <div><p class="eyebrow" id="today-date"></p><h1 id="today-greeting">Hallo!</h1></div>
+    </header>
+    <div id="setup"></div>
+    <div id="stat-tiles" class="tiles"></div>
+    <div class="today-grid">
+      <div class="panel plan-panel">
+        <div class="panel-head">
+          <div><h2>Today's plan</h2><p class="muted small" id="plan-meta">Your coach builds a session from your progress, weak spots and flashcards.</p></div>
+        </div>
+        <form id="plan-form" class="plan-form">
+          <label class="inline-field" data-icon="clock" title="Time available"><input id="plan-minutes" type="number" min="10" max="300"><span>min</span></label>
+          <input id="plan-note" placeholder="Anything special today? e.g. tired, exam Friday, want more speaking">
+          <button type="submit" data-icon="sparkles"><span>Plan my day</span></button>
+        </form>
+        <div id="plan"></div>
+      </div>
+      <div class="side-stack">
+        <div id="today-journey"></div>
+        <div class="panel"><h2>This week</h2><div id="week-chart" class="week-chart"></div></div>
+        <div class="panel"><h2>Last 12 weeks</h2><div id="today-cal"></div></div>
+        <div class="panel"><h2>Weak spots</h2><p class="muted small">Topics you get wrong most (last 30 days)</p><div id="weak-topics"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIBRARY -->
+  <section id="view-library" class="view hidden">
+    <header class="page-head">
+      <div><p class="eyebrow">Your textbooks</p><h1>Library</h1></div>
+      <label class="button" data-icon="upload"><span>Import document</span><input id="pdf-input" type="file" accept=".pdf,.html,.htm,.md,.txt" multiple hidden></label>
+    </header>
+    <div id="book-list" class="book-grid"></div>
+    <p class="muted small center drop-hint">Drag files onto this page to import them. PDFs work best; HTML, Markdown and text files (like a Google Takeout export from Gemini Notebook) are turned into PDFs.</p>
+  </section>
+
+  <!-- READER -->
+  <section id="view-reader" class="view hidden">
+    <div class="reader-toolbar">
+      <div class="tb-group">
+        <select id="r-book" title="Book"></select>
+        <select id="r-chapter" title="Jump to chapter"></select>
+      </div>
+      <div class="tb-group pager">
+        <button id="r-prev" class="icon-btn" title="Previous page (←)" data-icon="left"></button>
+        <input id="r-page" type="number" min="1"><span class="muted">of <span id="r-count">0</span></span>
+        <button id="r-next" class="icon-btn" title="Next page (→)" data-icon="right"></button>
+      </div>
+      <div class="tb-group segmented" id="r-tools">
+        <button data-tool="select" data-icon="select" title="Read (R): select words to look them up"><span>Read</span></button>
+        <button data-tool="text" data-icon="text" title="Type (T): click on the page to type an answer"><span>Type</span></button>
+        <button data-tool="pen" data-icon="pen" title="Pen (P): write by hand with mouse, touch or stylus"><span>Pen</span></button>
+        <button data-tool="highlight" data-icon="highlight" title="Highlighter (H)"><span>Mark</span></button>
+        <button data-tool="erase" data-icon="erase" title="Eraser (E): click writing to delete it"><span>Erase</span></button>
+      </div>
+      <div class="tb-group swatches" id="r-swatches" title="Ink colour"></div>
+      <div class="tb-group">
+        <button id="r-zoom-out" class="icon-btn" title="Zoom out" data-icon="minus"></button>
+        <span id="r-zoom" class="zoom-label">100%</span>
+        <button id="r-zoom-in" class="icon-btn" title="Zoom in" data-icon="plus"></button>
+        <button id="r-fit" class="icon-btn" title="Fit to width" data-icon="fit"></button>
+      </div>
+      <div class="tb-group tb-end">
+        <span id="r-status" class="save-status"></span>
+        <button id="r-export" class="icon-btn" title="Download this PDF with your answers written in" data-icon="download"></button>
+        <button id="r-side-toggle" class="icon-btn" title="Show or hide the side panel" data-icon="panel"></button>
+      </div>
+    </div>
+    <div class="reader-body" id="r-body">
+      <div id="r-scroll" class="reader-scroll">
+        <div id="r-empty" class="hidden"></div>
+        <div id="r-pagewrap" class="pagewrap tool-select">
+          <canvas id="r-canvas"></canvas>
+          <div id="r-text" class="textLayer"></div>
+          <div id="r-annot" class="annot-layer"><svg id="r-ink" xmlns="http://www.w3.org/2000/svg"></svg></div>
+        </div>
+      </div>
+      <aside class="reader-side">
+        <section class="side-card">
+          <h3 data-icon="check"><span>Check my work</span></h3>
+          <p class="muted small">Write your answers on the page with <b>Type</b> or <b>Pen</b>, then let the AI mark them.</p>
+          <button id="r-check" class="wide" data-icon="sparkles"><span>Check this page</span></button>
+          <div id="r-check-out"></div>
+        </section>
+        <section class="side-card">
+          <h3 data-icon="select"><span>Assistant</span></h3>
+          <div id="r-assist"><p class="muted small">In <b>Read</b> mode, double-click a word or select a sentence to look it up, get it explained, or turn it into a flashcard.</p></div>
+        </section>
+        <section class="side-card">
+          <h3 data-icon="book"><span>This chapter</span></h3>
+          <div id="r-chap-info"></div>
+          <div class="row wrap"><button id="r-gen-ex" class="ghost small" data-icon="practice"><span>Practice set</span></button><button id="r-gen-cards" class="ghost small" data-icon="cards"><span>Flashcards</span></button>
+            <button id="r-gen-audio" class="ghost small" data-icon="headphones"><span>Listening</span></button><button id="r-notebook" class="ghost small" data-icon="sparkles"><span>Gemini Notebook</span></button></div>
+        </section>
+      </aside>
+    </div>
+    <div id="sel-pop" class="sel-pop hidden">
+      <button data-act="hear">Hear it</button><button data-act="lookup">Look up</button><button data-act="explain">Explain</button><button data-act="card">Make card</button>
+    </div>
+  </section>
+
+  <!-- PRACTICE -->
+  <section id="view-practice" class="view hidden">
+    <header class="page-head"><div><p class="eyebrow">AI-written exercises per chapter</p><h1>Practice</h1></div></header>
+    <div id="ptab-sets" class="split">
+      <div class="side-col">
+        <div class="panel">
+          <h2>New practice set</h2>
+          <label>Chapter<select id="p-chapter"></select></label>
+          <div class="row">
+            <label class="grow">Focus (optional)<input id="p-focus" placeholder="e.g. dative, Perfekt"></label>
+            <label>Count<input id="p-count" type="number" value="15" min="3" max="40" class="w-num"></label>
+          </div>
+          <button id="p-generate" class="wide" data-icon="sparkles"><span>Generate exercises</span></button>
+        </div>
+        <div class="panel"><h2>Your sets</h2><div id="p-sets"></div></div>
+      </div>
+      <div class="panel main-col" id="p-set"></div>
+    </div>
+  </section>
+
+  <!-- DECLENSIONS -->
+  <section id="view-decl" class="view hidden">
+    <header class="page-head">
+      <div><p class="eyebrow">Mission: master the endings</p><h1>Declensions</h1></div>
+      <div class="tabs" id="dv-tabs"><button data-dv="journey">Journey</button><button data-dv="free">Free practice</button></div>
+    </header>
+    <div id="dv-journey"></div>
+    <div id="dv-free" class="split hidden">
+      <div class="side-col" id="dc-side"></div>
+      <div class="main-col">
+        <div class="dc-bar">
+          <div class="tabs" id="dc-sub"><button data-sub="drill">Drill</button><button data-sub="tables">Tables</button></div>
+          <button id="dc-sprint" class="ghost" data-icon="clock"><span>60-second sprint</span></button>
+        </div>
+        <div id="dc-main"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WRITING -->
+  <section id="view-writing" class="view hidden">
+    <header class="page-head"><div><p class="eyebrow">Marked like the Goethe writing paper</p><h1>Writing</h1></div></header>
+    <div class="split">
+      <div class="side-col" id="w-side"></div>
+      <div class="panel main-col w-main" id="w-main"></div>
+    </div>
+  </section>
+
+  <!-- FLASHCARDS -->
+  <section id="view-cards" class="view hidden">
+    <header class="page-head">
+      <div><p class="eyebrow">Spaced repetition</p><h1>Flashcards</h1></div>
+      <div class="tabs"><button data-tab="review">Review</button><button data-tab="browse">Browse &amp; create</button><button data-tab="anki">Anki</button></div>
+    </header>
+    <div id="tab-review" class="tab">
+      <div class="review-bar">
+        <label class="inline-select">Review<select id="rv-scope"></select></label>
+        <div id="rv-mode"></div>
+      </div>
+      <div id="review-box"></div>
+      <p class="muted small center keys" id="rv-keys">
+        <kbd>Space</kbd> show answer &nbsp; <kbd>1</kbd> Again &nbsp; <kbd>2</kbd> Hard &nbsp; <kbd>3</kbd> Good &nbsp; <kbd>4</kbd> Easy</p>
+      <div id="rv-stats"></div>
+    </div>
+    <div id="tab-browse" class="tab hidden">
+      <div class="panel">
+        <div class="row wrap">
+          <select id="cb-scope"></select>
+          <input id="cb-search" type="search" placeholder="Search cards" class="grow">
+        </div>
+        <div class="gen-row">
+          <span class="muted small">Generate from the selected chapter</span>
+          <input id="cb-focus" placeholder="Focus (optional)" class="grow">
+          <input id="cb-count" type="number" value="25" min="5" max="60" class="w-num" title="How many cards">
+          <button id="cb-generate" data-icon="sparkles"><span>Generate cards</span></button>
+        </div>
+        <details class="add-card"><summary>Add a card by hand</summary><div id="cb-new"></div></details>
+      </div>
+      <div id="cb-list"></div>
+    </div>
+    <div id="tab-anki" class="tab hidden">
+      <div class="panel narrow">
+        <h2>Export to Anki</h2>
+        <label>Which cards<select id="anki-scope"></select></label>
+        <div class="row wrap">
+          <button id="anki-download" data-icon="download"><span>Download .apkg file</span></button>
+          <button id="anki-push" class="ghost" data-icon="send"><span>Send straight to Anki</span></button>
+        </div>
+        <div class="help">
+          <p><b>.apkg file:</b> double-click the downloaded file and Anki imports it. Decks are named <i>German::Book::Chapter</i>. Exporting again updates cards instead of duplicating them.</p>
+          <p><b>Send straight to Anki:</b> needs Anki open with the AnkiConnect add-on (Tools → Add-ons → Get Add-ons → code <code>2055492159</code>).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LISTENING -->
+  <section id="view-listening" class="view hidden">
+    <header class="page-head">
+      <div><p class="eyebrow">Audio made from your chapters</p><h1>Listening</h1></div>
+      <button id="l-import" class="ghost" data-icon="upload"><span>Add audio file</span></button>
+    </header>
+    <div class="split">
+      <div class="side-col">
+        <div class="panel">
+          <h2>New episode</h2>
+          <label>Chapter<select id="l-chapter"></select></label>
+          <div class="field-label">Style</div>
+          <div class="choice" id="l-style">
+            <label class="opt-btn"><input type="radio" name="l-style" value="dialogue" checked><span>Dialogue</span></label>
+            <label class="opt-btn"><input type="radio" name="l-style" value="podcast"><span>Podcast</span></label>
+            <label class="opt-btn"><input type="radio" name="l-style" value="story"><span>Story</span></label>
+          </div>
+          <div class="row">
+            <label class="grow">Focus (optional)<input id="l-focus" placeholder="e.g. ordering food"></label>
+            <label>Length<select id="l-minutes"><option value="2">2 min</option><option value="3" selected>3 min</option><option value="5">5 min</option><option value="8">8 min</option></select></label>
+          </div>
+          <button id="l-generate" class="wide" data-icon="sparkles"><span>Make episode</span></button>
+          <p class="muted small hint">Claude writes a script from the chapter at your level; Google Gemini voices it.</p>
+        </div>
+        <div class="panel"><h2>Your audio</h2><div id="l-list"></div></div>
+      </div>
+      <div class="panel main-col" id="l-player"></div>
+    </div>
+  </section>
+
+  <!-- MISTAKE BOOK -->
+  <section id="view-mistakes" class="view hidden">
+    <header class="page-head">
+      <div><p class="eyebrow">Fehlerheft: every mistake in one place</p><h1>Mistake Book</h1></div>
+      <div class="tabs" id="mk-status"><button data-status="open">To learn</button><button data-status="learned">Learned</button></div>
+    </header>
+    <div class="split">
+      <div class="side-col">
+        <div class="panel"><h2>Topics</h2><div id="mk-topics"></div></div>
+        <div class="panel">
+          <h2>How it works</h2>
+          <p class="muted small">Wrong answers from practice sets and checked textbook pages land here automatically. When you make the same mistake again it's counted, so the top of the list shows your real weak spots.</p>
+          <p class="muted small">Select mistakes, then <b>Drill them</b> for fresh exercises on the same rules, or turn them into flashcards. Mark them <b>Learned</b> once they stop happening.</p>
+        </div>
+      </div>
+      <div class="main-col">
+        <div class="mk-bar" id="mk-bar"></div>
+        <div id="mk-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COACH -->
+  <section id="view-coach" class="view hidden">
+    <header class="page-head">
+      <div><p class="eyebrow">Sees all your progress</p><h1>Coach</h1></div>
+      <button id="coach-clear" class="ghost" data-icon="trash"><span>Clear chat</span></button>
+    </header>
+    <div class="coach-wrap">
+      <details class="panel progress-panel" open><summary>Your progress</summary><div id="coach-progress"></div></details>
+      <div id="coach-log" class="chat"></div>
+      <form id="coach-form" class="chat-form">
+        <textarea id="coach-input" rows="1" placeholder="Ask about your progress, what to focus on, a video for this week's grammar..."></textarea>
+        <button type="submit" class="icon-btn send" data-icon="send" title="Send"></button>
+      </form>
+      <details class="panel notes">
+        <summary>What the coach remembers about you</summary>
+        <p class="muted small">Updated each time the coach plans your day. You can edit it.</p>
+        <textarea id="coach-notes" rows="6"></textarea>
+        <button id="coach-notes-save" class="ghost">Save notes</button>
+      </details>
+    </div>
+  </section>
+
+  <!-- RESOURCES -->
+  <section id="view-resources" class="view hidden">
+    <header class="page-head"><div><p class="eyebrow">Used by the coach for outside practice</p><h1>Resources</h1></div></header>
+    <form id="res-form" class="panel res-form">
+      <input id="res-title" placeholder="Name, e.g. Easy German" required>
+      <input id="res-url" placeholder="Link (optional)">
+      <select id="res-kind"><option value="video">Video</option><option value="podcast">Podcast</option><option value="course">Course</option><option value="reading">Reading</option><option value="app">App</option><option value="speaking">Speaking</option><option value="other">Other</option></select>
+      <input id="res-notes" placeholder="Notes: level, what it's good for">
+      <button type="submit" data-icon="plus"><span>Add</span></button>
+    </form>
+    <div id="res-list" class="res-grid"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="view-settings" class="view hidden">
+    <header class="page-head"><div><p class="eyebrow">Preferences</p><h1>Settings</h1></div></header>
+    <form id="settings-form" class="settings">
+      <div class="panel">
+        <h2>Claude API</h2>
+        <label><span>API key <span id="key-state"></span></span>
+          <input id="s-key" type="password" autocomplete="off" placeholder="Paste your key from console.anthropic.com"></label>
+        <p class="muted small">Stored only on this computer, in the <code>.env</code> file in the app folder.</p>
+        <div class="two">
+          <label>Model<select id="s-model">
+            <option value="claude-opus-5-5">Opus 5.5 · best quality</option>
+            <option value="claude-sonnet-5-5">Sonnet 5.5 · about half the cost</option>
+            <option value="claude-haiku-5-5">Haiku 5.5 · cheapest</option>
+          </select></label>
+          <label>Thinking effort<select id="s-effort"><option value="low">Low · fastest</option><option value="medium">Medium</option><option value="high">High · most careful</option></select></label>
+        </div>
+        <label class="check"><input id="s-web" type="checkbox"> Let the coach search the web for real videos and articles</label>
+      </div>
+      <div class="panel">
+        <h2>Google Gemini <span class="muted small">(listening episodes and pronunciation)</span></h2>
+        <label><span>Gemini API key <span id="gkey-state"></span></span>
+          <input id="s-gkey" type="password" autocomplete="off" placeholder="Paste your key from aistudio.google.com/apikey"></label>
+        <p class="muted small">Free to create at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>. Stored only in the <code>.env</code> file, like the Claude key.</p>
+        <div class="two">
+          <label>Voice model<select id="s-tts-model">
+            <option value="gemini-3.8-flash-tts">Gemini 3.8 Flash TTS · best</option>
+            <option value="gemini-3.8-flash-lite-tts">Gemini 3.8 Flash-Lite TTS · cheaper</option>
+          </select></label>
+          <span></span>
+          <label>Voice 1<select id="s-voice-a"></select></label>
+          <label>Voice 2<select id="s-voice-b"></select></label>
+        </div>
+        <button type="button" id="s-voice-test" class="ghost small" data-icon="volume"><span>Test voice 1</span></button>
+      </div>
+      <div class="panel">
+        <h2>About you</h2>
+        <div class="two">
+          <label>App language<select id="s-ui-lang"><option value="en">English</option><option value="tr">Türkçe</option></select></label>
+          <span></span>
+          <label>Level<select id="s-level"><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select></label>
+          <label>Native language<input id="s-native"></label>
+          <label>Usual minutes per day<input id="s-minutes" type="number" min="10" max="300"></label>
+          <label>New flashcards per day<input id="s-newcards" type="number" min="0" max="200"></label>
+        </div>
+        <label>Goal<input id="s-goal" placeholder="e.g. pass Goethe B1, move to Berlin, read novels"></label>
+        <label>Exam or deadline (optional)<input id="s-exam" type="date"></label>
+      </div>
+      <div class="panel">
+        <h2>AI costs</h2>
+        <div id="usage-box"></div>
+        <div class="two"><label>Monthly budget in US$ (optional)<input id="s-budget" type="number" min="0" step="0.5" placeholder="No limit"></label>
+          <p class="muted small budget-note">When this month's estimated spending reaches the budget, Claude features pause until the 1st. Save settings to apply.</p></div>
+      </div>
+      <div class="panel">
+        <h2>Backups</h2>
+        <p class="muted small">The app backs up your progress automatically once a day and keeps the last 14. Restoring first backs up what you have now, so it can be undone.</p>
+        <div id="backup-box"></div>
+      </div>
+      <div class="row"><button type="submit" data-icon="check"><span>Save settings</span></button><button type="button" id="s-remove-key" class="ghost">Remove API key</button></div>
+    </form>
+  </section>
+</main>
+
+<dialog id="modal" class="modal"></dialog>
+<dialog id="chapter-dialog" class="modal wide-modal">
+  <h2>Chapters</h2>
+  <p class="muted small">Used for practice sets, flashcards and planning. Use PDF page numbers (the ones in the reader), not the printed ones.</p>
+  <div class="ch-table"><div class="ch-head"><span>Title</span><span>From</span><span>To</span><span></span></div><div id="ch-rows"></div></div>
+  <div class="modal-actions spread">
+    <button id="ch-add" class="ghost" data-icon="plus"><span>Add chapter</span></button>
+    <div class="row"><button id="ch-cancel" class="ghost">Cancel</button><button id="ch-save">Save chapters</button></div>
+  </div>
+</dialog>
+<dialog id="nb-dialog" class="modal wide-modal">
+  <div class="row nb-head"><span class="nb-logo" data-icon="sparkles"></span><h2 class="grow">Gemini Notebook</h2><button id="nb-close" class="icon-btn" data-icon="x" title="Close"></button></div>
+  <label>Chapter<select id="nb-chapter"></select></label>
+  <div class="nb-steps">
+    <section>
+      <h3><b>1</b>Send the chapter</h3>
+      <p class="muted small">Download the chapter, then in Gemini Notebook create a notebook and add the PDF as a source.</p>
+      <div class="row wrap"><button id="nb-pdf" data-icon="download"><span>Download chapter PDF</span></button>
+        <a class="button ghost-link" href="https://notebooklm.google.com" target="_blank" rel="noopener" data-icon="external"><span>Open Gemini Notebook</span></a></div>
+    </section>
+    <section>
+      <h3><b>2</b>Ask it for study material</h3>
+      <p class="muted small">Copy a prompt into Gemini Notebook's chat, or into the "Customize" box of an Audio Overview.</p>
+      <div id="nb-prompts"></div>
+    </section>
+    <section>
+      <h3><b>3</b>Bring the results back</h3>
+      <div class="choice" id="nb-kind">
+        <label class="opt-btn"><input type="radio" name="nb-kind" value="cards" checked><span>Flashcards</span></label>
+        <label class="opt-btn"><input type="radio" name="nb-kind" value="exercises"><span>Practice questions</span></label>
+        <label class="opt-btn"><input type="radio" name="nb-kind" value="audio"><span>Audio</span></label>
+      </div>
+      <p id="nb-kind-help" class="muted small"></p>
+      <textarea id="nb-text" rows="6" placeholder="Paste what Gemini Notebook gave you"></textarea>
+      <div class="row wrap">
+        <label class="file-pick" data-icon="upload"><span id="nb-file-name">Or choose a file</span><input id="nb-file" type="file" hidden></label>
+        <input id="nb-title" class="grow" placeholder="Title (optional)">
+        <button id="nb-import" data-icon="check"><span>Import</span></button>
+      </div>
+      <div id="nb-result"></div>
+    </section>
+  </div>
+</dialog>
+<div id="toast"></div>
+<script type="module" src="/static/js/main.js"></script>
+</body>
+</html>
