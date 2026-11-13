@@ -11,12 +11,16 @@ Installing depends on how the app was installed:
   (Files the app downloads itself don't get Windows' "from the internet" mark, so the new version starts fast.)
 - "git": a copy run from its source folder that is a git checkout (the owner's own copy). The new code is pulled
   from GitHub; the learner reopens the app to load it.
-- "manual": anything else (the Mac app is built on the Mac). The banner links to the download page instead.
+- "mac": the Mac app. GitHub builds a ready-made app for every release (.github/workflows/mac-app.yml); it is
+  downloaded and unpacked next to the learner's data, then a small helper script waits for the app to quit, swaps
+  the new app into place and opens it. Data lives in ~/Library/Application Support/Deutsch lernen, never touched.
+- "manual": anything else. The banner links to the download page instead.
 """
 import datetime as dt
 import hashlib
 import json
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -36,6 +40,7 @@ REPO = "clayzarada/deutsch-lernen"
 API = os.environ.get("GERMANSTUDY_UPDATE_API") or f"https://api.github.com/repos/{REPO}/releases/latest"
 DOWNLOAD_PAGE = "https://zaradaholdingsgroup.com/lab/"
 WINDOWS_ASSET = "Deutsch-lernen-Windows.zip"
+MAC_ASSET = f"Deutsch-lernen-Mac-app-{'arm64' if platform.machine() == 'arm64' else 'x86_64'}.zip"
 CHECK_EVERY = dt.timedelta(hours=24)
 TIMEOUT_S = 4
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -62,7 +67,7 @@ def _fetch():
 
 def install_kind():
     if getattr(sys, "frozen", False):
-        return "windows" if sys.platform == "win32" else "manual"
+        return {"win32": "windows", "darwin": "mac"}.get(sys.platform, "manual")
     if (ROOT / ".git").exists() and shutil.which("git"):
         return "git"
     return "manual"
@@ -89,7 +94,8 @@ def status(force=False):
         return {"current": VERSION, "ok": False}
     latest = cached["tag"].lstrip("v")
     kind = install_kind()
-    can = kind == "git" or (kind == "windows" and WINDOWS_ASSET in cached.get("assets", {}))
+    assets = cached.get("assets", {})
+    can = kind == "git" or (kind == "windows" and WINDOWS_ASSET in assets) or (kind == "mac" and MAC_ASSET in assets)
     return {"current": VERSION, "ok": True, "latest": latest, "newer": _parse(latest) > _parse(VERSION),
             "notes": cached["notes"], "published": cached["published"], "download": DOWNLOAD_PAGE,
             "checked_at": cached["checked_at"], "install": kind if can else "manual"}
@@ -122,8 +128,8 @@ def start_install():
         if kind == "manual":
             _set(stage="error", message="This copy can't update itself. Download the new version instead.")
             return progress()
-        _set(stage="downloading" if kind == "windows" else "pulling", pct=0, latest=u["latest"])
-    target = _install_windows if kind == "windows" else _install_git
+        _set(stage="pulling" if kind == "git" else "downloading", pct=0, latest=u["latest"])
+    target = {"windows": _install_windows, "mac": _install_mac}.get(kind, _install_git)
     threading.Thread(target=target, args=(u["latest"],), daemon=True).start()
     return progress()
 
@@ -153,6 +159,40 @@ def _install_windows(latest):
         with zipfile.ZipFile(zpath) as z:
             z.extractall(staging)
         if not (staging / "Deutsch lernen" / "Deutsch lernen.exe").exists():
+            raise RuntimeError("the download doesn't contain the app")
+        zpath.unlink()
+        _set(stage="ready", latest=latest, message=f"Version {latest} is ready. The app restarts to finish.")
+    except Exception as e:
+        print("update failed:", repr(e))
+        _set(stage="error", message=f"The update couldn't be downloaded ({e}). Try again later, or download it from the website.")
+
+
+def _download(asset, work):
+    cache = json.loads(db.get_settings().get("update_cache") or "{}")
+    url = cache["assets"][asset]
+    shutil.rmtree(work, ignore_errors=True)
+    work.mkdir(parents=True)
+    zpath = work / asset
+    with _get(url, timeout=30) as r, open(zpath, "wb") as f:
+        total = int(r.headers.get("Content-Length") or 0)
+        done = 0
+        while chunk := r.read(1 << 16):
+            f.write(chunk)
+            done += len(chunk)
+            if total:
+                JOB["pct"] = round(100 * done / total)
+    JOB.update(stage="unpacking", pct=100)
+    return zpath
+
+
+def _install_mac(latest):
+    try:
+        work = _work_dir()
+        zpath = _download(MAC_ASSET, work)
+        staging = work / "staging"
+        # ditto keeps the app's symlinks and permissions, which Python's zipfile would lose
+        r = subprocess.run(["ditto", "-x", "-k", str(zpath), str(staging)], capture_output=True, text=True, timeout=300)
+        if r.returncode or not (staging / "Deutsch lernen.app" / "Contents" / "MacOS").exists():
             raise RuntimeError("the download doesn't contain the app")
         zpath.unlink()
         _set(stage="ready", latest=latest, message=f"Version {latest} is ready. The app restarts to finish.")
@@ -196,10 +236,49 @@ rmdir /s /q "{work}"
 """
 
 
+MAC_HELPER = """#!/bin/sh
+# Deutsch lernen updater: waits for the app to quit, swaps in the new version, opens it again.
+while kill -0 {pid} 2>/dev/null; do sleep 1; done
+xattr -dr com.apple.quarantine "{new}" 2>/dev/null
+rm -rf "{app}.old"
+if mv "{app}" "{app}.old" && ditto "{new}" "{app}"; then
+  rm -rf "{app}.old"
+else
+  echo "update: couldn't replace the app" >> "{log}"
+  rm -rf "{app}"; mv "{app}.old" "{app}"
+fi
+open "{app}"
+rm -rf "{work}"
+"""
+
+
+def mac_app_path():
+    """…/Deutsch lernen.app, from …/Deutsch lernen.app/Contents/MacOS/Deutsch lernen."""
+    return Path(sys.executable).resolve().parents[2]
+
+
+def _restart_mac():
+    work = _work_dir()
+    helper = work.parent / "finish-update.sh"
+    helper.write_text(MAC_HELPER.format(pid=os.getpid(), app=mac_app_path(), new=work / "staging" / "Deutsch lernen.app",
+                                        log=work.parent / "app.log", work=work), encoding="utf-8")
+    subprocess.Popen(["/bin/sh", str(helper)], start_new_session=True, close_fds=True, cwd=str(work.parent),
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    _set(stage="restarting")
+
+    def quit_soon():
+        time.sleep(1.5)  # let the page get its answer first
+        os._exit(0)
+    threading.Thread(target=quit_soon, daemon=True).start()
+    return {"ok": True}
+
+
 def restart_to_finish():
-    """Windows app: hand over to the helper script, close the app window and quit."""
-    if JOB.get("stage") != "ready" or install_kind() != "windows":
+    """Hand over to the helper script, close the app window and quit."""
+    if JOB.get("stage") != "ready" or install_kind() not in ("windows", "mac"):
         return {"ok": False}
+    if install_kind() == "mac":
+        return _restart_mac()
     work = _work_dir()
     app_dir = Path(sys.executable).parent
     helper = work.parent / "finish-update.cmd"
