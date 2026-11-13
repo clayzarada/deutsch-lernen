@@ -1051,12 +1051,12 @@ function renderAlexMap() {
     const isHome = s.region === HOME_REGION;
     const state = isHome ? 'home' : s.complete ? 'done' : !s.unlocked ? 'locked' : (i - 1 === cur && !d.finished) ? 'current' : 'open';
     const attrs = isHome ? '' : `data-stage="${s.id}" tabindex="0" role="button" aria-label="${esc(s.title)}${s.unlocked ? '' : ' (locked)'}"`;
-    return `<g class="ar ${state}" ${attrs}><path class="ar-fill" d="${g.d}"/><path class="ar-edge" d="${g.edge}"/></g>`;
+    const tip = isHome ? '' : `<title>${esc(s.planet)}: ${esc(s.title)}${s.unlocked ? '' : ' (locked)'}</title>`;
+    return `<g class="ar ${state}" id="ar-${s.region}" ${attrs}>${tip}<path class="ar-fill" d="${g.d}"/><path class="ar-edge" d="${g.edge}"/></g>`;
   }).join('');
   const labels = d.stages.map(s => {
-    if (!s.unlocked) return '';
     const [x, y] = at(s.region), [nx, ny] = LABEL_NUDGE[s.region] || [0, 0];
-    return `<g class="ar-label ${s.complete ? 'done' : ''}" transform="translate(${x + nx},${y + ny})"><text class="ar-name">${esc(s.planet)}</text>
+    return `<g class="ar-label ${s.complete ? 'done' : ''} ${s.unlocked ? '' : 'locked'}" transform="translate(${x + nx},${y + ny})"><text class="ar-name">${esc(s.planet)}</text>
       <text class="ar-tense" y="13">${esc(s.title)}</text>${s.complete ? `<text class="ar-stars" y="25">${starsText(s.stars)}</text>` : ''}</g>`;
   }).join('');
   const kpos = i => { const [x, y] = i < 0 ? at(HOME_REGION) : at(d.stages[i].region); return [x - 30, y - 34]; };
@@ -1075,13 +1075,23 @@ function renderAlexMap() {
       <rect class="ar-sea" width="${M.w}" height="${M.h}"/>
       <path class="ar-grat" d="${M.graticule}"/><path class="ar-land" d="${M.land}"/><path class="ar-coast" d="${M.coast}"/>
       <g class="ar-regions">${regions}</g>
+      <use id="ar-lift" class="ar-lift" href="#ar-${HOME_REGION}"/>
       <path d="${smoothPath(route)}" class="ar-route"/>
       ${reached.length > 1 ? `<path d="${smoothPath(reached)}" class="ar-route done"/>` : ''}
       <g class="ar-labels">${labels}</g>
       <g id="dj-kitty" class="dj-kitty ar-kitty" style="transform: translate(${kx}px, ${ky}px) scale(.85)">${C.kitty()}</g>
     </svg></div>`;
-  // the hovered region comes to the front so its lifted edge isn't hidden under its neighbours
-  $$('.ar[data-stage]', jbox).forEach(g => g.addEventListener('pointerenter', () => g.parentNode.appendChild(g)));
+  // Hovering lifts a region: a raised copy is drawn above the map, so it isn't hidden under its neighbors.
+  // (Moving the region itself to the top would make the browser forget it's hovered.)
+  const lift = $('#ar-lift');
+  const raise = g => { lift.setAttribute('href', '#' + g.id); lift.classList.add('on'); };
+  const lower = () => lift.classList.remove('on');
+  $$('.ar[data-stage]', jbox).forEach(g => {
+    g.addEventListener('pointerenter', () => raise(g));
+    g.addEventListener('pointerleave', lower);
+    g.addEventListener('focus', () => raise(g));
+    g.addEventListener('blur', lower);
+  });
   if (lastIdx !== cur) {
     const [nx, ny] = kpos(cur);
     setTimeout(() => { const k = $('#dj-kitty'); if (k) { k.classList.add('flying'); k.style.transform = `translate(${nx}px, ${ny}px) scale(.85)`; } }, 350);

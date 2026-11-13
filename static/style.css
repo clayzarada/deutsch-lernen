@@ -1077,8 +1077,10 @@ mark.w-err sup { font-size: 10px; font-weight: 700; color: var(--bad); margin-le
 .ar.current .ar-edge { stroke: var(--ar-done); stroke-width: 1.6; }
 @keyframes ar-pulse { 0%, 100% { fill: color-mix(in srgb, var(--ar-done) 30%, var(--ar-open)); } 50% { fill: color-mix(in srgb, var(--ar-done) 75%, var(--ar-open)); } }
 .ar[data-stage] { cursor: pointer; }
-.ar[data-stage]:hover, .ar[data-stage]:focus-visible { transform: translateY(-6px) scale(1.012); filter: drop-shadow(0 10px 8px rgba(0, 0, 0, .35)); }
-.ar.locked[data-stage]:hover { transform: translateY(-3px); }
+.ar-lift { pointer-events: none; opacity: 0; transform-box: fill-box; transform-origin: center;
+  transition: transform .28s cubic-bezier(.2, .8, .2, 1), opacity .18s; }
+.ar-lift.on { opacity: 1; transform: translateY(-6px) scale(1.015); filter: drop-shadow(0 10px 8px rgba(0, 0, 0, .35)); }
+.ar-label.locked { opacity: .5; }
 .ar-route { fill: none; stroke: var(--ar-route); stroke-width: 1.4; stroke-dasharray: 2 6; stroke-linecap: round; opacity: .35; pointer-events: none; }
 .ar-route.done { stroke-width: 2; stroke-dasharray: none; opacity: .75; }
 .ar-labels { pointer-events: none; }

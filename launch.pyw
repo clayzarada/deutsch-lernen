@@ -38,6 +38,19 @@ def error(msg):
     ctypes.windll.user32.MessageBoxW(None, msg, "Deutsch lernen", 0x10)
 
 
+def stop_tree(proc):
+    """Stop a process and everything it started. A venv's python.exe is a small starter that runs the real
+    interpreter as a child, so stopping only the starter could leave the server running (and holding the port)."""
+    try:
+        p = psutil.Process(proc.pid)
+        for c in p.children(recursive=True):
+            c.terminate()
+        p.terminate()
+        psutil.wait_procs([*p.children(recursive=True), p], timeout=5)
+    except psutil.Error:
+        pass
+
+
 def disk_version():
     """The version of the code in this folder (after an update, newer than a server that is still running)."""
     try:
@@ -62,8 +75,11 @@ def stop_old_server():
             try:
                 p = psutil.Process(c.pid)
                 if "app.main:app" in " ".join(p.cmdline()):
+                    parent = p.parent()
                     p.terminate()
                     p.wait(5)
+                    if parent and "app.main:app" in " ".join(parent.cmdline()):  # its venv starter, if any
+                        parent.terminate()
             except (psutil.Error, psutil.TimeoutExpired):
                 pass
     for _ in range(40):
@@ -88,7 +104,7 @@ def start_server():
                 return None
             break
         time.sleep(0.25)
-    server.kill()
+    stop_tree(server)
     error("The app couldn't start. Try double-clicking start.bat in the GermanStudy folder to see what's wrong.\n\n"
           f"Details are in {ROOT / 'data' / 'app.log'}")
     sys.exit(1)
@@ -119,7 +135,7 @@ def main():
     while window_open(profile):
         time.sleep(2)
     if server:
-        server.terminate()
+        stop_tree(server)
 
 
 def window_open(profile):
