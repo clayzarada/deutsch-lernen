@@ -1096,3 +1096,23 @@ mark.w-err sup { font-size: 10px; font-weight: 700; color: var(--bad); margin-le
 .journey-card[data-journey="verbs"] { border-color: #6b5326; background: radial-gradient(ellipse at 20% 0%, #5a4320 0%, #241a0c 70%); }
 .journey-card[data-journey="verbs"]:hover { background: radial-gradient(ellipse at 20% 0%, #6e5228 0%, #2d2010 70%); }
 .journey-card[data-journey="verbs"] small { color: #d8c08c; }
+
+/* Verbs > Free practice > Word order */
+.wo-line { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; min-height: 58px; margin: 18px 0 14px; padding: 12px 14px;
+  border: 2px dashed var(--line-strong); border-radius: var(--r); background: var(--surface-2); }
+.wo.right .wo-line { border-color: var(--ok); border-style: solid; }
+.wo.wrong .wo-line { border-color: var(--bad); border-style: solid; }
+.wo-word { font-size: 18px; font-weight: 600; padding: 6px 12px; border-radius: var(--r-sm); background: var(--accent-soft); color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+.wo-word:hover { background: var(--bad-soft); text-decoration: line-through; }
+.wo-word:disabled { text-decoration: none; cursor: default; transform: none; opacity: 1; }
+.wo-word.locked { background: var(--sunken); border-color: var(--line); color: var(--muted); }
+.wo-end { font-size: 20px; font-weight: 700; color: var(--muted); margin-left: -3px; }
+.wo-empty { flex: 1; }
+.wo-pool { display: flex; flex-wrap: wrap; gap: 8px; min-height: 46px; margin-bottom: 8px; }
+.wo-tile { display: inline-flex; align-items: center; gap: 7px; font-size: 17px; font-weight: 600; padding: 8px 14px; border-radius: var(--r-sm);
+  background: var(--surface); color: var(--text); border: 1px solid var(--line-strong); box-shadow: var(--shadow-sm); }
+.wo-tile:hover { background: var(--surface-2); border-color: var(--accent); }
+.wo-tile kbd { font-size: 10.5px; color: var(--muted); }
+.wo.right .wo-word:not(.locked) { background: var(--ok-soft); border-color: var(--ok); }
+.wo.wrong .wo-word:not(.locked) { background: var(--bad-soft); border-color: var(--bad); }

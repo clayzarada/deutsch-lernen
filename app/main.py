@@ -10,7 +10,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import ai, anki, backup, course, db, decl, mistakelink, pdfs, planner, srs, tts, update, usage, verbs, writing
+from . import ai, anki, backup, course, db, decl, mistakelink, pdfs, planner, srs, tts, update, usage, verbs, wordorder, writing
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
 from .i18n import localize
@@ -1054,6 +1054,19 @@ def verbs_stage_reading(stage_id: str, body: dict):
 def verbs_record(body: dict):
     family = body.get("family") if body.get("family") in verbs.FAMILY_LABEL else "vsent"
     return VERBS_COURSE.record(body.get("items", []), family)
+
+
+@app.get("/api/wordorder/next")
+def wordorder_next(rules: str = "", recent: str = ""):
+    """A sentence to build from word tiles. rules: comma-separated rule ids (empty = all)."""
+    return localize({**wordorder.next_sentence([r for r in rules.split(",") if r],
+                                                [int(x) for x in recent.split(",") if x.isdigit()]),
+                     "progress": wordorder.progress()})
+
+
+@app.post("/api/wordorder/check")
+def wordorder_check(body: dict):
+    return localize({**wordorder.check(body["id"], body.get("order", [])), "progress": wordorder.progress()})
 
 
 @app.post("/api/verbs/sprint")

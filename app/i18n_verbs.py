@@ -20,6 +20,21 @@ EXACT = {
         "sein, haben ve modal fiiller kendi biçimlerini kullanır; diğer her şey würde + mastar kullanabilir.",
     "werden + Partizip II + haben or sein.": "werden + Partizip II + haben veya sein.",
 
+    # ----- word order -----
+    "Verb second": "Fiil ikinci sırada", "Something else first": "Başta başka bir öğe", "Verb bracket": "Fiil parantezi",
+    "Verb last": "Fiil sonda", "Questions": "Sorular",
+    "In a statement the conjugated verb is always the second element. Details follow the order: time, manner, place.":
+        "Düz cümlede çekimli fiil her zaman ikinci öğedir. Ayrıntılar şu sırayı izler: zaman, tarz, yer.",
+    "When something other than the subject comes first, the verb stays in second place and the subject moves right behind it.":
+        "Başta özneden başka bir öğe varsa fiil ikinci sırada kalır ve özne hemen onun arkasına geçer.",
+    "With a helper verb (haben, sein, werden or a modal verb), the helper is second and the infinitive or Partizip II goes to the very end.":
+        "Yardımcı fiil varsa (haben, sein, werden veya bir modal fiil), yardımcı fiil ikinci sıradadır; mastar veya Partizip II en sona gider.",
+    "The verb is second; its prefix goes to the very end of the sentence.": "Fiil ikinci sıradadır; ön eki cümlenin en sonuna gider.",
+    "After weil, dass, wenn, ob or a question word in the middle of a sentence, the conjugated verb goes to the end.":
+        "weil, dass, wenn, ob veya cümle ortasındaki bir soru kelimesinden sonra çekimli fiil sona gider; Türkçedeki gibi.",
+    "W-questions start with the question word, then the verb. Yes/no questions start with the verb.":
+        "W-soruları soru kelimesiyle, sonra fiille başlar. Evet/hayır soruları fiille başlar.",
+
     # ----- steps -----
     "Fill in the verbs in a short text.": "Kısa bir metinde fiilleri doldurun.",
     "Pass this to unlock the next region.": "Sonraki bölgeyi açmak için bunu geçin.",

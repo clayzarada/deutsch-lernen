@@ -73,6 +73,7 @@ function useCourse(id) {
     free = makeFree();
     STATES[id] = { V, J, D, free };
   } else ({ V, J, D, free } = STATES[id]);
+  $('#dc-sub [data-sub="order"]').classList.toggle('hidden', C.id !== 'verbs');  // word order lives with the verbs
   $('#dv-eyebrow').textContent = C.eyebrow;
   $('#dv-title').textContent = C.title;
   jbox.innerHTML = '';
@@ -269,6 +270,7 @@ document.addEventListener('keydown', e => {
   if (!COURSES[S.view] || e.repeat || $('dialog[open]')) return;
   if (activeRunner && activeRunner.box.isConnected && activeRunner.box.offsetParent !== null) return activeRunner.key(e);
   if (V.tab === 'journey' && J.screen === 'step' && J.step === 'cards') cardsKey(e);
+  if (V.tab === 'free' && D.sub === 'order') orderKey(e);
 });
 
 // ================= the journey =================
@@ -720,6 +722,7 @@ function loadFree() {
 }
 
 function renderSide() {
+  if (D.sub === 'order') return renderOrderSide();
   const fams = V.state.families;
   const groups = [...new Set(fams.map(f => f.group))];
   if (D.sub === 'tables') {
@@ -743,6 +746,7 @@ function renderSide() {
 }
 
 $('#dc-side').addEventListener('click', e => {
+  if (D.sub === 'order') return;  // handled by the word order game
   const fam = e.target.closest('[data-fam]'), kase = e.target.closest('[data-case]'), table = e.target.closest('[data-table]');
   if (table) { Object.assign(D, { table: table.dataset.table, checked: null, tableVals: {} }); renderSide(); return renderFreeMain(); }
   if (fam || kase || e.target.closest('[data-smart]')) D.keys = null;
@@ -764,7 +768,8 @@ $('#dc-side').addEventListener('click', e => {
 function renderFreeMain() {
   $$('#dc-sub button').forEach(b => b.classList.toggle('active', b.dataset.sub === D.sub));
   $('#dc-sprint').classList.toggle('hidden', D.sub !== 'drill');
-  if (D.sub === 'tables') { activeRunner = null; renderTable(); } else if (D.sprint?.done) renderSprintEnd(); else free.render();
+  if (D.sub === 'tables') { activeRunner = null; renderTable(); } else if (D.sub === 'order') { activeRunner = null; renderOrder(); }
+  else if (D.sprint?.done) renderSprintEnd(); else free.render();
 }
 
 $('#dc-sub').addEventListener('click', e => {
@@ -1090,3 +1095,89 @@ function miniRegion(s, size = 84) {
   return `<svg viewBox="${x0 - pad} ${y0 - pad} ${w} ${h}" width="${size * 1.17}" height="${size}" class="dj-mini-region ${s.complete ? 'done' : ''}"><path class="ar-fill" d="${g.d}"/><path class="ar-edge" d="${g.edge}"/></svg>`;
 }
 
+// ================= word order (Verbs > Free practice > Word order) =================
+// Build the sentence by tapping word tiles in order; tap a placed tile to take it back. Keys: 1-9 place the
+// numbered tile, Backspace takes the last one back, Enter checks and moves on.
+const O = { q: null, placed: [], result: null, rules: new Set(saved('verbsWoRules', [])), recent: [], n: 0, right: 0, progress: null };
+
+async function nextOrder() {
+  const p = new URLSearchParams({ rules: [...O.rules].join(','), recent: O.recent.slice(-6).join(',') });
+  const q = await api('/wordorder/next?' + p);
+  Object.assign(O, { q, placed: [], result: null, progress: q.progress });
+  renderOrder();
+  if (V.tab === 'free' && D.sub === 'order') renderOrderSide();
+}
+
+function renderOrderSide() {
+  const prog = Object.fromEntries((O.progress || []).map(r => [r.rule, r]));
+  const rows = (O.progress || []).map(r => `<button class="dc-fam ${O.rules.has(r.rule) ? 'on' : ''}" data-worule="${r.rule}"><span class="grow">${esc(r.label)}
+    <span class="dc-meter"><i style="width:${Math.round((r.box / 5) * 100)}%"></i></span></span></button>`).join('');
+  $('#dc-side').innerHTML = `<div class="panel"><h2>Rules</h2>
+    <button class="dc-fam smart ${O.rules.size ? '' : 'on'}" data-worule-all>${icon('sparkles')}<span class="grow"><b>All rules</b><small>Your weakest rules come up most</small></span></button>
+    ${rows}</div>`;
+  if (!prog) return;
+}
+
+function renderOrder() {
+  if (!O.q) { $('#dc-main').innerHTML = '<div class="dc-card"><p class="muted">Loading...</p></div>'; nextOrder().catch(err => toast(err.message, 'error')); return; }
+  const q = O.q, r = O.result;
+  const left = q.tiles.map((t, k) => k).filter(k => !O.placed.includes(k));
+  const cap = (s, first) => first ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const line = [...q.locked.map(w => `<span class="wo-word locked">${esc(w)}</span>`),
+    ...O.placed.map((k, pos) => `<button class="wo-word" data-wo-back="${pos}" ${r ? 'disabled' : ''}>${esc(cap(q.tiles[k].text, !q.locked.length && pos === 0))}</button>`)].join('');
+  $('#dc-main').innerHTML = `<div class="dc-card wo ${r ? (r.correct ? 'right' : 'wrong') : ''}">
+    <div class="dc-top"><span class="chip">${esc(q.label)}</span><span class="grow"></span><span class="dc-score"><b>${O.right}</b>/${O.n}</span></div>
+    <p class="dc-instr">Put the words in order</p>
+    <p class="dc-cue">${esc(q.meaning)}</p>
+    <div class="wo-line">${line || '<span class="wo-empty">&nbsp;</span>'}<span class="wo-end">${esc(q.end)}</span></div>
+    <div class="wo-pool">${r ? '' : left.map((k, n) => `<button class="wo-tile" data-wo="${k}"><kbd>${n + 1}</kbd>${esc(q.tiles[k].text)}</button>`).join('')}</div>
+    ${r ? `<div class="dc-fb ${r.correct ? 'right' : 'wrong'}">${icon(r.correct ? 'check' : 'x')}<div>
+        ${r.correct ? `<b>Richtig!</b> ${esc(r.solution)}` : `<p class="dc-answer">${esc(r.solution)}</p>`}
+        <p class="small">${esc(r.why)}</p></div></div>
+      <div class="row dc-end-actions"><button id="wo-next">${icon('right')}Next</button></div>`
+    : `<div class="dc-hint"><span class="muted small"><kbd>1</kbd>–<kbd>${Math.max(1, left.length)}</kbd> place a word · <kbd>Backspace</kbd> take it back · <kbd>Enter</kbd> to check</span>
+        <span class="row"><button class="link-btn" data-wo-skip>I don't know</button><button id="wo-check" ${left.length ? 'disabled' : ''}>${icon('check')}Check</button></span></div>`}
+  </div>`;
+}
+
+async function checkOrder(giveUp = false) {
+  if (O.result || !O.q) return;
+  if (!giveUp && O.placed.length < O.q.tiles.length) return;
+  const order = (giveUp ? [] : O.placed).map(k => O.q.tiles[k].i);
+  const r = await api('/wordorder/check', { method: 'POST', body: { id: O.q.id, order } });
+  O.result = r; O.progress = r.progress; O.n++; if (r.correct) O.right++;
+  O.recent.push(O.q.id);
+  renderOrder();
+  renderOrderSide();
+}
+
+function orderKey(e) {
+  if (e.target.closest?.('input, textarea, select') || !O.q) return;
+  if (e.key === 'Enter') { e.preventDefault(); if (O.result) nextOrder(); else checkOrder(); return; }
+  if (O.result) return;
+  if (e.key === 'Backspace' && O.placed.length) { e.preventDefault(); O.placed.pop(); return renderOrder(); }
+  const left = O.q.tiles.map((t, k) => k).filter(k => !O.placed.includes(k));
+  const n = +e.key;
+  if (n >= 1 && n <= left.length) { e.preventDefault(); O.placed.push(left[n - 1]); renderOrder(); }
+}
+
+$('#dc-main').addEventListener('click', e => {
+  if (D.sub !== 'order' || C.id !== 'verbs') return;
+  const t = e.target;
+  const tile = t.closest('[data-wo]');
+  if (tile && !O.result) { O.placed.push(+tile.dataset.wo); return renderOrder(); }
+  const back = t.closest('[data-wo-back]');
+  if (back && !O.result) { O.placed.splice(+back.dataset.woBack, 1); return renderOrder(); }
+  if (t.closest('#wo-check')) return checkOrder().catch(err => toast(err.message, 'error'));
+  if (t.closest('[data-wo-skip]')) return checkOrder(true).catch(err => toast(err.message, 'error'));
+  if (t.closest('#wo-next')) return nextOrder().catch(err => toast(err.message, 'error'));
+});
+$('#dc-side').addEventListener('click', e => {
+  if (D.sub !== 'order' || C.id !== 'verbs') return;
+  const r = e.target.closest('[data-worule]');
+  if (e.target.closest('[data-worule-all]')) O.rules.clear();
+  else if (r) { if (O.rules.has(r.dataset.worule)) O.rules.delete(r.dataset.worule); else O.rules.add(r.dataset.worule); }
+  else return;
+  store.set('verbsWoRules', JSON.stringify([...O.rules]));
+  nextOrder().catch(err => toast(err.message, 'error'));
+});
