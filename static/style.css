@@ -1034,3 +1034,11 @@ mark.w-err sup { font-size: 10px; font-weight: 700; color: var(--bad); margin-le
 .dm-fix { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
 .dm-fix h4 { margin: 0 0 8px; }
 .dm-fix p { margin: 6px 0; font-size: 14.5px; }
+.update-bar { height: 6px; margin-top: 8px; border-radius: 3px; background: var(--sunken); overflow: hidden; max-width: 360px; }
+.update-bar i { display: block; height: 100%; width: 0; background: var(--gold); transition: width .4s ease; }
+.update-overlay { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center;
+  background: rgba(20, 19, 18, .72); }
+.update-overlay > div { background: var(--surface); color: var(--text); border-radius: var(--r); padding: 28px 32px;
+  max-width: 360px; text-align: center; box-shadow: var(--shadow-lg); }
+.update-overlay .icon { width: 28px; height: 28px; color: var(--gold); display: block; margin: 0 auto 10px; }
+.update-overlay p { margin: 8px 0 0; color: var(--muted); }

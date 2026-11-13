@@ -100,6 +100,23 @@ def get_update(force: bool = False):
     return update.status(force)
 
 
+@app.post("/api/update/install")
+def install_update():
+    """Download (Windows app) or pull (git copy) the newest version in the background."""
+    return update.start_install()
+
+
+@app.get("/api/update/progress")
+def update_progress():
+    return update.progress()
+
+
+@app.post("/api/update/restart")
+def restart_for_update():
+    """Windows app: quit and let the helper swap in the new version and reopen the app."""
+    return update.restart_to_finish()
+
+
 @app.get("/api/settings")
 def get_settings():
     return {**db.get_settings(), "voices": tts.VOICES, "version": VERSION, "build_name": BUILD_NAME, "credits": {"author": AUTHOR, "owner": OWNER, "copyright": COPYRIGHT, "website": WEBSITE},
