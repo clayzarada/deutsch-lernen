@@ -516,7 +516,7 @@ function showReading(reading, fresh) {
   }).join('');
   const ai = S.settings?.has_key;
   stepShell('Reading', `<article class="dj-reading"><h2>${esc(reading.title)}</h2>
-      <p class="muted small">Fill in each gap. Grey words in the boxes are hints in English; small boxes want just an ending. <kbd>Enter</kbd> jumps to the next gap.</p>
+      <p class="muted small">Fill in each gap. Gray words in the boxes are hints; small boxes want just an ending. <kbd>Enter</kbd> jumps to the next gap.</p>
       <p class="rd-text">${text}</p>
       <div class="row dj-end-row"><button id="dj-read-check">${icon('check')}Check</button><span id="dj-read-result" class="muted small"></span></div></article>
     <div class="panel dj-fresh"><div class="grow"><b>${icon('sparkles')}Want a different text?</b><p class="muted small">${ai ? 'Claude writes a new one for this planet. Uses a little API credit.' : 'Add a Claude API key in Settings to get freshly written texts.'}</p></div>
@@ -661,7 +661,8 @@ function renderSide() {
     const byGroup = { Articles: ['def', 'dies', 'ein', 'kein', 'mein', 'dein', 'sein', 'ihr', 'unser', 'euer'], 'Adjective endings': ['adjw', 'adjm', 'adjs'], Pronouns: ['pers', 'refl', 'rel', 'wer'] };
     $('#dc-side').innerHTML = `<div class="panel"><h2>Tables</h2>${Object.entries(byGroup).map(([g, ids]) => `
       <h4 class="dc-group">${g}</h4><div class="dc-table-list">${ids.map(id => `<button class="chip-btn ${D.table === id ? 'on' : ''}" data-table="${id}">${esc(tableById(id).title.replace(/^Adjective /, '').replace(/^(.)/, m => m.toUpperCase()))}</button>`).join('')}</div>`).join('')}
-      <h4 class="dc-group">Case triggers</h4><div class="dc-table-list"><button class="chip-btn ${D.table === 'triggers' ? 'on' : ''}" data-table="triggers">Prepositions &amp; verbs</button></div></div>`;
+      <h4 class="dc-group">Case triggers</h4><div class="dc-table-list"><button class="chip-btn ${D.table === 'triggers' ? 'on' : ''}" data-table="triggers">Prepositions &amp; verbs</button>
+        <button class="chip-btn ${D.table === 'match' ? 'on' : ''}" data-table="match">Match the case</button></div></div>`;
     return;
   }
   const famRow = f => {
@@ -765,8 +766,9 @@ const legend = () => '<div class="dc-legend"><span class="h0">Weak</span><span c
 
 function renderTable() {
   const box = $('#dc-main');
+  if (D.table === 'match') return renderMatch();
   if (D.table === 'triggers') {
-    box.innerHTML = `<div class="dc-card dc-table-card"><div class="panel-head"><div><h2>Which case?</h2><p class="muted small">Colours show how well you know each one.</p></div>
+    box.innerHTML = `<div class="dc-card dc-table-card"><div class="panel-head"><div><h2>Which case?</h2><p class="muted small">Colors show how well you know each one.</p></div>
       <button data-drill="trig" class="small">${icon('target')}Drill these</button></div>
       ${V.state.triggers.map(g => `<div class="dc-trig"><h4>${g.case ? caseBadge(g.case) : ''}${esc(g.title)}</h4><div class="dc-words">${g.items.map(i => `<span class="dc-word ${heat(i.key)}">${esc(i.word)}</span>`).join('')}</div></div>`).join('')}
       ${legend()}</div>`;
@@ -819,6 +821,106 @@ $('#dc-main').addEventListener('click', async e => {
   }
 });
 $('#dc-main').addEventListener('keydown', e => gridEnter(e, $('#dc-main'), $('#dc-table-check')));
+
+// ---------- match the case ----------
+// Sort prepositions and verbs into the case they always take. Tap a card, then a box (or press 1-4).
+const M = { kind: store.get('declMatchKind') || 'all', cards: [], placed: {}, sel: null, checked: false, loading: false };
+const BINS = [
+  { c: 'akk', label: 'Akkusativ' }, { c: 'dat', label: 'Dativ' }, { c: 'gen', label: 'Genitiv' },
+  { c: 'two', label: 'Two-way', hint: 'wohin? Akk · wo? Dat' },
+];
+const binsFor = kind => kind === 'verb' ? BINS.slice(0, 2) : BINS;  // verbs only take Akkusativ or Dativ
+const matchOpen = () => S.view === 'decl' && V.tab === 'free' && D.sub === 'tables' && D.table === 'match';
+
+async function newMatchRound() {
+  M.loading = true;
+  try {
+    const r = await api('/decl/match?kind=' + M.kind);
+    Object.assign(M, { cards: r.cards, placed: {}, sel: 0, checked: false });
+  } catch (err) { toast(err.message, 'error'); }
+  M.loading = false;
+  renderMatch();
+}
+
+function matchCard(c, i, where) {
+  const res = M.checked ? (M.placed[i] === c.case ? 'right' : 'wrong') : '';
+  const tip = where === 'bin' && !M.checked ? ' title="Tap to take it back"' : '';
+  return `<button class="dm-card ${M.sel === i && !M.checked ? 'on' : ''} ${res}" data-mcard="${i}" ${M.checked ? 'disabled' : ''}${tip}>`
+    + `<b>${esc(c.word)}</b>${c.meaning ? `<small>${esc(c.meaning)}</small>` : ''}</button>`;
+}
+
+function renderMatch() {
+  if (D.table !== 'match' || D.sub !== 'tables') return;
+  const box = $('#dc-main');
+  if (!M.cards.length) {
+    box.innerHTML = '<div class="dc-card dm"><p class="muted">Loading...</p></div>';
+    if (!M.loading) newMatchRound();
+    return;
+  }
+  const all = M.cards.map((c, i) => i);
+  const left = all.filter(i => !(i in M.placed));
+  const right = M.checked ? all.filter(i => M.placed[i] === M.cards[i].case).length : 0;
+  const wrong = M.checked ? M.cards.filter((c, i) => M.placed[i] !== c.case) : [];
+  const bins = binsFor(M.kind);
+  box.innerHTML = `<div class="dc-card dm">
+    <div class="panel-head"><div><h2>Match the case</h2><p class="muted small">Tap a word, then the case it always takes. Keys 1-${bins.length} work too.</p></div>
+      <div class="tabs dc-mode">${[['all', 'Both'], ['prep', 'Prepositions'], ['verb', 'Verbs']].map(([k, l]) =>
+        `<button data-mkind="${k}" class="${M.kind === k ? 'active' : ''}">${l}</button>`).join('')}</div></div>
+    ${left.length ? `<div class="dm-tray">${left.map(i => matchCard(M.cards[i], i, 'tray')).join('')}</div>`
+      : (M.checked ? '<div class="dm-gap"></div>' : '<div class="dm-tray"><p class="muted small">All sorted. Check your answers.</p></div>')}
+    <div class="dm-bins">${bins.map((b, n) => `<div class="dm-bin ${b.c === 'two' ? 'c-two' : 'c-' + b.c}" data-mbin="${b.c}">
+      <h4><kbd>${n + 1}</kbd><span>${b.label}</span>${b.hint ? `<small>${b.hint}</small>` : ''}</h4>
+      <div class="dm-bin-cards">${all.filter(i => M.placed[i] === b.c).map(i => matchCard(M.cards[i], i, 'bin')).join('')}</div></div>`).join('')}</div>
+    <div class="row dm-foot">${M.checked
+      ? `<b class="dm-score">${right} of ${M.cards.length} words right</b><button id="dm-next">${icon('undo')}New round</button>`
+      : `<button id="dm-check" ${left.length ? 'disabled' : ''}>${icon('check')}Check</button><span class="muted small">${M.cards.length - left.length} of ${M.cards.length} sorted</span>`}</div>
+    ${wrong.length ? `<div class="dm-fix"><h4>Worth another look</h4>${wrong.map(c =>
+      `<p><b>${esc(c.word)}</b> → ${c.case === 'two' ? 'Two-way' : CASE_SHORT[c.case]}. <span class="muted">${esc(c.why)}</span></p>`).join('')}</div>` : ''}
+  </div>`;
+}
+
+function placeSelected(binCase) {
+  if (M.checked || M.sel == null || !M.cards[M.sel] || (M.sel in M.placed)) return;
+  M.placed[M.sel] = binCase;
+  M.sel = M.cards.map((c, i) => i).find(i => !(i in M.placed)) ?? null;  // move on to the next unsorted card
+  renderMatch();
+}
+
+async function checkMatch() {
+  if (M.checked || Object.keys(M.placed).length < M.cards.length) return;
+  M.checked = true;
+  renderMatch();
+  const items = M.cards.map((c, i) => ({ key: c.key, correct: M.placed[i] === c.case }));
+  try {
+    await api('/decl/record', { method: 'POST', body: { family: 'trig', items } });
+    await refreshState();
+  } catch { /* the result still shows; only the skill tracking missed this round */ }
+}
+
+$('#dc-main').addEventListener('click', e => {
+  if (D.table !== 'match' || D.sub !== 'tables') return;
+  const k = e.target.closest('[data-mkind]');
+  if (k) { M.kind = k.dataset.mkind; store.set('declMatchKind', M.kind); M.cards = []; return newMatchRound(); }
+  const card = e.target.closest('[data-mcard]');
+  if (card && !M.checked) {
+    const i = +card.dataset.mcard;
+    if (i in M.placed) delete M.placed[i];  // tapped in a box: take it back out
+    M.sel = i;
+    return renderMatch();
+  }
+  const bin = e.target.closest('[data-mbin]');
+  if (bin) return placeSelected(bin.dataset.mbin);
+  if (e.target.closest('#dm-check')) return checkMatch();
+  if (e.target.closest('#dm-next')) return newMatchRound();
+});
+
+document.addEventListener('keydown', e => {
+  if (!matchOpen() || e.target.closest?.('input, textarea, select')) return;
+  const bins = binsFor(M.kind);
+  const n = +e.key;
+  if (!M.checked && n >= 1 && n <= bins.length) { e.preventDefault(); placeSelected(bins[n - 1].c); }
+  else if (e.key === 'Enter') { e.preventDefault(); if (M.checked) newMatchRound(); else checkMatch(); }
+});
 $('#dc-main').addEventListener('input', e => {
   const inp = e.target.closest?.('input[data-pos]');
   if (inp) D.tableVals[inp.dataset.pos] = inp.value;

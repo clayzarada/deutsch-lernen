@@ -31,7 +31,7 @@ Then:
 | Writing | Exam-style writing tasks (B1, B2, C1), the writing task from today's plan, or your own topic. Claude marks the text like the Goethe writing paper (task, coherence, vocabulary, grammar), marks every error in your text, and adds the corrections to the Mistake Book |
 | Mistakes | Your *Fehlerheft*: every wrong answer from practice sets and checked pages, grouped by topic and counted when repeated. Select some to get a fresh drill on the same rules, turn them into "fix the mistake" flashcards, or mark them learned |
 | Coach | Chat with your study coach. It sees all your progress data, including your Mistake Book |
-| Resources | Your favourite channels, podcasts and sites. The coach uses them when planning |
+| Resources | Your favorite channels, podcasts and sites. The coach uses them when planning |
 
 **Umlauts:** whenever you type anywhere in the app (including answers on a PDF page), a small **ä ö ü ß Ä Ö Ü** bar appears under the field. Or use **Alt+A / Alt+O / Alt+U / Alt+S** for ä ö ü ß, and add **Shift** for capitals.
 
@@ -60,7 +60,7 @@ When you press **Start** on a plan block, its progress bars count everything you
 
 Everything stays on this computer, in the `data` folder: `study.db` holds your progress, cards and writing, and `books` holds the PDFs. Back up that folder to keep your work. The API key is stored in `.env`.
 
-## How the code is organised
+## How the code is organized
 
 | Folder / file | What's in it |
 |---|---|
@@ -73,7 +73,7 @@ Everything stays on this computer, in the `data` folder: `study.db` holds your p
 | `app/anki.py` | Anki export |
 | `app/db.py` | Database tables and settings |
 | `static/js/` | One file per page (`today.js`, `reader.js`, ...) plus `core.js` with shared helpers |
-| `static/style.css` | All styling. Colours are defined at the top. The app follows your system's light/dark mode |
+| `static/style.css` | All styling. Colors are defined at the top. The app follows your system's light/dark mode |
 
 ## Costs
 

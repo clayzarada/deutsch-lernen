@@ -1007,7 +1007,7 @@ def tables():
     ]
     for word in ("mein", "dein", "sein", "ihr", "unser", "euer"):
         note = {"euer": "euer drops an e before an ending: eure, eurem, euren.",
-                "ihr": "ihr means her or their. Capitalised, Ihr means your (formal).",
+                "ihr": "ihr means her or their. Capitalized, Ihr means your (formal).",
                 "sein": "sein means his or its."}.get(word, "")
         out.append(_grid(word, word, "poss", lambda c, g, w=word: det_form("poss", w, c, g), note))
     out += [
@@ -1044,6 +1044,57 @@ def trigger_lists():
     out.append({"title": "Two-way: wohin? accusative, wo? dative", "case": None,
                 "items": [{"word": w, "key": f"trig:w:{w}:wo"} for w in TWO_WAY]})
     return out
+
+
+# ---------- "Match the case": sort prepositions and verbs into the case they take ----------
+# Meaning shown on each card: (English, Turkish).
+MEANINGS = {
+    "durch": ("through", "içinden"), "für": ("for", "için"), "gegen": ("against", "karşı"), "ohne": ("without", "-sız"),
+    "um": ("around", "etrafında"), "aus": ("out of, from", "-den, içinden"), "außer": ("except", "hariç"),
+    "bei": ("at, near", "yanında, -de"), "mit": ("with", "ile"), "nach": ("after, to", "sonra, -e"),
+    "seit": ("since, for", "-den beri"), "von": ("from, of", "-den"), "zu": ("to", "-e"),
+    "gegenüber": ("opposite", "karşısında"), "wegen": ("because of", "yüzünden"), "trotz": ("despite", "rağmen"),
+    "während": ("during", "sırasında"), "statt": ("instead of", "yerine"), "innerhalb": ("inside, within", "içinde"),
+    "außerhalb": ("outside", "dışında"), "helfen": ("to help", "yardım etmek"), "danken": ("to thank", "teşekkür etmek"),
+    "gehören": ("to belong to", "ait olmak"), "gefallen": ("to please, to like", "hoşuna gitmek"),
+    "antworten": ("to answer", "cevap vermek"), "glauben": ("to believe", "inanmak"), "folgen": ("to follow", "takip etmek"),
+    "gratulieren": ("to congratulate", "tebrik etmek"), "vertrauen": ("to trust", "güvenmek"),
+    "zuhören": ("to listen to", "dinlemek"), "schmecken": ("to taste (good) to", "tadı hoşuna gitmek"),
+    "passen": ("to fit, to suit", "uymak"), "sehen": ("to see", "görmek"), "kaufen": ("to buy", "satın almak"),
+    "brauchen": ("to need", "ihtiyaç duymak"), "kennen": ("to know", "tanımak"), "besuchen": ("to visit", "ziyaret etmek"),
+    "haben": ("to have", "sahip olmak"), "in": ("in, into", "içinde, içine"), "an": ("at, on", "-de, -e (dikey yüzey)"),
+    "auf": ("on, onto", "üstünde, üstüne"), "hinter": ("behind", "arkasında"), "neben": ("next to", "yanında"),
+    "über": ("above, over", "üzerinde"), "unter": ("under", "altında"), "vor": ("in front of", "önünde"),
+    "zwischen": ("between", "arasında"),
+}
+MATCH_KINDS = {"all", "prep", "verb"}
+
+
+def match_round(kind="all", n=10, lang="en"):
+    """One round of cards: [{word, meaning, kind, case, key, why}], case being akk, dat, gen or two (two-way).
+    Weak and unseen words come up more often, like the drills."""
+    kind = kind if kind in MATCH_KINDS else "all"
+    pool = []
+    for key, (_shown, case, why) in TRIGGERS.items():
+        typ, word = key.split(":")[1:3]
+        if typ == "w":
+            continue  # two-way prepositions are added once each below
+        pool.append({"word": word, "kind": "verb" if typ == "v" else "prep", "case": case, "key": key, "why": why})
+    for w in TWO_WAY:
+        pool.append({"word": w, "kind": "prep", "case": "two", "key": None,
+                     "why": f"{w} is a two-way preposition: accusative for movement to a place (wohin?), dative for a location (wo?)."})
+    if kind != "all":
+        pool = [c for c in pool if c["kind"] == kind]
+    st, now = _state(), db.now()
+    picked = []
+    while pool and len(picked) < n:
+        weights = [_weight(c["key"], st, set(), now) if c["key"] else 6 for c in pool]
+        picked.append(pool.pop(random.choices(range(len(pool)), weights)[0]))
+    random.shuffle(picked)
+    for c in picked:
+        m = MEANINGS.get(c["word"], ("", ""))
+        c["meaning"] = m[1] if lang == "tr" else m[0]
+    return picked
 
 
 def check_table(table_id, answers):

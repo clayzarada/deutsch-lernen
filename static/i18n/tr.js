@@ -18,6 +18,23 @@ for (const [en, tr] of Object.entries(KINDS)) {
 export default {
   ...kindEntries,
 
+  // ---------- Declensions > Free practice > Tables > Match the case ----------
+  'Match the case': 'Hâli eşleştir',
+  'Tap a word, then the case it always takes. Keys 1-{} work too.': 'Bir kelimeye, sonra her zaman aldığı hâle dokunun. 1-{1} tuşları da çalışır.',
+  'Both': 'İkisi de',
+  'Prepositions': 'Edatlar',
+  'Verbs': 'Fiiller',
+  'Two-way': 'İki yönlü',
+  'All sorted. Check your answers.': 'Hepsi yerleştirildi. Cevaplarınızı kontrol edin.',
+  '{} of {} sorted': '{2} kelimeden {1} tanesi yerleştirildi',
+  'New round': 'Yeni tur',
+  '{} of {} words right': '{2} kelimeden {1} doğru',
+  'Tap to take it back': 'Geri almak için dokunun',
+  '→ Two-way.': '→ İki yönlü.',
+  'Loading...': 'Yükleniyor...',
+  'Fill in each gap. Gray words in the boxes are hints; small boxes want just an ending.':
+    'Her boşluğu doldurun. Kutulardaki gri kelimeler ipucudur; küçük kutulara yalnızca ek yazılır.',
+
   // ---------- update notice ----------
   'Version {} is available': '{1} sürümü çıktı',
   'Version {} is available.': '{1} sürümü çıktı.',
@@ -278,7 +295,7 @@ export default {
   'Pen (P): write by hand with mouse, touch or stylus': 'Kalem (P): fare, dokunma veya kalemle elle yazın',
   'Highlighter (H)': 'Fosforlu kalem (H)',
   'Eraser (E): click writing to delete it': 'Silgi (E): silmek için yazıya tıklayın',
-  'Ink colour': 'Mürekkep rengi',
+  'Ink color': 'Mürekkep rengi',
   'Zoom out': 'Uzaklaştır',
   'Zoom in': 'Yakınlaştır',
   'Fit to width': 'Genişliğe sığdır',
@@ -740,7 +757,7 @@ export default {
   'Learning': 'Öğreniliyor',
   'Solid': 'Sağlam',
   'Mastered': 'Ustalaşıldı',
-  'Colours show how well you know each one.': 'Renkler her birini ne kadar iyi bildiğinizi gösterir.',
+  'Colors show how well you know each one.': 'Renkler her birini ne kadar iyi bildiğinizi gösterir.',
   'Drill these': 'Bunları çalış',
   'Test me': 'Beni test et',
   'Show the table': 'Tabloyu göster',

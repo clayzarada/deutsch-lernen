@@ -55,7 +55,7 @@ function loadSettings() {
   $('#gkey-state').innerHTML = keyPill(s.has_gemini_key);
   loadUsage().catch(() => {});
   loadBackups().catch(() => {});
-  $('#about-version').textContent = s.version ? `v${s.version}` : '';
+  $('#about-version').textContent = s.version ? `${s.version}${s.build_name ? ` “${s.build_name}”` : ''}` : '';
   if (s.credits) {
     $('#about-author').textContent = s.credits.author;
     $('#about-copyright').textContent = s.credits.copyright;

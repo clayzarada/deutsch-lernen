@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from . import ai, anki, backup, course, db, decl, mistakelink, pdfs, planner, srs, tts, update, usage, writing
-from .version import AUTHOR, COPYRIGHT, OWNER, VERSION, WEBSITE
+from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
 from .i18n import localize
 
 DOC_TYPES = (".pdf", ".html", ".htm", ".txt", ".md")
@@ -91,7 +91,7 @@ def _write_env_key(name, key):
 
 @app.get("/api/version")
 def get_version():
-    return {"version": VERSION}
+    return {"version": VERSION, "name": BUILD_NAME}
 
 
 @app.get("/api/update")
@@ -102,7 +102,7 @@ def get_update(force: bool = False):
 
 @app.get("/api/settings")
 def get_settings():
-    return {**db.get_settings(), "voices": tts.VOICES, "version": VERSION, "credits": {"author": AUTHOR, "owner": OWNER, "copyright": COPYRIGHT, "website": WEBSITE},
+    return {**db.get_settings(), "voices": tts.VOICES, "version": VERSION, "build_name": BUILD_NAME, "credits": {"author": AUTHOR, "owner": OWNER, "copyright": COPYRIGHT, "website": WEBSITE},
             "has_key": bool(os.environ.get("ANTHROPIC_API_KEY", "").strip()),
             "has_gemini_key": bool(os.environ.get("GEMINI_API_KEY", "").strip())}
 
@@ -948,7 +948,15 @@ def decl_stage_reading(stage_id: str, body: dict):
 
 @app.post("/api/decl/record")
 def decl_record(body: dict):
-    return course.record(body.get("items", []))
+    family = body.get("family") if body.get("family") in decl.FAMILY_LABEL else "sent"
+    return course.record(body.get("items", []), family)
+
+
+@app.get("/api/decl/match")
+def decl_match(kind: str = "all"):
+    """A round of "Match the case": prepositions and verbs to sort into the case they take."""
+    from .i18n import lang
+    return localize({"cards": decl.match_round(kind, lang=lang())})
 
 
 @app.post("/api/decl/sprint")

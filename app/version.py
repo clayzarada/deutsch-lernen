@@ -4,8 +4,11 @@ Every time the app starts from source, it fingerprints its own code (app/, stati
 fingerprint differs from the one saved last time, the code was changed, so the last number goes up
 (0.1.0 -> 0.1.1). That way the version moves with every change made on this PC, published or not.
 
-For a bigger step, edit "version" in version.json by hand (e.g. to "0.2.0"); the next start keeps it and
+For a bigger step, edit "version" in version.json by hand (e.g. to "1.1.0"); the next start keeps it and
 just records the new fingerprint.
+
+"name" in version.json is the build name (1.x is "Aurelian"). It stays the same across small updates and changes
+with a major overhaul (the next one starts with B).
 
 The packaged app (PyInstaller) never bumps: it only reads the version.json it was built with.
 """
@@ -65,6 +68,7 @@ def check():
 
 
 VERSION = check()
+BUILD_NAME = _read().get("name", "")
 
 # Who made and owns the app. Shown in the sidebar, Settings > About, the download READ ME and the .exe's
 # file properties. See LICENSE.

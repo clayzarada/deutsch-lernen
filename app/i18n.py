@@ -192,7 +192,7 @@ EXACT = {
     "Masculine and neuter **nouns add -s or -es** as well. Short words and words ending in -s, -ß, -z or -sch take **-es**: *des Mann**es**, des Haus**es***. Longer words take **-s**: *des Lehrer**s**, des Auto**s***. Feminine and plural nouns don't change.":
         "Eril ve nötr **isimler de -s veya -es alır**. Kısa kelimeler ve -s, -ß, -z veya -sch ile bitenler **-es** alır: *des Mann**es**, des Haus**es***. Daha uzun kelimeler **-s** alır: *des Lehrer**s**, des Auto**s***. Dişil ve çoğul isimler değişmez.",
     "the teacher's car": "öğretmenin arabası", "the woman's bag": "kadının çantası",
-    "the colour of the house": "evin rengi", "the children's parents": "çocukların ebeveynleri",
+    "the color of the house": "evin rengi", "the children's parents": "çocukların ebeveynleri",
     "ein-words in the genitive": "Genitiv'de ein-kelimeleri",
     "The possessives follow: *das Auto **meines** Vaters, die Wohnung **meiner** Schwester*.":
         "İyelik sözcükleri de aynı yolu izler: *das Auto **meines** Vaters, die Wohnung **meiner** Schwester*.",
@@ -416,7 +416,7 @@ EXACT = {
     "ein has no plural.": "ein'ın çoğulu yoktur.",
     "kein takes the same endings as ein, and also has a plural.": "kein, ein ile aynı ekleri alır ve çoğulu da vardır.",
     "euer drops an e before an ending: eure, eurem, euren.": "euer ek almadan önce bir e düşürür: eure, eurem, euren.",
-    "ihr means her or their. Capitalised, Ihr means your (formal).": "ihr 'onun (kadın)' veya 'onların' demektir. Büyük harfle Ihr 'sizin (resmî)' demektir.",
+    "ihr means her or their. Capitalized, Ihr means your (formal).": "ihr 'onun (kadın)' veya 'onların' demektir. Büyük harfle Ihr 'sizin (resmî)' demektir.",
     "sein means his or its.": "sein 'onun (erkek veya şey)' demektir.",
     "After der, dieser, jeder, welcher, alle. Only five slots take -e; all the rest take -en.": "der, dieser, jeder, welcher, alle'den sonra. Yalnızca beş yer -e alır; geri kalanların hepsi -en.",
     "After ein, kein, mein, dein... Where ein has no ending, the adjective shows the gender: -er or -es.": "ein, kein, mein, dein... sonrasında. ein'ın ek almadığı yerde cinsiyeti sıfat gösterir: -er veya -es.",
@@ -434,6 +434,8 @@ PATTERNS = [
     ("{} is one of the verbs that take the dative, not the accusative.", "{1}, Akkusativ değil Dativ alan fiillerden biridir."),
     ("{} takes a direct object in the accusative.", "{1}, nesnesini Akkusativ'de alır."),
     ("{} is a two-way preposition.", "{1} iki yönlü bir edattır."),
+    ("{} is a two-way preposition: accusative for movement to a place (wohin?), dative for a location (wo?).",
+     "{1} iki yönlü bir edattır: bir yere hareket (wohin?) Akkusativ, bir konum (wo?) Dativ ister."),
     ("An exception to the pattern: {}", "Kalıbın bir istisnası: {1}"),
     ("In the accusative only the masculine changes, so the {} looks like the nominative.", "Akkusativ'de yalnızca eril değişir, bu yüzden {1} biçim Nominativ gibi görünür."),
     ("Dative {} ends in -m.", "Dativ {1} -m ile biter."),

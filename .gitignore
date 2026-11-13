@@ -12,3 +12,4 @@ dist/
 *.spec
 __pycache__/
 *.zip
+CLAUDE.local.md

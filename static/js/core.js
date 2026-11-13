@@ -219,7 +219,7 @@ export function updateNavStatus(stats) {
   const ok = S.settings?.has_key;
   $('#nav-ai').innerHTML = `<i class="dot ${ok ? 'on' : ''}"></i><span>${ok ? 'AI ready' : 'Add API key'}</span>`;
   const v = S.settings?.version;
-  $('#nav-version').textContent = v ? `v${v}` : '';
+  $('#nav-version').textContent = v ? `v${v}${S.settings.build_name ? ' · ' + S.settings.build_name : ''}` : '';
   const c = S.settings?.credits;
   if (c) $('#nav-credit').textContent = `by ${c.author}`;
 }

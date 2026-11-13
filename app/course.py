@@ -273,7 +273,7 @@ STAGES = [
                   "-sch take **-es**: *des Mann**es**, des Haus**es***. Longer words take **-s**: *des Lehrer**s**, des "
                   "Auto**s***. Feminine and plural nouns don't change."),
             ("ex", [("das Auto **des** Lehrer**s**", "the teacher's car"), ("die Tasche **der** Frau", "the woman's bag"),
-                    ("die Farbe **des** Haus**es**", "the colour of the house"), ("die Eltern **der** Kinder", "the children's parents")]),
+                    ("die Farbe **des** Haus**es**", "the color of the house"), ("die Eltern **der** Kinder", "the children's parents")]),
             ("h", "ein-words in the genitive"),
             ("table", "ein", ["gen"], None),
             ("p", "The possessives follow: *das Auto **meines** Vaters, die Wohnung **meiner** Schwester*."),
@@ -687,7 +687,8 @@ def add_cards(stage_id):
 
 
 def record(items, family="sent"):
-    """Results from a reading: [{key, correct}]. Updates the skills that have a key and logs every answer."""
+    """Results from a reading or the case-matching game: [{key, correct}]. Updates the skills that have a key and
+    logs every answer under the given family (it decides the topic shown in progress)."""
     core = decl._core_keys()
     for it in items:
         right = bool(it.get("correct"))

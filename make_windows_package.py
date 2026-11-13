@@ -18,7 +18,7 @@ PY = VENV / "Scripts" / "python.exe"
 DIST = ROOT / "dist" / "Deutsch lernen"
 OUT = Path.home() / "Desktop" / "Deutsch-lernen-Windows.zip"
 
-README = """DEUTSCH LERNEN FOR WINDOWS  (version {version})
+README = """DEUTSCH LERNEN FOR WINDOWS  (version {version} {name})
 ==========================
 Made by {author}. {copyright}
 
@@ -32,7 +32,7 @@ START
  3. Double-click "Deutsch lernen.exe". It opens in its own window (Microsoft Edge, which every Windows
     10/11 PC has). Closing that window quits the app.
     If Windows says "Windows protected your PC": click "More info", then "Run anyway".
-    (The app isn't code-signed yet, so Windows doesn't recognise it.)
+    (The app isn't code-signed yet, so Windows doesn't recognize it.)
  4. Optional: right-click "Deutsch lernen.exe" > Show more options > Send to > Desktop (create shortcut).
 
 UPDATING
@@ -68,7 +68,7 @@ VERSION_INFO = """VSVersionInfo(
     StringStruct('LegalCopyright', {copyright!r}),
     StringStruct('OriginalFilename', 'Deutsch lernen.exe'),
     StringStruct('ProductName', 'Deutsch lernen'),
-    StringStruct('ProductVersion', {version!r}),
+    StringStruct('ProductVersion', {product!r}),
     StringStruct('Comments', {comments!r})])]),
     VarFileInfo([VarStruct('Translation', [1033, 1200])])]
 )
@@ -83,7 +83,7 @@ def run(*cmd):
 def main():
     # 1. The version, bumped first if the code changed since the app last ran (same rule as at startup).
     sys.path.insert(0, str(ROOT))
-    from app.version import AUTHOR, COPYRIGHT, OWNER, VERSION, WEBSITE
+    from app.version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
 
     # 2. A separate build environment with the app's packages plus PyInstaller. (No pywebview: see launch_windows.py.)
     if not PY.exists():
@@ -96,7 +96,7 @@ def main():
     v = [int(x) for x in (VERSION.split(".") + ["0", "0"])[:3]]
     info = ROOT / "build" / "version_info.txt"
     info.parent.mkdir(exist_ok=True)
-    info.write_text(VERSION_INFO.format(v0=v[0], v1=v[1], v2=v[2], owner=OWNER, version=VERSION, copyright=COPYRIGHT,
+    info.write_text(VERSION_INFO.format(v0=v[0], v1=v[1], v2=v[2], owner=OWNER, version=VERSION, product=f"{VERSION} {BUILD_NAME}".strip(), copyright=COPYRIGHT,
                                         comments=f"Made by {AUTHOR}"), encoding="utf-8")
     run(PY, "-m", "PyInstaller", "--noconfirm", "--clean", "--log-level", "WARN", "--windowed",
         "--name", "Deutsch lernen", "--icon", "static/icon.ico", "--version-file", info,
@@ -122,7 +122,7 @@ def main():
         for p in sorted(DIST.rglob("*")):
             if p.is_file():
                 z.write(p, f"{top}/{p.relative_to(DIST).as_posix()}")
-        z.writestr(f"{top}/READ ME.txt", README.format(version=VERSION, author=AUTHOR, copyright=COPYRIGHT, owner=OWNER,
+        z.writestr(f"{top}/READ ME.txt", README.format(version=VERSION, name=BUILD_NAME, author=AUTHOR, copyright=COPYRIGHT, owner=OWNER,
                                                        website=WEBSITE).replace("\n", "\r\n"))
         z.write(ROOT / "LICENSE", f"{top}/LICENSE.txt")
     print(f"\nMade {OUT} ({OUT.stat().st_size / 1e6:.0f} MB), version {VERSION}")

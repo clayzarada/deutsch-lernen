@@ -1007,3 +1007,30 @@ mark.w-err sup { font-size: 10px; font-weight: 700; color: var(--bad); margin-le
 .update-banner .button { display: inline-flex; align-items: center; text-decoration: none; }
 .about-update { align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px !important; }
 @media (max-width: 700px) { .update-banner { flex-wrap: wrap; margin: 12px; } }
+
+/* Declensions > Free practice > Tables > Match the case */
+.dm-gap { height: 14px; }
+.dm-tray { display: flex; flex-wrap: wrap; gap: 8px; min-height: 56px; margin: 14px 0 16px; }
+.dm-card { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px 13px;
+  background: var(--surface); color: var(--text); border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+  font-weight: 600; font-size: 15px; text-align: left; box-shadow: var(--shadow-sm); }
+.dm-card small { font-weight: 400; font-size: 11.5px; color: var(--muted); }
+.dm-card:hover { background: var(--surface-2); border-color: var(--accent); }
+.dm-card.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: var(--accent-soft); }
+.dm-card.right { border-color: var(--ok); background: var(--ok-soft); }
+.dm-card.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.dm-card:disabled { opacity: 1; cursor: default; transform: none; }
+.dm-bins { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.dm-bin { --case: var(--muted); border: 1px solid var(--line); border-top: 3px solid var(--case); border-radius: var(--r-sm);
+  padding: 10px; min-height: 120px; background: var(--surface-2); cursor: pointer; }
+.dm-bin:hover { background: var(--sunken); }
+.dm-bin h4 { margin: 0 0 8px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; color: var(--case); font-size: 14px; }
+.dm-bin h4 small { width: 100%; color: var(--muted); font-weight: 400; font-size: 11.5px; }
+.dm-bin h4 kbd { font-size: 10.5px; color: var(--muted); }
+.dm-bin-cards { display: flex; flex-wrap: wrap; gap: 6px; }
+.dm-bin-cards .dm-card { padding: 5px 10px; font-size: 14px; }
+.dm-foot { margin-top: 16px; align-items: center; gap: 14px; }
+.dm-score { font-size: 17px; }
+.dm-fix { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.dm-fix h4 { margin: 0 0 8px; }
+.dm-fix p { margin: 6px 0; font-size: 14.5px; }

@@ -327,7 +327,7 @@ function setTool(t) {
 }
 $$('[data-tool]').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
 
-$('#r-swatches').innerHTML = COLORS.map(c => `<button class="swatch ${c === R.color ? 'active' : ''}" data-color="${c}" style="--c:${c}" title="Ink colour"></button>`).join('');
+$('#r-swatches').innerHTML = COLORS.map(c => `<button class="swatch ${c === R.color ? 'active' : ''}" data-color="${c}" style="--c:${c}" title="Ink color"></button>`).join('');
 $('#r-swatches').addEventListener('click', e => {
   const b = e.target.closest('[data-color]');
   if (!b) return;

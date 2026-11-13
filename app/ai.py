@@ -268,7 +268,7 @@ def grade_answers(items):
     system = "You grade German exercises fairly and explain mistakes clearly and briefly. " + _learner(s)
     task = (
         "Grade each learner answer. Accept any answer that is genuinely correct German for the task, even if it "
-        "differs from the expected answer. Ignore capitalisation and punctuation unless that is what the exercise "
+        "differs from the expected answer. Ignore capitalization and punctuation unless that is what the exercise "
         "tests. feedback: one or two sentences. If wrong, say what the error is and why; if right, confirm "
         "briefly or add a useful nuance.\n\n" + json.dumps(items, ensure_ascii=False))
     data = call(system, task, schema, effort="low")
