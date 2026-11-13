@@ -69,6 +69,8 @@ const SKIP_ATTRS = '[contenteditable], [data-no-i18n], .textLayer, .tbox';
 
 function doText(node) {
   if (skip(node.parentElement)) return;
+  const own = node.parentElement?.dataset?.[lang];  // data-tr="..." on the element wins
+  if (own) { if (node.nodeValue !== own) node.nodeValue = own; return; }
   const v = t(node.nodeValue);
   if (v !== node.nodeValue) node.nodeValue = v;
 }

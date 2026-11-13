@@ -474,6 +474,11 @@ def _compile():
     return sorted(out, key=lambda x: -x[2])
 
 
+# The Verbs course keeps its Turkish in its own file.
+from .i18n_verbs import EXACT as _VERBS_EXACT, PATTERNS as _VERBS_PATTERNS  # noqa: E402
+
+EXACT.update(_VERBS_EXACT)
+PATTERNS.extend(_VERBS_PATTERNS)
 _PATTERNS = _compile()
 _SENTENCE = re.compile(r"(?<=[.!?])\s+")
 

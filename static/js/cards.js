@@ -157,7 +157,7 @@ function frontHtml(c) {
 function reveal() { R.revealed = true; renderReview(); }
 
 // The grammar point a card practices, from its tags (e.g. "Possessives in the dative"), hidden until asked for.
-const NOT_HINTS = new Set(['mistake-book', 'grammar', 'declension', 'vocab', 'vocabulary']);
+const NOT_HINTS = new Set(['mistake-book', 'grammar', 'declension', 'verbs', 'vocab', 'vocabulary']);
 function hintTopics(c) {
   if (!['fix', 'cloze', 'rule'].includes(c.type)) return [];
   let tags = [];

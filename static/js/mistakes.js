@@ -42,15 +42,15 @@ function render() {
   $('#mk-bar').innerHTML = mistakes.length ? `
     <label class="check"><input type="checkbox" id="mk-all" ${sel && sel === mistakes.length ? 'checked' : ''}> ${sel ? `${sel} selected` : 'Select all'}</label>
     <span class="grow muted small">${counts.open || 0} to learn · ${counts.learned || 0} learned</span>
-    ${learned ? '' : `<button data-act="free" ${selLinked ? '' : 'disabled'} title="Free drills from the declension engine, no AI needed">${icon('rocket')}Free drill</button>
+    ${learned ? '' : `<button data-act="free" ${selLinked ? '' : 'disabled'} title="Free drills from the grammar trainers, no AI needed">${icon('rocket')}Free drill</button>
       <button class="ghost" data-act="drill" ${sel ? '' : 'disabled'}>${icon('sparkles')}AI drill</button>
       <button class="ghost" data-act="cards" ${sel ? '' : 'disabled'}>${icon('cards')}Make flashcards</button>`}
     <button class="ghost" data-act="${learned ? 'reopen' : 'learned'}" ${sel ? '' : 'disabled'}>${icon(learned ? 'undo' : 'check')}${learned ? 'Back to "to learn"' : 'Mark learned'}</button>
     <button class="icon-btn danger-hover" data-act="delete" title="Delete selected" ${sel ? '' : 'disabled'}>${icon('trash')}</button>` : '';
 
   const linked = mistakes.filter(m => m.skills?.length);
-  const banner = !learned && linked.length ? `<div class="mk-free">${icon('rocket')}<div class="grow"><b>${linked.length} of these mistake${linked.length === 1 ? ' is' : 's are'} about cases and endings.</b>
-      <small>Drill them for free in the declension trainer. Each one is marked learned once you get it right on ${M.data.learned_days} separate days.</small></div>
+  const banner = !learned && linked.length ? `<div class="mk-free">${icon('rocket')}<div class="grow"><b>${linked.length} of these mistake${linked.length === 1 ? ' is' : 's are'} about cases, endings or verb forms.</b>
+      <small>Drill them for free in the grammar trainers. Each one is marked learned once you get it right on ${M.data.learned_days} separate days.</small></div>
       <button data-free-all>Drill all ${linked.length}</button></div>` : '';
   $('#mk-list').innerHTML = mistakes.length ? banner + mistakes.map(m => `
     <label class="mk-item ${M.selected.has(m.id) ? 'selected' : ''}">
@@ -96,12 +96,15 @@ $('#mk-topics').addEventListener('click', e => {
   loadMistakes();
 });
 
+// Case and ending skills drill on the Declensions page, verb skills on the Verbs page (the bigger group goes first).
 function freeDrill(ids) {
   return api('/mistakes/skills', { method: 'POST', body: { ids } }).then(r => {
-    if (!r.keys.length) return toast('None of these can be drilled in the declension trainer', 'error');
-    S.declKeys = r.keys;
-    S.declTab = 'free';
-    show('decl');
+    if (!r.keys.length) return toast('None of these can be drilled in the grammar trainers', 'error');
+    const verbKeys = r.keys.filter(k => /^v[bp]:/.test(k)), declKeys = r.keys.filter(k => !/^v[bp]:/.test(k));
+    const course = verbKeys.length > declKeys.length ? 'verbs' : 'decl';
+    S[course + 'Keys'] = course === 'verbs' ? verbKeys : declKeys;
+    S[course + 'Tab'] = 'free';
+    show(course);
   });
 }
 

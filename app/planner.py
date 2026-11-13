@@ -3,7 +3,8 @@ import datetime as dt
 import json
 
 from .i18n import localize
-from . import ai, course, db, decl, writing
+from . import ai, course, db, decl, verbs, writing
+from .verbcourse import VERBS_COURSE
 
 PAGE_READ_SECONDS = 20  # time on a page before it counts as read
 
@@ -192,6 +193,8 @@ def build_context():
         },
         "declension_trainer": decl.coach_summary(),
         "declension_course": course.coach_summary(),
+        "verb_trainer": verbs.coach_summary(),
+        "verb_course": VERBS_COURSE.coach_summary(),
         "writing_desk": writing.recent_for_coach(),
         "listening_library": db.q(
             "SELECT m.id AS media_id, m.title, m.source, c.title AS chapter, ROUND(m.seconds / 60.0, 1) AS minutes, "

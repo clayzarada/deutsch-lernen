@@ -10,7 +10,8 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import ai, anki, backup, course, db, decl, mistakelink, pdfs, planner, srs, tts, update, usage, writing
+from . import ai, anki, backup, course, db, decl, mistakelink, pdfs, planner, srs, tts, update, usage, verbs, writing
+from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
 from .i18n import localize
 
@@ -981,6 +982,85 @@ def decl_sprint(body: dict):
     return decl.save_sprint(int(body.get("score", 0)))
 
 
+# ---------- verbs (same shape as the declension endpoints, so the page code is shared) ----------
+@app.get("/api/verbs/state")
+def verbs_state():
+    return localize({**verbs.progress(), "tables": verbs.tables(), "triggers": []})
+
+
+@app.post("/api/verbs/next")
+def verbs_next(body: dict):
+    return localize(verbs.next_question(body.get("focus"), body.get("cases"), body.get("recent"), body.get("keys")))
+
+
+@app.post("/api/verbs/answer")
+def verbs_answer(body: dict):
+    result = verbs.grade(body["question"], body.get("answer", ""), body.get("ms"))
+    learned = mistakelink.auto_learn([p["key"] for p in body["question"]["parts"]])
+    return localize({**result, "learned": learned,
+                     "next": verbs.next_question(body.get("focus"), body.get("cases"), body.get("recent"), body.get("keys"))})
+
+
+@app.post("/api/verbs/table")
+def verbs_table(body: dict):
+    return verbs.check_table(body["table"], body.get("answers", {}))
+
+
+@app.get("/api/verbs/journey")
+def verbs_journey():
+    return localize(VERBS_COURSE.journey())
+
+
+@app.get("/api/verbs/stage/{stage_id}")
+def verbs_stage(stage_id: str):
+    if stage_id not in VERBS_COURSE.STAGE:
+        raise HTTPException(404, "Unknown stage")
+    return localize(VERBS_COURSE.detail(stage_id))
+
+
+@app.post("/api/verbs/stage/{stage_id}/next")
+def verbs_stage_next(stage_id: str, body: dict):
+    return localize(VERBS_COURSE.question(stage_id, body.get("mode", "drill"), body.get("recent")))
+
+
+@app.post("/api/verbs/stage/{stage_id}/answer")
+def verbs_stage_answer(stage_id: str, body: dict):
+    result = verbs.grade(body["question"], body.get("answer", ""), body.get("ms"))
+    return localize({**result, "next": VERBS_COURSE.question(stage_id, body.get("mode", "drill"), body.get("recent"))})
+
+
+@app.post("/api/verbs/stage/{stage_id}/complete")
+def verbs_stage_complete(stage_id: str, body: dict):
+    return localize(VERBS_COURSE.complete(stage_id, body["step"], body.get("score"), body.get("total")))
+
+
+@app.post("/api/verbs/stage/{stage_id}/cards")
+def verbs_stage_cards(stage_id: str):
+    return VERBS_COURSE.add_cards(stage_id)
+
+
+@app.post("/api/verbs/stage/{stage_id}/reading")
+def verbs_stage_reading(stage_id: str, body: dict):
+    brief = VERBS_COURSE.reading_brief(stage_id)
+    for _ in range(2):  # one retry if the text came back without usable gaps
+        r = ai.verb_reading(brief, (body.get("topic") or "").strip())
+        segments = course.parse_reading(r["text"])
+        if sum(1 for s in segments if "a" in s) >= 6:
+            return localize({"title": r["title"], "segments": segments})
+    raise ai.AIError("The text came back without gaps. Please try again.")
+
+
+@app.post("/api/verbs/record")
+def verbs_record(body: dict):
+    family = body.get("family") if body.get("family") in verbs.FAMILY_LABEL else "vsent"
+    return VERBS_COURSE.record(body.get("items", []), family)
+
+
+@app.post("/api/verbs/sprint")
+def verbs_sprint(body: dict):
+    return verbs.save_sprint(int(body.get("score", 0)))
+
+
 # ---------- writing desk ----------
 
 @app.get("/api/writing")
@@ -1035,7 +1115,7 @@ def backups_restore(body: dict):
 def stats():
     return {"today": planner.day_stats(db.today()), "week": planner.week(), "streak": planner.streak(),
             "cards": planner.card_counts(), "weak_topics": planner.weak_topics(),
-            "calendar": planner.calendar(), "journey": localize(course.brief())}
+            "calendar": planner.calendar(), "journey": localize(course.brief()), "verbs_journey": localize(VERBS_COURSE.brief())}
 
 
 @app.get("/api/progress")

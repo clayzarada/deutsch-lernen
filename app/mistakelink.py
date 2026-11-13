@@ -1,16 +1,16 @@
-"""Links Mistake Book entries to declension skills, so they can be drilled for free with the rule engine, and
+"""Links Mistake Book entries to declension and verb skills, so they can be drilled for free with the rule engine, and
 marks a mistake learned once each of its skills has been answered right on three separate study days
 (a day only counts if that skill had no wrong answer that day)."""
 import json
 
-from . import ai, db, decl
+from . import ai, db, decl, verbs
 
 LEARNED_DAYS = 3
 BATCH = 40
 
 
 def _valid():
-    return decl._core_keys()
+    return decl._core_keys() | verbs.core_keys()
 
 
 def _clean(keys):
@@ -26,11 +26,15 @@ def _clean(keys):
 def classify_pending():
     """Ask Claude once (per batch of 40) which declension skills each new mistake is about. Mistakes that
     aren't about declension get an empty list, so they're never sent again."""
+    if not db.get_settings().get("mistakes_verbs_checked"):
+        # Verb skills arrived in 2.0: mistakes found "not drillable" before then get one more look.
+        db.ex("UPDATE mistakes SET skills=NULL WHERE skills='[]'")
+        db.set_setting("mistakes_verbs_checked", "1")
     rows = db.q("SELECT id, topic, question, wrong, correct, full_correct, explanation FROM mistakes "
                 "WHERE skills IS NULL ORDER BY id LIMIT ?", (BATCH,))
     if not rows:
         return {"linked": 0, "checked": 0}
-    found = ai.classify_mistakes(rows, sorted(n["word"] for n in decl.NOUNS))
+    found = ai.classify_mistakes(rows, sorted(n["word"] for n in decl.NOUNS), sorted(v["inf"] for v in verbs.PARTS_VERBS))
     linked = 0
     for r in rows:
         keys = _clean(found.get(r["id"], []))

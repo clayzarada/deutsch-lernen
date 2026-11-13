@@ -1,17 +1,17 @@
 // Today page: stats, weekly chart, weak topics and the coach's daily plan.
 import { $, S, api, esc, icon, md, busy, loading, registerView, show, updateNavStatus } from './core.js';
 import { openReader } from './reader.js';
-import { kittySvg } from './declensions.js';
+import { kittySvg, hopliteKittySvg } from './declensions.js';
 
 const KIND = {
   reader: { label: 'Textbook', icon: 'reader' }, practice: { label: 'Practice', icon: 'practice' },
   flashcards: { label: 'Flashcards', icon: 'cards' }, mistakes: { label: 'Mistakes', icon: 'mistake' },
-  declensions: { label: 'Declensions', icon: 'rocket' },
+  declensions: { label: 'Declensions', icon: 'rocket' }, verbs: { label: 'Verbs', icon: 'spear' },
   video: { label: 'Video', icon: 'play' },
   listening: { label: 'Listening', icon: 'headphones' }, speaking: { label: 'Speaking', icon: 'mic' },
   writing: { label: 'Writing', icon: 'edit' }, other: { label: 'Activity', icon: 'target' },
 };
-const IN_APP = ['reader', 'practice', 'flashcards', 'mistakes', 'declensions', 'writing'];
+const IN_APP = ['reader', 'practice', 'flashcards', 'mistakes', 'declensions', 'verbs', 'writing'];
 const inApp = b => IN_APP.includes(b.kind) || !!b.media_id;
 
 registerView('today', loadToday);
@@ -27,7 +27,7 @@ async function loadToday() {
   renderSetup(plan);
   renderTiles(st);
   renderWeek(st.week);
-  renderJourney(st.journey);
+  renderJourney(st.journey, st.verbs_journey);
   renderCalendar(st.calendar);
   renderWeak(st.weak_topics);
   renderPlan(plan);
@@ -69,13 +69,19 @@ function renderWeek(week) {
   <p class="muted small">${week.reduce((a, d) => a + d.minutes, 0)} minutes in the last 7 days</p>`;
 }
 
-function renderJourney(j) {
-  $('#today-journey').innerHTML = `<button class="journey-card" data-journey title="Open the Declensions map">
-    <svg viewBox="-34 -27 68 60" class="dj-avatar">${kittySvg()}</svg>
-    <span class="grow"><small>Declensions · ${j.planets_done} of ${j.planets_total} planets</small>
-      <b>${j.finished ? 'Mission complete' : esc(j.title)}</b>
+// One card per grammar course: where you are on the journey and what's next.
+function journeyCard(j, { view, title, avatar, box, unit, label }) {
+  return `<button class="journey-card" data-journey="${view}" title="${title}">
+    <svg viewBox="${box}" class="dj-avatar">${avatar}</svg>
+    <span class="grow"><small>${label} · ${j.planets_done} of ${j.planets_total} ${unit}</small>
+      <b>${j.finished ? 'Mission complete' : esc(view === 'verbs' ? `${j.planet}: ${j.title}` : j.title)}</b>
       <span class="meter"><span class="meter-bar"><span style="width:${j.finished ? 100 : (100 * j.steps_done) / j.steps_total}%"></span></span>
         <span>${j.finished ? `★ ${j.stars}/${j.max_stars}` : j.next_step ? `next: ${j.next_step.toLowerCase()}` : ''}</span></span></span>${icon('right')}</button>`;
+}
+
+function renderJourney(j, v) {
+  $('#today-journey').innerHTML = journeyCard(j, { view: 'decl', title: 'Open the Declensions map', avatar: kittySvg(), box: '-34 -27 68 60', unit: 'planets', label: 'Declensions' })
+    + (v ? journeyCard(v, { view: 'verbs', title: 'Open the Verbs map', avatar: hopliteKittySvg(), box: '-36 -42 72 76', unit: 'regions', label: 'Verbs' }) : '');
 }
 
 // Twelve weeks of study days, one column per week (Monday at the top).
@@ -159,11 +165,15 @@ $('#weak-topics').addEventListener('click', e => {
   const t = e.target.closest('[data-mk-topic]');
   if (!t) return;
   if (t.dataset.mkTopic.startsWith('Declensions')) { S.declTab = 'free'; return show('decl'); }
+  if (t.dataset.mkTopic.startsWith('Verbs')) { S.verbsTab = 'free'; return show('verbs'); }
   S.mistakeTopic = t.dataset.mkTopic;
   show('mistakes');
 });
 
-$('#today-journey').addEventListener('click', e => { if (e.target.closest('[data-journey]')) { S.declTab = 'journey'; show('decl'); } });
+$('#today-journey').addEventListener('click', e => {
+  const c = e.target.closest('[data-journey]');
+  if (c) { const view = c.dataset.journey || 'decl'; S[view + 'Tab'] = 'journey'; show(view); }
+});
 
 $('#plan').addEventListener('click', async e => {
   const btn = e.target.closest('button[data-act]');
@@ -184,6 +194,7 @@ function openBlock(b) {
   else if (b.kind === 'flashcards') { S.cardTab = 'review'; show('cards'); }
   else if (b.kind === 'mistakes') show('mistakes');
   else if (b.kind === 'declensions') show('decl');
+  else if (b.kind === 'verbs') show('verbs');
   else if (b.kind === 'writing') { S.writingTask = { id: 'plan-' + S.plan.id, title: b.title, kind: 'From your plan', task: b.instructions, level: S.settings.level }; show('writing'); }
   else if (b.media_id) { S.listenMedia = b.media_id; show('listening'); }
   else if (b.url) window.open(b.url, '_blank', 'noopener');

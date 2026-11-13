@@ -1,14 +1,20 @@
-// Declensions section: a guided journey across "planets" (one per stage of the course) with a lesson, charts,
-// a drill, a reading, flashcards and a checkpoint each, plus free practice (smart drill, sprints, tables).
+// Grammar courses: Declensions (a journey across "planets") and Verbs (Alexander's march across a map), each with a
+// lesson, charts, a drill, a reading, flashcards and a checkpoint per stage, plus free practice (smart drill, sprints,
+// tables). Both run on this one page: COURSES says what differs, the server's course kit (app/coursekit.py) does the rest.
 import { $, $$, S, api, esc, icon, store, toast, busy, registerView, refreshNav, isActive } from './core.js';
+import { ALEXMAP } from './alexmap.js';
 
 const CASE_SHORT = { nom: 'Nominativ', akk: 'Akkusativ', dat: 'Dativ', gen: 'Genitiv' };
+const TENSE_SHORT = { praes: 'Präsens', perf: 'Perfekt', fut1: 'Futur I', modal: 'Modalverben', praet: 'Präteritum',
+  plusq: 'Plusquamperfekt', konj2: 'Konjunktiv II', fut2: 'Futur II' };
 const INSTRUCTION = {
   def: 'Type the article', dies: 'Type the word with its ending', ein: 'Type the word with its ending', poss: 'Type the possessive with its ending',
   adjw: 'Type the adjective ending', adjm: 'Type the adjective ending', adjs: 'Type the adjective ending',
   pers: 'Type the pronoun', refl: 'Type the reflexive pronoun', rel: 'Type the relative pronoun', wer: 'Type the question word',
   trig: 'Which case?', gender: 'Which article?', plural: 'Type the plural', noun: 'Type the noun with its ending',
   combo: 'Type the whole phrase in this case', sent: 'Type the missing phrase in the right case',
+  conj: 'Type the verb form', vsent: 'Type the missing verb form', modsent: 'Type the modal verb', aux: 'haben or sein?',
+  pp: 'Type the Partizip II', parts: 'Type the Präteritum and the Perfekt',
 };
 const SPRINT_SECONDS = 60;
 
@@ -16,23 +22,78 @@ function saved(key, fallback) {
   try { return JSON.parse(store.get(key)) ?? fallback; } catch { return fallback; }
 }
 
-const V = { tab: store.get('declTab') === 'free' ? 'free' : 'journey', state: null };
+// What differs between the courses. Everything else on this page is shared.
+const COURSES = {
+  decl: {
+    id: 'decl', api: '/decl', eyebrow: 'Mission: master the endings', title: 'Declensions',
+    toggles: CASE_SHORT, togglesTitle: 'Cases', keepOne: 'Keep at least one case on', triggers: true,
+    tableGroups: { Articles: ['def', 'dies', 'ein', 'kein', 'mein', 'dein', 'sein', 'ihr', 'unser', 'euer'], 'Adjective endings': ['adjw', 'adjm', 'adjs'], Pronouns: ['pers', 'refl', 'rel', 'wer'] },
+    map: () => renderPlanetMap(), mini: s => miniPlanet(s), kitty: () => kittySvg(), kittyBox: '-34 -27 68 60',
+    w: { done: 'Mission complete! Every planet is yours.', land: 'Land here', home: 'Visit home', stageDone: 'Planet complete',
+      unlockNext: 'unlock the next planet', lastDone: 'That was the last planet. You have crossed the whole system. Wunderbar!',
+      wayOpen: 'The way to {} is open. Next up: {}.', next: 'Fly to the next planet', back: 'Back to the planet',
+      newText: 'Claude writes a new one for this planet. Uses a little API credit.', mapLabel: 'Map of the declension planets' },
+  },
+  verbs: {
+    id: 'verbs', api: '/verbs', eyebrow: 'Mission: master the verbs', title: 'Verbs',
+    toggles: TENSE_SHORT, togglesTitle: 'Tenses', keepOne: 'Keep at least one tense on', triggers: false,
+    tableGroups: { Tenses: ['t-praes', 't-praes-sep', 't-perf', 't-fut1', 't-modal', 't-modal-praet', 't-praet', 't-plusq', 't-konj2', 't-fut2'],
+      'Strong verbs by pattern': ['p-a-u-a', 'p-a-ie-a', 'p-e-a-e', 'p-e-a-o', 'p-i-a-u', 'p-i-a-o', 'p-ei-ie-ie', 'p-ei-i-i', 'p-ie-o-o', 'p-mixed', 'p-other'] },
+    map: () => renderAlexMap(), mini: s => miniRegion(s), kitty: () => hopliteKittySvg(), kittyBox: '-36 -42 72 76',
+    w: { done: 'The march is complete! Every region is yours.', land: 'March in', home: 'Visit Babylon', stageDone: 'Region complete',
+      unlockNext: 'unlock the next region', lastDone: 'That was the last stop. The whole road from Macedon to the Indus is yours. Wunderbar!',
+      wayOpen: 'The road to {} is open. Next up: {}.', next: 'March on to the next region', back: 'Back to the region',
+      newText: 'Claude writes a new one for this region. Uses a little API credit.', mapLabel: "Map of Alexander's march" },
+  },
+};
+let C = COURSES.decl;
+const fill = (t, ...a) => { let i = 0; return t.replace(/\{\}/g, () => a[i++]); };
+const skey = k => C.id + k;  // per-course local storage keys (declTab, verbsTab, ...)
+
+let V = { tab: store.get('declTab') === 'free' ? 'free' : 'journey', state: null };
 const keyTable = {};
 const heat = key => { const b = V.state?.boxes[key]; return b ? `h${b.box}` : ''; };
-const caseBadge = c => c ? `<span class="case-badge c-${c}">${CASE_SHORT[c]}</span>` : '';
+const caseBadge = c => c && C.toggles[c] ? `<span class="case-badge c-${c}">${C.toggles[c]}</span>` : '';
 const fmt = s => esc(s).replace(/\*\*([^*]+)\*\*/g, '<b class="end">$1</b>').replace(/\*([^*\s][^*]*)\*/g, '<i>$1</i>');
 const norm = s => (s || '').trim().toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
   .replace(/\s+/g, ' ').replace(/^[-–— ]+/, '').replace(/[.,!? ]+$/, '');
 
-registerView('decl', loadDecl);
+// Each course keeps its own state, so switching between Declensions and Verbs picks up where you left off.
+const STATES = {};
+function useCourse(id) {
+  if (C.id === id && STATES[id]) return;
+  if (STATES[C.id]) STATES[C.id] = { V, J, D, free };  // keep the one we leave
+  stopSprint();
+  activeRunner?.stop?.();
+  C = COURSES[id];
+  if (!STATES[id]) {
+    V = { tab: store.get(skey('Tab')) === 'free' ? 'free' : 'journey', state: null };
+    J = { data: null, screen: 'map', stage: null, step: null, detail: {}, session: null };
+    D = newFreeState();
+    free = makeFree();
+    STATES[id] = { V, J, D, free };
+  } else ({ V, J, D, free } = STATES[id]);
+  $('#dv-eyebrow').textContent = C.eyebrow;
+  $('#dv-title').textContent = C.title;
+  jbox.innerHTML = '';
+  $('#dc-main').innerHTML = '';
+}
+
+registerView('decl', () => loadCourse('decl'));
+registerView('verbs', () => loadCourse('verbs'));
+
+function loadCourse(id) {
+  useCourse(id);
+  return loadDecl();
+}
 
 async function loadDecl() {
-  if (S.declTab) { V.tab = S.declTab; S.declTab = null; }
-  if (S.declKeys) { D.keys = S.declKeys; S.declKeys = null; D.sub = 'drill'; stopSprint(); free.q = null; }
+  if (S[skey('Tab')]) { V.tab = S[skey('Tab')]; S[skey('Tab')] = null; }
+  if (S[skey('Keys')]) { D.keys = S[skey('Keys')]; S[skey('Keys')] = null; D.sub = 'drill'; stopSprint(); free.q = null; }
   $$('#dv-tabs button').forEach(b => b.classList.toggle('active', b.dataset.dv === V.tab));
   $('#dv-journey').classList.toggle('hidden', V.tab !== 'journey');
   $('#dv-free').classList.toggle('hidden', V.tab !== 'free');
-  store.set('declTab', V.tab);
+  store.set(skey('Tab'), V.tab);
   await refreshState();
   if (V.tab === 'free') loadFree(); else loadJourney();
 }
@@ -46,7 +107,7 @@ $('#dv-tabs').addEventListener('click', e => {
 });
 
 async function refreshState() {
-  V.state = await api('/decl/state');
+  V.state = await api(C.api + '/state');
   for (const t of V.state.tables) for (const r of t.rows) for (const c of r.cells) if (c.key && !keyTable[c.key]) keyTable[c.key] = t;
 }
 const tableById = id => V.state.tables.find(t => t.id === id);
@@ -205,20 +266,20 @@ function feedbackHtml(q, r, given, waits) {
 }
 
 document.addEventListener('keydown', e => {
-  if (S.view !== 'decl' || e.repeat || $('dialog[open]')) return;
+  if (!COURSES[S.view] || e.repeat || $('dialog[open]')) return;
   if (activeRunner && activeRunner.box.isConnected && activeRunner.box.offsetParent !== null) return activeRunner.key(e);
   if (V.tab === 'journey' && J.screen === 'step' && J.step === 'cards') cardsKey(e);
 });
 
 // ================= the journey =================
-const J = { data: null, screen: 'map', stage: null, step: null, detail: {}, session: null };
+let J = { data: null, screen: 'map', stage: null, step: null, detail: {}, session: null };
 const POS = [[110, 125], [330, 95], [550, 135], [770, 100], [890, 320], [670, 350], [450, 315], [230, 355], [110, 560], [410, 590], [740, 555]];
 const STEP_ICON = { learn: 'reader', chart: 'grid', drill: 'target', reading: 'page', cards: 'cards', checkpoint: 'rocket' };
 const jbox = $('#dv-journey');
 
 async function loadJourney() {
-  J.data = await api('/decl/journey');
-  if (J.screen === 'map' || !J.stage) return renderMap();
+  J.data = await api(C.api + '/journey');
+  if (J.screen === 'map' || !J.stage) return C.map();
   if (J.screen === 'stage') return renderStage();
   // A step in progress keeps its screen (e.g. when coming back from another page).
   if (!jbox.childElementCount) renderStage();
@@ -273,7 +334,7 @@ function planetBody(s, r) {
     ${s.complete ? `<g transform="translate(${r * .72},${-r * .72})"><circle r="10" fill="#22c55e" stroke="#0b1020" stroke-width="2"/><path d="M-4.5 0 L-1.2 3.4 L4.8 -3.2" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></g>` : ''}`;
 }
 
-function renderMap() {
+function renderPlanetMap() {
   J.screen = 'map';
   activeRunner = null;
   const d = J.data, cur = stageIdx(d.current);
@@ -292,17 +353,17 @@ function renderMap() {
       ${s.unlocked ? `<text y="${r + 59}" class="pl-stars s${s.stars}">${starsText(s.stars)}</text>` : ''}</g>`;
   }).join('');
   const kpos = i => { const [x, y] = POS[i], r = d.stages[i].home ? 46 : 34; return [x, y - r - 36]; };
-  const lastIdx = Math.min(+store.get('declKitty') || 0, cur);
+  const lastIdx = Math.min(+store.get(skey('Kitty')) || 0, cur);
   const [kx, ky] = kpos(lastIdx);
   jbox.innerHTML = `
     <div class="dj-mission">
-      <svg class="dj-avatar" viewBox="-34 -27 68 60">${kittySvg()}</svg>
-      <div class="grow"><b>${d.finished ? 'Mission complete! Every planet is yours.' : `Next stop: ${esc(curStage.title)}`}</b>
+      <svg class="dj-avatar" viewBox="${C.kittyBox}">${C.kitty()}</svg>
+      <div class="grow"><b>${d.finished ? C.w.done : `Next stop: ${esc(curStage.title)}`}</b>
         <p class="muted small">${d.finished ? 'Keep your skills solid with free practice, and collect the last stars.' : `${esc(curStage.blurb)} ${nextStep ? `Up next: ${nextStep.label.toLowerCase()}.` : ''}`}</p></div>
       <span class="dj-stars" title="Stars: 1 for the checkpoint, 2 for every step, 3 for keeping the skills solid over time">★ ${d.stars}<small>/${d.max_stars}</small></span>
-      <button data-go-stage="${curStage.id}">${icon('rocket')}${d.finished ? 'Visit home' : curStage.steps.some(x => x.done) ? 'Continue' : 'Land here'}</button>
+      <button data-go-stage="${curStage.id}">${icon('rocket')}${d.finished ? C.w.home : curStage.steps.some(x => x.done) ? 'Continue' : C.w.land}</button>
     </div>
-    <div class="dj-map"><svg viewBox="0 0 1000 700" role="img" aria-label="Map of the declension planets">
+    <div class="dj-map"><svg viewBox="0 0 1000 700" role="img" aria-label="${C.w.mapLabel}">
       <defs>${defs}<radialGradient id="neb1" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#7c3aed" stop-opacity=".35"/><stop offset="1" stop-color="#7c3aed" stop-opacity="0"/></radialGradient>
         <radialGradient id="neb2" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#0ea5e9" stop-opacity=".22"/><stop offset="1" stop-color="#0ea5e9" stop-opacity="0"/></radialGradient></defs>
       <ellipse cx="840" cy="250" rx="300" ry="200" fill="url(#neb1)"/><ellipse cx="220" cy="480" rx="340" ry="230" fill="url(#neb2)"/>
@@ -316,7 +377,7 @@ function renderMap() {
     const [nx, ny] = kpos(cur);
     setTimeout(() => { const k = $('#dj-kitty'); if (k) { k.classList.add('flying'); k.style.transform = `translate(${nx}px, ${ny}px)`; } }, 350);
   }
-  store.set('declKitty', String(cur));
+  store.set(skey('Kitty'), String(cur));
 }
 
 function openStage(id) {
@@ -341,21 +402,21 @@ function renderStage() {
   jbox.innerHTML = `
     <button class="link-btn dj-back" data-map>${icon('left')}Back to the map</button>
     <div class="dj-stage-head">
-      ${miniPlanet(s)}
+      ${C.mini(s)}
       <div class="grow"><p class="eyebrow">${esc(s.planet)}</p><h2>${esc(s.title)}</h2><p class="muted">${esc(s.blurb)}</p>
         <div class="meter"><div class="meter-bar"><span style="width:${(100 * s.skills.solid) / Math.max(1, s.skills.total)}%"></span></div><span>${s.skills.solid}/${s.skills.total} skills solid</span></div></div>
-      <div class="dj-stage-stars"><span class="pl-stars s${s.stars}">${starsText(s.stars)}</span><small class="muted">${s.complete ? 'Planet complete' : `${doneSteps} of ${s.steps.length} steps`}</small></div>
+      <div class="dj-stage-stars"><span class="pl-stars s${s.stars}">${starsText(s.stars)}</span><small class="muted">${s.complete ? C.w.stageDone : `${doneSteps} of ${s.steps.length} steps`}</small></div>
     </div>
     <div class="dj-steps">${s.steps.map((x, i) => {
       const cp = x.id === 'checkpoint';
       const best = x.best != null && ['drill', 'checkpoint', 'reading'].includes(x.id) ? `best ${x.best}${x.id === 'drill' ? `/${J.data.drill.size}` : cp ? `/${s.checkpoint.size}` : ''}` : '';
-      const text = cp ? `${s.checkpoint.size} mixed questions. Get ${s.checkpoint.need} right to ${s.complete ? 'pass' : 'unlock the next planet'}.` : x.id === 'cards' ? `Flip through ${s.cards} key rules.` : x.text;
+      const text = cp ? `${s.checkpoint.size} mixed questions. Get ${s.checkpoint.need} right to ${s.complete ? 'pass' : C.w.unlockNext}.` : x.id === 'cards' ? `Flip through ${s.cards} key rules.` : x.text;
       return `<button class="dj-step ${x.done ? 'done' : ''} ${cp ? 'checkpoint' : ''}" data-step="${x.id}">
         <span class="dj-step-icon">${icon(x.done ? 'check' : STEP_ICON[x.id])}</span>
         <span class="grow"><b>${i + 1}. ${x.label}</b><small>${text}</small></span>
         <span class="dj-step-meta">${best ? `<small>${best}</small>` : ''}<span class="chip">${x.done ? 'Again' : 'Start'}${icon('right')}</span></span></button>`;
     }).join('')}</div>
-    ${s.complete ? '' : `<p class="muted small center dj-testout">${icon('sparkles')}Already know this? Go straight to the <b>checkpoint</b> to test out and unlock the next planet.</p>`}`;
+    ${s.complete ? '' : `<p class="muted small center dj-testout">${icon('sparkles')}Already know this? Go straight to the <b>checkpoint</b> to test out and ${C.w.unlockNext}.</p>`}`;
 }
 
 jbox.addEventListener('click', e => {
@@ -363,21 +424,21 @@ jbox.addEventListener('click', e => {
   if (e.target.closest('[data-stage-back]')) { J.session?.runner?.stop(); J.screen = 'stage'; return loadJourney(); }
   const go = e.target.closest('[data-go-stage]');
   if (go) return openStage(go.dataset.goStage);
-  const pl = e.target.closest('.pl[data-stage]');
+  const pl = e.target.closest('.pl[data-stage], .ar[data-stage]');
   if (pl) return openStage(pl.dataset.stage);
   const st = e.target.closest('[data-step]');
   if (st) return openStep(st.dataset.step).catch(err => toast(err.message, 'error'));
   stepClick(e);
 });
 jbox.addEventListener('keydown', e => {
-  const pl = e.target.closest?.('.pl[data-stage]');
+  const pl = e.target.closest?.('.pl[data-stage], .ar[data-stage]');
   if (pl && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); openStage(pl.dataset.stage); }
   gridEnter(e, jbox, $('#dj-chart-check'));
   const gap = e.target.closest?.('input[data-gap]');
   if (gap && e.key === 'Enter') { e.preventDefault(); const all = $$('input[data-gap]', jbox); (all[all.indexOf(gap) + 1] || $('#dj-read-check'))?.focus(); }
 });
 
-async function getDetail(id) { return J.detail[id] ||= await api(`/decl/stage/${id}`); }
+async function getDetail(id) { return J.detail[id] ||= await api(`${C.api}/stage/${id}`); }
 
 function stepShell(label, inner, { narrow = false } = {}) {
   const s = stageOf(J.stage);
@@ -393,7 +454,7 @@ async function openStep(step) {
 }
 
 async function finishStep(score, total) {
-  const r = await api(`/decl/stage/${J.stage}/complete`, { method: 'POST', body: { step: J.step, score, total } });
+  const r = await api(`${C.api}/stage/${J.stage}/complete`, { method: 'POST', body: { step: J.step, score, total } });
   J.data = r.journey;
   return r;
 }
@@ -436,7 +497,7 @@ async function checkChart(btn) {
       const answers = {};
       $$(`table[data-table="${t.id}"] input[data-pos]`, jbox).forEach(i => { answers[i.dataset.pos] = i.value; if (!i.value.trim()) blank++; });
       CH.vals[t.id] = answers;
-      const { results } = await api('/decl/table', { method: 'POST', body: { table: t.id, answers } });
+      const { results } = await api(C.api + '/table', { method: 'POST', body: { table: t.id, answers } });
       CH.checked[t.id] = results;
       total += Object.keys(answers).length;
       right += Object.values(results).filter(r => r.correct).length;
@@ -461,7 +522,7 @@ function showSession(mode) {
   const sess = J.session = { mode, size, need, n: 0, right: 0, missed: [] };
   stepShell(mode === 'checkpoint' ? 'Checkpoint' : 'Drill', '<div id="dj-run"></div>', { narrow: true });
   sess.runner = makeRunner($('#dj-run'), {
-    url: `/decl/stage/${J.stage}`,
+    url: `${C.api}/stage/${J.stage}`,
     params: () => ({ mode }),
     stats: () => `<span class="dc-score"><b>${sess.right}</b>/${sess.n}</span>`,
     above: () => `<div class="dj-progress" title="${sess.n} of ${size}"><i style="width:${(100 * sess.n) / size}%"></i><span style="left:${(100 * need) / size}%" title="Pass mark: ${need}"></span></div>
@@ -482,8 +543,8 @@ async function endSession() {
   if (sess.mode === 'checkpoint' && r.planet_complete) {
     const next = r.next && stageOf(r.next);
     return doneScreen({ big: true, title: `${s.title} complete!`, score: `${sess.right}/${sess.n}`,
-      text: next ? `The way to ${next.planet} is open. Next up: ${next.title}.` : 'That was the last planet. You have crossed the whole system. Wunderbar!',
-      extra: missedHtml, primary: next ? ['Fly to the next planet', 'map'] : ['Back to the map', 'map'] });
+      text: next ? fill(C.w.wayOpen, next.planet, next.title) : C.w.lastDone,
+      extra: missedHtml, primary: next ? [C.w.next, 'map'] : ['Back to the map', 'map'] });
   }
   doneScreen({ fail: !r.passed, title: r.passed ? (sess.mode === 'checkpoint' ? 'Checkpoint passed again!' : 'Drill passed!') : 'Not quite yet', score: `${sess.right}/${sess.n}`,
     text: r.passed ? 'Nice work. Speed comes with repetition.' : `You need ${sess.need} right. ${sess.mode === 'checkpoint' ? 'Try the briefing and the drill, then come back.' : 'Have another go: the ones you missed will come up again.'}`,
@@ -496,10 +557,10 @@ function doneScreen({ title, text = '', score = '', extra = '', fail = false, bi
   const burst = big ? `<div class="dj-burst">${Array.from({ length: 12 }, (_, i) => `<i style="--a:${i * 30}deg; animation-delay:${(i % 4) * .08}s">★</i>`).join('')}</div>` : '';
   $('#dj-body').className = 'dj-step-body narrow';
   $('#dj-body').innerHTML = `<div class="dc-card dj-done ${fail ? 'fail' : ''} ${big ? 'big' : ''}">
-    <div class="dj-done-kitty">${burst}<svg viewBox="-34 -27 68 60" width="${big ? 150 : 104}">${kittySvg()}</svg></div>
+    <div class="dj-done-kitty">${burst}<svg viewBox="${C.kittyBox}" width="${big ? 150 : 104}">${C.kitty()}</svg></div>
     ${score ? `<div class="dc-end-score">${score}</div>` : ''}
     <h2>${esc(title)}</h2><p class="muted">${esc(text)}</p>${extra}
-    <div class="row dc-end-actions">${primary ? `<button data-done="${primary[1]}">${icon('rocket')}${primary[0]}</button>` : `<button data-done="stage">${icon('check')}Back to the planet</button>`}
+    <div class="row dc-end-actions">${primary ? `<button data-done="${primary[1]}">${icon('rocket')}${primary[0]}</button>` : `<button data-done="stage">${icon('check')}${C.w.back}</button>`}
       ${retry ? `<button class="ghost" data-done="retry">${icon('undo')}${fail ? 'Try again' : 'Go again'}</button>` : ''}</div></div>`;
   $('[data-done]', jbox)?.focus();
 }
@@ -519,7 +580,7 @@ function showReading(reading, fresh) {
       <p class="muted small">Fill in each gap. Gray words in the boxes are hints; small boxes want just an ending. <kbd>Enter</kbd> jumps to the next gap.</p>
       <p class="rd-text">${text}</p>
       <div class="row dj-end-row"><button id="dj-read-check">${icon('check')}Check</button><span id="dj-read-result" class="muted small"></span></div></article>
-    <div class="panel dj-fresh"><div class="grow"><b>${icon('sparkles')}Want a different text?</b><p class="muted small">${ai ? 'Claude writes a new one for this planet. Uses a little API credit.' : 'Add a Claude API key in Settings to get freshly written texts.'}</p></div>
+    <div class="panel dj-fresh"><div class="grow"><b>${icon('sparkles')}Want a different text?</b><p class="muted small">${ai ? C.w.newText : 'Add a Claude API key in Settings to get freshly written texts.'}</p></div>
       ${ai ? `<input id="dj-read-topic" placeholder="Topic (optional), e.g. the gym"><button class="ghost" id="dj-read-new">${icon('sparkles')}New text</button>` : ''}</div>`, { narrow: true });
   $('input[data-gap]', jbox)?.focus();
 }
@@ -539,10 +600,10 @@ async function checkReading() {
     return { key: gaps[i].key, correct };
   });
   const right = items.filter(i => i.correct).length;
-  api('/decl/record', { method: 'POST', body: { items } }).catch(() => {});
+  api(C.api + '/record', { method: 'POST', body: { items } }).catch(() => {});
   const r = await finishStep(right, items.length);
   $('#dj-read-result').innerHTML = `<b>${right} of ${items.length} right.</b> ${r.passed ? 'Reading passed!' : `You need ${Math.ceil(items.length * .8)} to pass.`}`;
-  $('#dj-read-check').outerHTML = `<button data-done="stage">${icon('check')}Back to the planet</button><button class="ghost" id="dj-read-retry">${icon('undo')}Do it again</button>`;
+  $('#dj-read-check').outerHTML = `<button data-done="stage">${icon('check')}${C.w.back}</button><button class="ghost" id="dj-read-retry">${icon('undo')}Do it again</button>`;
 }
 
 // ---------- step: flashcards ----------
@@ -605,11 +666,11 @@ function stepClick(e) {
   if (t.closest('#dj-read-retry')) return showReading(RD.reading, RD.fresh);
   if (t.closest('#dj-read-new')) {
     const btn = t.closest('#dj-read-new');
-    return busy(btn, 'Writing...', async () => showReading(await api(`/decl/stage/${J.stage}/reading`, { method: 'POST', body: { topic: $('#dj-read-topic').value } }), true));
+    return busy(btn, 'Writing...', async () => showReading(await api(`${C.api}/stage/${J.stage}/reading`, { method: 'POST', body: { topic: $('#dj-read-topic').value } }), true));
   }
   if (t.closest('#dj-cards-add')) {
     return busy(t.closest('#dj-cards-add'), 'Adding...', async () => {
-      const r = await api(`/decl/stage/${J.stage}/cards`, { method: 'POST' });
+      const r = await api(`${C.api}/stage/${J.stage}/cards`, { method: 'POST' });
       delete J.detail[J.stage];
       toast(`Added ${r.added} cards to your Flashcards`);
       refreshNav();
@@ -619,13 +680,16 @@ function stepClick(e) {
 }
 
 // ================= free practice =================
-const D = {
-  sub: 'drill', sprint: null, table: 'def', tableMode: 'test', checked: null, tableVals: {}, clock: null,
-  focus: new Set(saved('declFocus', [])), cases: new Set(saved('declCases', ['nom', 'akk', 'dat', 'gen'])),
-  session: { n: 0, right: 0, streak: 0 },
-};
-const free = makeRunner($('#dc-main'), {
-  url: '/decl',
+function newFreeState() {
+  return {
+    sub: 'drill', sprint: null, table: C.id === 'decl' ? 'def' : 't-praes', tableMode: 'test', checked: null, tableVals: {}, clock: null,
+    focus: new Set(saved(skey('Focus'), [])), cases: new Set(saved(skey('Cases'), Object.keys(C.toggles))),
+    session: { n: 0, right: 0, streak: 0 },
+  };
+}
+let D = newFreeState();
+const makeFree = () => makeRunner($('#dc-main'), {
+  url: C.api,
   params: () => D.keys ? { keys: D.keys } : { focus: [...D.focus], cases: [...D.cases] },
   stats: () => {
     const s = D.session;
@@ -644,6 +708,7 @@ const free = makeRunner($('#dc-main'), {
     else if (s.n % 5 === 0) refreshState().then(() => { if (D.sub === 'drill' && V.tab === 'free') renderSide(); }).catch(() => {});
   },
 });
+let free = makeFree();
 
 function loadFree() {
   renderSide();
@@ -658,11 +723,11 @@ function renderSide() {
   const fams = V.state.families;
   const groups = [...new Set(fams.map(f => f.group))];
   if (D.sub === 'tables') {
-    const byGroup = { Articles: ['def', 'dies', 'ein', 'kein', 'mein', 'dein', 'sein', 'ihr', 'unser', 'euer'], 'Adjective endings': ['adjw', 'adjm', 'adjs'], Pronouns: ['pers', 'refl', 'rel', 'wer'] };
-    $('#dc-side').innerHTML = `<div class="panel"><h2>Tables</h2>${Object.entries(byGroup).map(([g, ids]) => `
-      <h4 class="dc-group">${g}</h4><div class="dc-table-list">${ids.map(id => `<button class="chip-btn ${D.table === id ? 'on' : ''}" data-table="${id}">${esc(tableById(id).title.replace(/^Adjective /, '').replace(/^(.)/, m => m.toUpperCase()))}</button>`).join('')}</div>`).join('')}
-      <h4 class="dc-group">Case triggers</h4><div class="dc-table-list"><button class="chip-btn ${D.table === 'triggers' ? 'on' : ''}" data-table="triggers">Prepositions &amp; verbs</button>
-        <button class="chip-btn ${D.table === 'match' ? 'on' : ''}" data-table="match">Match the case</button></div></div>`;
+    const byGroup = C.tableGroups;
+    $('#dc-side').innerHTML = `<div class="panel"><h2>Tables</h2>${Object.entries(byGroup).map(([g, ids]) => ids.filter(tableById).length ? `
+      <h4 class="dc-group">${g}</h4><div class="dc-table-list">${ids.filter(tableById).map(id => `<button class="chip-btn ${D.table === id ? 'on' : ''}" data-table="${id}">${esc(C.id === 'decl' ? tableById(id).title.replace(/^Adjective /, '').replace(/^(.)/, m => m.toUpperCase()) : tableById(id).title)}</button>`).join('')}</div>` : '').join('')}
+      ${C.triggers ? `<h4 class="dc-group">Case triggers</h4><div class="dc-table-list"><button class="chip-btn ${D.table === 'triggers' ? 'on' : ''}" data-table="triggers">Prepositions &amp; verbs</button>
+        <button class="chip-btn ${D.table === 'match' ? 'on' : ''}" data-table="match">Match the case</button></div>` : ''}</div>`;
     return;
   }
   const famRow = f => {
@@ -673,7 +738,7 @@ function renderSide() {
   $('#dc-side').innerHTML = `<div class="panel"><h2>What to drill</h2>
       <button class="dc-fam smart ${D.focus.size ? '' : 'on'}" data-smart>${icon('sparkles')}<span class="grow"><b>Smart mix</b><small>Your weakest and due skills from everything</small></span></button>
       ${groups.map(g => `<h4 class="dc-group">${g}</h4>${fams.filter(f => f.group === g).map(famRow).join('')}`).join('')}
-    </div><div class="panel"><h2>Cases</h2><div class="dc-cases">${Object.entries(CASE_SHORT).map(([c, n]) =>
+    </div><div class="panel"><h2>${C.togglesTitle}</h2><div class="dc-cases">${Object.entries(C.toggles).map(([c, n]) =>
       `<button class="case-toggle c-${c} ${D.cases.has(c) ? 'on' : ''}" data-case="${c}">${n}</button>`).join('')}</div></div>`;
 }
 
@@ -685,12 +750,12 @@ $('#dc-side').addEventListener('click', e => {
   else if (fam) { if (D.focus.has(fam.dataset.fam)) D.focus.delete(fam.dataset.fam); else D.focus.add(fam.dataset.fam); }
   else if (kase) {
     if (D.cases.has(kase.dataset.case)) {
-      if (D.cases.size === 1) return toast('Keep at least one case on', 'error');
+      if (D.cases.size === 1) return toast(C.keepOne, 'error');
       D.cases.delete(kase.dataset.case);
     } else D.cases.add(kase.dataset.case);
   } else return;
-  store.set('declFocus', JSON.stringify([...D.focus]));
-  store.set('declCases', JSON.stringify([...D.cases]));
+  store.set(skey('Focus'), JSON.stringify([...D.focus]));
+  store.set(skey('Cases'), JSON.stringify([...D.cases]));
   renderSide();
   stopSprint();
   free.start().catch(err => toast(err.message, 'error'));
@@ -743,7 +808,7 @@ async function endSprint() {
   free.q = null;
   $('#dc-sprint span').textContent = `${SPRINT_SECONDS}-second sprint`;
   renderSprintEnd();
-  sprint.saved = await api('/decl/sprint', { method: 'POST', body: { score: sprint.score } });
+  sprint.saved = await api(C.api + '/sprint', { method: 'POST', body: { score: sprint.score } });
   if (D.sprint === sprint && D.sub === 'drill') renderSprintEnd();
   refreshState().then(() => { if (D.sub === 'drill') renderSide(); }).catch(() => {});
 }
@@ -797,7 +862,7 @@ $('#dc-main').addEventListener('click', async e => {
   const drill = t.closest('[data-drill]');
   if (drill) {
     D.focus = new Set([drill.dataset.drill]);
-    store.set('declFocus', JSON.stringify([...D.focus]));
+    store.set(skey('Focus'), JSON.stringify([...D.focus]));
     D.sub = 'drill';
     renderSide(); renderFreeMain();
     return free.start();
@@ -813,7 +878,7 @@ $('#dc-main').addEventListener('click', async e => {
     $$('#dc-main input[data-pos]').forEach(i => { answers[i.dataset.pos] = i.value; });
     if (!Object.values(answers).some(v => v.trim())) return toast('Fill in at least one cell first', 'error');
     try {
-      const { results } = await api('/decl/table', { method: 'POST', body: { table: D.table, answers } });
+      const { results } = await api(C.api + '/table', { method: 'POST', body: { table: D.table, answers } });
       Object.assign(D, { checked: results, tableVals: answers });
       await refreshState();
       renderTable();
@@ -830,7 +895,7 @@ const BINS = [
   { c: 'two', label: 'Two-way', hint: 'wohin? Akk · wo? Dat' },
 ];
 const binsFor = kind => kind === 'verb' ? BINS.slice(0, 2) : BINS;  // verbs only take Akkusativ or Dativ
-const matchOpen = () => S.view === 'decl' && V.tab === 'free' && D.sub === 'tables' && D.table === 'match';
+const matchOpen = () => S.view === 'decl' && C.id === 'decl' && V.tab === 'free' && D.sub === 'tables' && D.table === 'match';
 
 async function newMatchRound() {
   M.loading = true;
@@ -928,7 +993,100 @@ $('#dc-main').addEventListener('input', e => {
 
 // Time spent working here counts toward today's study minutes (not time spent just looking at the map).
 setInterval(() => {
-  if (S.view === 'decl' && isActive() && (V.tab === 'free' || J.screen !== 'map')) {
+  if (COURSES[S.view] && isActive() && (V.tab === 'free' || J.screen !== 'map')) {
     api('/activity', { method: 'POST', body: { kind: 'practice', seconds: 15 } }).catch(() => {});
   }
 }, 15000);
+
+// ================= the Verbs map: Alexander's march =================
+// Regions in marching order; Macedon is home. Each region lights up gold once its checkpoint is passed, so the
+// empire grows with the learner. Hovering lifts a region slightly. No markers: only coastlines, regions and labels.
+export function hopliteKittySvg() {
+  return `<g class="kitty-bob">
+    <ellipse cx="0" cy="31" rx="15" ry="2.6" fill="#000" opacity=".3"/>
+    <line x1="21" y1="31" x2="28" y2="-27" stroke="#7a4e25" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M28.9 -37 L25.6 -27 L30.7 -26.4 Z" fill="#e3b04b" stroke="#a87a22" stroke-width=".6" stroke-linejoin="round"/>
+    <path d="M-8 26 Q0 31 8 26 L9 14 Q0 9 -9 14 Z" fill="#f0a35a"/>
+    <ellipse cx="0" cy="20" rx="5" ry="6" fill="#fde4c4"/>
+    <path d="M7 17 Q15 15 21.5 13" fill="none" stroke="#f0a35a" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="-10" cy="19" r="10.5" fill="#c98a2c" stroke="#8d5c16" stroke-width="1.5"/>
+    <circle cx="-10" cy="19" r="6.6" fill="none" stroke="#efc46b" stroke-width="1.1" opacity=".75"/>
+    <circle cx="-10" cy="19" r="1.6" fill="#efc46b" opacity=".9"/>
+    <ellipse cx="22.6" cy="13" rx="3.4" ry="3" fill="#f0a35a"/>
+    <path d="M-10.5 -5 L-12 -17 L-3.5 -10 Z" fill="#f0a35a"/><path d="M10.5 -5 L12 -17 L3.5 -10 Z" fill="#f0a35a"/>
+    <circle cx="0" cy="0" r="11.5" fill="#f0a35a"/>
+    <path d="M-12.6 1.5 C-13.2 -9.5 -7.2 -13.6 0 -13.6 C7.2 -13.6 13.2 -9.5 12.6 1.5 L10.2 6.6 L9.2 -1.8 Q0 -5.6 -9.2 -1.8 L-10.2 6.6 Z" fill="#dba543" stroke="#9a6b1b" stroke-width=".9" stroke-linejoin="round"/>
+    <path d="M-9.2 -1.8 Q0 -5.6 9.2 -1.8" fill="none" stroke="#f3cf7a" stroke-width="1" opacity=".8"/>
+    <path d="M-12 -11 C-9 -25 9 -25 12 -11" fill="none" stroke="#b8322a" stroke-width="4.6" stroke-linecap="round"/>
+    <path d="M-11 -12.5 C-8 -23 8 -23 11 -12.5" fill="none" stroke="#e0574b" stroke-width="1.4" stroke-dasharray="1.6 1.4" opacity=".8"/>
+    <ellipse cx="-4.4" cy="1.4" rx="2.6" ry="3.2" fill="#2a1d14"/><ellipse cx="4.4" cy="1.4" rx="2.6" ry="3.2" fill="#2a1d14"/>
+    <circle cx="-5.2" cy=".3" r=".95" fill="#fff"/><circle cx="3.6" cy=".3" r=".95" fill="#fff"/>
+    <path d="M-1.3 5 L1.3 5 L0 6.5 Z" fill="#f7a8c4"/>
+    <path d="M0 6.5 Q-1.8 8.6 -3.6 7.4 M0 6.5 Q1.8 8.6 3.6 7.4" fill="none" stroke="#8c4a1c" stroke-width=".9" stroke-linecap="round"/>
+    <g stroke="#fff4e6" stroke-width=".6" stroke-linecap="round" opacity=".85"><path d="M-6.5 5 L-13 4"/><path d="M-6.5 6.4 L-12.6 7.6"/><path d="M6.5 5 L13 4"/><path d="M6.5 6.4 L12.6 7.6"/></g>
+  </g>`;
+}
+
+const HOME_REGION = 'macedon';
+// Labels that would sit on top of each other get nudged (in map pixels).
+const LABEL_NUDGE = { hellas: [-26, 22], macedon: [0, -2], phoenicia: [-30, 14], syria: [8, -6], babylon: [6, 10] };
+
+function renderAlexMap() {
+  J.screen = 'map';
+  activeRunner = null;
+  const d = J.data, cur = stageIdx(d.current);
+  const curStage = d.stages[cur];
+  const nextStep = curStage.steps.find(x => !x.done);
+  const M = ALEXMAP;
+  const at = r => { const g = M.regions[r]; return [g.cx, g.cy]; };
+  const route = [HOME_REGION, ...d.stages.map(s => s.region)].map(at);
+  const reached = route.slice(0, (d.finished ? d.stages.length : cur) + 1 + 1);
+  const regions = [{ region: HOME_REGION }, ...d.stages].map((s, i) => {
+    const g = M.regions[s.region];
+    const isHome = s.region === HOME_REGION;
+    const state = isHome ? 'home' : s.complete ? 'done' : !s.unlocked ? 'locked' : (i - 1 === cur && !d.finished) ? 'current' : 'open';
+    const attrs = isHome ? '' : `data-stage="${s.id}" tabindex="0" role="button" aria-label="${esc(s.title)}${s.unlocked ? '' : ' (locked)'}"`;
+    return `<g class="ar ${state}" ${attrs}><path class="ar-fill" d="${g.d}"/><path class="ar-edge" d="${g.edge}"/></g>`;
+  }).join('');
+  const labels = d.stages.map(s => {
+    if (!s.unlocked) return '';
+    const [x, y] = at(s.region), [nx, ny] = LABEL_NUDGE[s.region] || [0, 0];
+    return `<g class="ar-label ${s.complete ? 'done' : ''}" transform="translate(${x + nx},${y + ny})"><text class="ar-name">${esc(s.planet)}</text>
+      <text class="ar-tense" y="13">${esc(s.title)}</text>${s.complete ? `<text class="ar-stars" y="25">${starsText(s.stars)}</text>` : ''}</g>`;
+  }).join('');
+  const kpos = i => { const [x, y] = i < 0 ? at(HOME_REGION) : at(d.stages[i].region); return [x - 30, y - 34]; };
+  const savedIdx = store.get(skey('Kitty'));
+  const lastIdx = Math.min(savedIdx == null ? -1 : +savedIdx, cur);
+  const [kx, ky] = kpos(lastIdx);
+  jbox.innerHTML = `
+    <div class="dj-mission">
+      <svg class="dj-avatar" viewBox="${C.kittyBox}">${C.kitty()}</svg>
+      <div class="grow"><b>${d.finished ? C.w.done : `Next stop: ${esc(curStage.planet)}, ${esc(curStage.title)}`}</b>
+        <p class="muted small">${d.finished ? 'Keep your skills solid with free practice, and collect the last stars.' : `${esc(curStage.blurb)} ${nextStep ? `Up next: ${nextStep.label.toLowerCase()}.` : ''}`}</p></div>
+      <span class="dj-stars" title="Stars: 1 for the checkpoint, 2 for every step, 3 for keeping the skills solid over time">★ ${d.stars}<small>/${d.max_stars}</small></span>
+      <button data-go-stage="${curStage.id}">${icon('rocket')}${d.finished ? C.w.home : curStage.steps.some(x => x.done) ? 'Continue' : C.w.land}</button>
+    </div>
+    <div class="dj-map ar-map"><svg viewBox="0 0 ${M.w} ${M.h}" role="img" aria-label="${C.w.mapLabel}">
+      <rect class="ar-sea" width="${M.w}" height="${M.h}"/>
+      <path class="ar-grat" d="${M.graticule}"/><path class="ar-land" d="${M.land}"/><path class="ar-coast" d="${M.coast}"/>
+      <g class="ar-regions">${regions}</g>
+      <path d="${smoothPath(route)}" class="ar-route"/>
+      ${reached.length > 1 ? `<path d="${smoothPath(reached)}" class="ar-route done"/>` : ''}
+      <g class="ar-labels">${labels}</g>
+      <g id="dj-kitty" class="dj-kitty ar-kitty" style="transform: translate(${kx}px, ${ky}px) scale(.85)">${C.kitty()}</g>
+    </svg></div>`;
+  // the hovered region comes to the front so its lifted edge isn't hidden under its neighbours
+  $$('.ar[data-stage]', jbox).forEach(g => g.addEventListener('pointerenter', () => g.parentNode.appendChild(g)));
+  if (lastIdx !== cur) {
+    const [nx, ny] = kpos(cur);
+    setTimeout(() => { const k = $('#dj-kitty'); if (k) { k.classList.add('flying'); k.style.transform = `translate(${nx}px, ${ny}px) scale(.85)`; } }, 350);
+  }
+  store.set(skey('Kitty'), String(cur));
+}
+
+function miniRegion(s, size = 84) {
+  const g = ALEXMAP.regions[s.region];
+  const [x0, y0, x1, y1] = g.box, pad = 6, w = x1 - x0 + 2 * pad, h = y1 - y0 + 2 * pad;
+  return `<svg viewBox="${x0 - pad} ${y0 - pad} ${w} ${h}" width="${size * 1.17}" height="${size}" class="dj-mini-region ${s.complete ? 'done' : ''}"><path class="ar-fill" d="${g.d}"/><path class="ar-edge" d="${g.edge}"/></svg>`;
+}
+

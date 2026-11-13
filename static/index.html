@@ -25,9 +25,11 @@
   <p class="nav-label">Read</p>
   <a data-view="library" data-icon="library"><span>Library</span></a>
   <a data-view="reader" data-icon="reader"><span>Reader</span></a>
-  <p class="nav-label">Practice</p>
-  <a data-view="practice" data-icon="practice"><span>Practice</span></a>
+  <p class="nav-label">Grammar</p>
   <a data-view="decl" data-icon="rocket"><span>Declensions</span></a>
+  <a data-view="verbs" data-icon="spear"><span>Verbs</span></a>
+  <p class="nav-label" data-tr="Pratik">Practice</p>
+  <a data-view="practice" data-icon="practice"><span>Practice</span></a>
   <a data-view="writing" data-icon="edit"><span>Writing</span></a>
   <a data-view="cards" data-icon="cards"><span>Flashcards</span><b class="badge hidden"></b></a>
   <a data-view="listening" data-icon="headphones"><span>Listening</span></a>
@@ -169,9 +171,9 @@
   </section>
 
   <!-- DECLENSIONS -->
-  <section id="view-decl" class="view hidden">
+  <section id="view-decl" class="view hidden" data-views="decl verbs">
     <header class="page-head">
-      <div><p class="eyebrow">Mission: master the endings</p><h1>Declensions</h1></div>
+      <div><p class="eyebrow" id="dv-eyebrow">Mission: master the endings</p><h1 id="dv-title">Declensions</h1></div>
       <div class="tabs" id="dv-tabs"><button data-dv="journey">Journey</button><button data-dv="free">Free practice</button></div>
     </header>
     <div id="dv-journey"></div>

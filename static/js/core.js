@@ -56,6 +56,7 @@ const ICONS = {
   x: '<path d="M18 6 6 18M6 6l12 12"/>',
   trash: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
   edit: '<path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  spear: '<path d="M5 19 19 5"/><path d="M15 4h5v5"/><path d="M4 16l4 4"/>',
   flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   panel: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/>',
@@ -195,7 +196,8 @@ export function registerView(name, load) { views[name] = load; }
 
 export function show(view, { load = true } = {}) {
   S.view = view;
-  $$('.view').forEach(v => v.classList.toggle('hidden', v.id !== 'view-' + view));
+  // A section can serve several views (data-views="decl verbs": both grammar courses share one page).
+  $$('.view').forEach(v => v.classList.toggle('hidden', !(v.id === 'view-' + view || (v.dataset.views || '').split(' ').includes(view))));
   $$('#nav a[data-view]').forEach(a => a.classList.toggle('active', a.dataset.view === view));
   store.set('view', view);
   document.dispatchEvent(new CustomEvent('viewchange', { detail: view }));

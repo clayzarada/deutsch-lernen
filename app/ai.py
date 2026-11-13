@@ -341,12 +341,28 @@ def decl_reading(brief, topic):
     return call(system, task, _obj({"title": S, "text": S}), effort="low")
 
 
-def classify_mistakes(rows, nouns):
-    """Which declension skills (keys of the app's rule engine) each mistake is about."""
-    system = "You are a precise German grammar analyst. You map learners' mistakes onto a fixed list of declension skills."
+def verb_reading(brief, topic):
+    """A short gap-fill text for one stage of the Verbs course: the gaps are verb forms, the hint is the infinitive."""
+    s = db.get_settings()
+    system = "You write short German practice texts for a learner who is drilling verb forms. " + _learner(s)
     task = (
-        "For each mistake below, list the declension skills it shows the learner hasn't mastered, as skill keys. "
-        "Use [] when the mistake isn't about declension (verb forms, word order, spelling, vocabulary meaning, tenses...). "
+        f"Write a new German text of 80-120 words for this stage of a verb course: {brief['focus']}\n"
+        + (f"Topic the learner asked for: {topic}\n" if topic else "Pick an everyday topic.\n")
+        + "Use vocabulary at or below the learner's level. Turn 8-12 finite verb forms (or parts of compound forms) that "
+        "practice this stage into gaps, written exactly like this: {answer|infinitive}, e.g. 'Gestern {sind|sein} wir "
+        "nach Hamburg {gefahren|fahren}.' The hint is always the infinitive. Each gap must have exactly one correct answer "
+        "given the rest of the sentence, so make the person and tense clear from context. Do not use braces for anything "
+        "else. This example shows the style and the kind of gaps wanted:\n\n"
+        + brief["example"] + "\n\ntitle: a short German title. text: the text with its gaps.")
+    return call(system, task, _obj({"title": S, "text": S}), effort="low")
+
+
+def classify_mistakes(rows, nouns, strong_verbs=()):
+    """Which declension and verb skills (keys of the app's rule engines) each mistake is about."""
+    system = "You are a precise German grammar analyst. You map learners' mistakes onto a fixed list of grammar skills."
+    task = (
+        "For each mistake below, list the grammar skills it shows the learner hasn't mastered, as skill keys. "
+        "Use [] when the mistake isn't about declension or verb forms (word order, spelling, vocabulary meaning...). "
         "At most 4 keys per mistake; pick the exact form the learner got wrong, judged from the question and the "
         "correct answer.\n\nKey formats (case: nom, akk, dat, gen; gender: m, f, n, pl):\n"
         "- def:CASE:GENDER  der/die/das article\n- dies:CASE:GENDER  dieser, jeder, welcher, mancher, alle\n"
@@ -361,8 +377,18 @@ def classify_mistakes(rows, nouns):
         "- trig:v:VERB the case a verb takes: helfen danken gehören gefallen antworten glauben folgen gratulieren vertrauen zuhören "
         "schmecken passen sehen kaufen brauchen kennen besuchen haben\n"
         "- trig:w:PREP:wo or trig:w:PREP:wohin two-way prepositions: an auf hinter in neben über unter vor zwischen\n"
-        "- gender:NOUN or plural:NOUN only for these nouns: " + ", ".join(nouns) + "\n\n"
-        "Example: wrong 'mit seine Schwester', correct 'mit seiner Schwester' -> [\"poss:dat:f\", \"trig:p:mit\"].\n\n"
+        "- gender:NOUN or plural:NOUN only for these nouns: " + ", ".join(nouns) + "\n"
+        "Verb forms:\n"
+        "- vb:praes:reg, vb:praes:stem (vowel change like fährt, gibt), vb:praes:irr (sein, haben, werden, wissen, tun), "
+        "vb:praes:sep (separable prefix at the end)\n"
+        "- vb:modal:praes, vb:modal:praet, vb:modal:sent (modal verb + infinitive at the end)\n"
+        "- vb:perf:aux (haben or sein in Perfekt/Plusquamperfekt), vb:pp:weak, vb:pp:strong, vb:pp:noge (no ge-: -ieren, be-, ver-...), "
+        "vb:pp:sep (ge- after a separable prefix)\n"
+        "- vb:praet:weak, vb:praet:strong, vb:praet:mixed (brachte, dachte), vb:praet:irr (war, hatte, wurde)\n"
+        "- vb:fut1, vb:plusq, vb:fut2, vb:konj2:wuerde (würde + infinitive), vb:konj2:irr (wäre, hätte, könnte...)\n"
+        "- vp:VERB principal parts (Präteritum and Partizip II) only for these verbs: " + ", ".join(strong_verbs) + "\n\n"
+        "Examples: wrong 'mit seine Schwester', correct 'mit seiner Schwester' -> [\"poss:dat:f\", \"trig:p:mit\"]. "
+        "Wrong 'ich habe gegangen', correct 'ich bin gegangen' -> [\"vb:perf:aux\"].\n\n"
         f"<mistakes>\n{json.dumps(rows, ensure_ascii=False, indent=1)}\n</mistakes>")
     schema = _obj({"items": _arr(_obj({"id": I, "skills": _arr(S)}))})
     return {r["id"]: r["skills"] for r in call(system, task, schema, effort="low")["items"]}
@@ -420,7 +446,7 @@ def writing_task(level, topic):
 
 # ---------- Study coach ----------
 
-PLAN_KINDS = ["reader", "practice", "flashcards", "mistakes", "declensions", "video", "listening", "speaking", "writing", "other"]
+PLAN_KINDS = ["reader", "practice", "flashcards", "mistakes", "declensions", "verbs", "video", "listening", "speaking", "writing", "other"]
 
 COACH_SYSTEM = (
     "You are the learner's personal German study coach. You see their data from their study app: a PDF reader "
@@ -459,6 +485,10 @@ def make_plan(context, minutes, note):
         "Declensions need daily repetition until they are automatic, so include a block of 10-20 minutes most days: "
         "tell the learner which steps of the current planet to do (or to take its checkpoint), and once the course is "
         "finished, to drill the weakest areas in declension_trainer. Set target_questions at about 3 per minute.\n"
+        "- verbs: the Verbs page. Same shape: a guided course (verb_course: one tense per stop, from Präsens to Futur II, "
+        "then a final mixed stop) and free drills (verb_trainer: conjugation, haben or sein, Partizip II, principal parts, "
+        "sentences). Alternate it with declensions, or give both a short block, depending on which is weaker. Say which "
+        "steps of the current stop to do. Set target_questions at about 3 per minute.\n"
         "- listening with the app's own audio: if listening_library has an episode that fits (same chapter, few "
         "listens), make a listening block with its media_id and tell the learner how to use it (listen without "
         "the transcript first, then with it, then shadow). If a chapter has no episode yet, you may tell them to "

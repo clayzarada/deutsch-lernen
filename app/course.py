@@ -1,10 +1,8 @@
 """The Declensions journey: a fixed course of stages ("planets"), each with a lesson, a chart to fill in, a drill,
 a reading with gaps, flashcards and a checkpoint. Questions come from the rule engine in decl.py; this module holds
 the course content, decides what each stage asks, and tracks which steps are done."""
-import random
-import re
-
-from . import db, decl, i18n
+from . import decl
+from .coursekit import Course, G, parse_reading  # noqa: F401 (parse_reading is used by main.py)
 
 CASES = decl.CASES
 
@@ -15,10 +13,6 @@ def K(family, cases=CASES):
 
 def T(prefix, case=None):
     return [k for k, v in decl.TRIGGERS.items() if k.startswith(prefix) and (case is None or v[1] == case)]
-
-
-def G(mode, keys, w=1.0):
-    return {"mode": mode, "keys": keys, "w": w}
 
 
 THE, DEM = "the", "this / every / which"
@@ -514,39 +508,6 @@ STAGES = [
         ],
     },
 ]
-STAGE = {s["id"]: s for s in STAGES}
-ORDER = [s["id"] for s in STAGES]
-for _s in STAGES:
-    _s["pool"] = _s["pool"]()
-
-STEP_INFO = {
-    "learn": ("Briefing", "Read how it works, with charts and examples."),
-    "chart": ("Charts", "Fill in the tables from memory."),
-    "drill": ("Drill", "20 quick questions. Get 16 right to pass."),
-    "reading": ("Reading", "Fill in the endings in a short text."),
-    "cards": ("Flashcards", "Flip through the key rules."),
-    "checkpoint": ("Checkpoint", "Pass this to unlock the next planet."),
-}
-DRILL_LEN, DRILL_PASS = 20, 16
-READING_PASS = .8
-
-
-def steps_of(stage):
-    return ["learn"] + (["chart"] if stage["tables"] else []) + ["drill", "reading", "cards", "checkpoint"]
-
-
-def checkpoint_size(stage):
-    return (25, 21) if stage.get("home") else (15, 13)
-
-
-def stage_keys(stage):
-    """The skills this stage teaches (its own, not the review mixed into checkpoints). Noun genders are drilled
-    on the first planet but not counted here: there are over a hundred and they'd swamp the planet's progress."""
-    core = decl._core_keys()
-    return sorted({k for g in stage["pool"] for k in g["keys"] if k in core and not k.startswith("gender:")})
-
-
-# ---------- questions ----------
 SENTENCE_MODES = ("dsent", "wsent", "sent", "combo")
 
 
@@ -559,166 +520,22 @@ def _build(mode, key):
         return decl.GENERATORS[mode](key)
     return decl.GENERATORS[key.split(":")[0]](key)
 
-
-def question(stage_id, mode="drill", recent=()):
-    """One question for a stage. Checkpoints lean on full sentences and mix in review of earlier stages."""
-    stage = STAGE[stage_id]
-    idx = ORDER.index(stage_id)
-    checkpoint = mode == "checkpoint"
-    if checkpoint and idx and random.random() < .2:
-        stage = STAGES[random.randrange(idx)]
-    groups = stage["pool"]
-    weights = [g["w"] * (2 if checkpoint and g["mode"] in SENTENCE_MODES else 1) for g in groups]
-    group = random.choices(groups, weights)[0]
-    st, now, recent = decl._state(), db.now(), set(recent or ())
-    key = random.choices(group["keys"], [decl._weight(k, st, recent, now) for k in group["keys"]])[0]
-    return _build(group["mode"], key)
+# ---------- the course ----------
+class _Engine:
+    """The declension rule engine, as the course kit expects it."""
+    build = staticmethod(_build)
+    core_keys = staticmethod(decl._core_keys)
+    log_answer = staticmethod(decl._log_answer)
 
 
-# ---------- readings ----------
-_GAP = re.compile(r"\{([^{}|]+)\|([^{}|]*)(?:\|([^{}|]*))?\}")
+DECL = Course(
+    STAGES, _Engine, counts=lambda k: not k.startswith("gender:"), card_tag="declension",
+    what="A guided course on the Declensions page: planets unlocked in order (Nominativ, Akkusativ, Dativ, two-way "
+         "prepositions, ein-words, Genitiv, three adjective stages, pronouns, final mix). Each has a briefing, charts, "
+         "a drill, a reading, flashcards and a checkpoint.")
 
-
-def parse_reading(text):
-    """'Ich sehe {den|the|def:akk:m} Mann' -> text and gap segments."""
-    out, pos = [], 0
-    for m in _GAP.finditer(text):
-        if m.start() > pos:
-            out.append({"t": text[pos:m.start()]})
-        out.append({"a": m.group(1).strip(), "hint": m.group(2).strip(), "key": (m.group(3) or "").strip() or None})
-        pos = m.end()
-    if pos < len(text):
-        out.append({"t": text[pos:]})
-    return out
-
-
-def reading_brief(stage_id):
-    """What a freshly written reading for this stage should practice (for the AI writer)."""
-    stage = STAGE[stage_id]
-    return {"focus": f"{stage['title']}: {stage['blurb']}", "example": stage["reading"][1]}
-
-
-# ---------- progress ----------
-def _done():
-    out = {}
-    for r in db.q("SELECT * FROM decl_progress"):
-        out.setdefault(r["stage"], {})[r["step"]] = r
-    return out
-
-
-def journey():
-    done, st = _done(), decl._state()
-    stages, unlocked, current = [], True, None
-    for s in STAGES:
-        mine = done.get(s["id"], {})
-        steps = steps_of(s)
-        complete = "checkpoint" in mine
-        keys = stage_keys(s)
-        solid = sum(1 for k in keys if st.get(k, {}).get("box", 0) >= 3)
-        all_steps = all(x in mine for x in steps)
-        stars = (1 if complete else 0) + (1 if complete and all_steps else 0) + (1 if complete and all_steps and solid >= .8 * len(keys) else 0)
-        if unlocked and not complete and current is None:
-            current = s["id"]
-        size, need = checkpoint_size(s)
-        stages.append({
-            "id": s["id"], "planet": s["planet"], "title": s["title"], "blurb": s["blurb"], "hue": s["hue"],
-            "ring": s.get("ring", False), "nebula": s.get("nebula", False), "home": s.get("home", False),
-            "unlocked": unlocked, "complete": complete, "stars": stars,
-            "skills": {"total": len(keys), "solid": solid, "seen": sum(1 for k in keys if k in st)},
-            "steps": [{"id": x, "label": STEP_INFO[x][0], "text": STEP_INFO[x][1], "done": x in mine,
-                       "best": mine.get(x, {}).get("best"), "skipped": bool(mine.get(x, {}).get("skipped"))} for x in steps],
-            "checkpoint": {"size": size, "need": need}, "cards": len(s["cards"]),
-        })
-        unlocked = unlocked and complete
-    return {"stages": stages, "current": current or ORDER[-1], "finished": current is None,
-            "stars": sum(s["stars"] for s in stages), "max_stars": 3 * len(stages),
-            "drill": {"size": DRILL_LEN, "need": DRILL_PASS}}
-
-
-def detail(stage_id):
-    s = STAGE[stage_id]
-    return {"id": s["id"], "lesson": [list(b) for b in s["lesson"]],
-            "tables": [{"id": t, "rows": rows, "cols": cols} for t, rows, cols in s["tables"]],
-            "reading": {"title": s["reading"][0], "segments": parse_reading(s["reading"][1])},
-            "cards": [{"front": f, "back": b, "extra": e} for f, b, e in s["cards"]],
-            "cards_added": db.q1("SELECT COUNT(*) AS n FROM cards WHERE tags LIKE ?", (f'%"decl:{s["id"]}"%',))["n"]}
-
-
-def _unlocked(stage_id):
-    return next(s["unlocked"] for s in journey()["stages"] if s["id"] == stage_id)
-
-
-def complete(stage_id, step, score=None, total=None):
-    """Mark a step done if it was passed. Returns whether it counted, and the updated journey."""
-    stage = STAGE[stage_id]
-    if step not in steps_of(stage):
-        raise db.UserError("Unknown step")
-    if not _unlocked(stage_id):
-        raise db.UserError("This planet is still locked.")
-    passed = True
-    if step == "drill":
-        passed = (score or 0) >= DRILL_PASS and (total or 0) >= DRILL_LEN
-    elif step == "checkpoint":
-        size, need = checkpoint_size(stage)
-        passed = (score or 0) >= need and (total or 0) >= size
-    elif step == "reading":
-        passed = bool(total) and score / total >= READING_PASS
-    was_complete = bool(db.q1("SELECT 1 AS x FROM decl_progress WHERE stage=? AND step='checkpoint'", (stage_id,)))
-    if passed:
-        db.ex("INSERT INTO decl_progress(stage, step, done_at, best) VALUES(?,?,?,?) ON CONFLICT(stage, step) DO UPDATE SET "
-              "best = MAX(COALESCE(best, 0), COALESCE(excluded.best, 0))", (stage_id, step, db.now(), score))
-    idx = ORDER.index(stage_id)
-    newly = passed and step == "checkpoint" and not was_complete
-    return {"passed": passed, "planet_complete": newly,
-            "next": ORDER[idx + 1] if newly and idx + 1 < len(ORDER) else None, "journey": journey()}
-
-
-def add_cards(stage_id):
-    """Put the stage's rule cards into the learner's spaced-repetition deck (once)."""
-    s = STAGE[stage_id]
-    tag = f'["declension", "decl:{s["id"]}"]'
-    have = {r["front"] for r in db.q("SELECT front FROM cards WHERE tags LIKE ?", (f'%"decl:{s["id"]}"%',))}
-    t = i18n.tr if i18n.lang() == "tr" else (lambda x: x)  # cards go into the deck in the app's language
-    rows = [(None, None, "rule", t(f), t(b), t(e), tag, db.now()) for f, b, e in s["cards"]
-            if f not in have and i18n.tr(f) not in have]  # a card added in either language counts
-    if rows:
-        db.exmany("INSERT INTO cards(book_id, chapter_id, type, front, back, extra, tags, created_at) VALUES(?,?,?,?,?,?,?,?)", rows)
-    return {"added": len(rows), "already": len(have)}
-
-
-def record(items, family="sent"):
-    """Results from a reading or the case-matching game: [{key, correct}]. Updates the skills that have a key and
-    logs every answer under the given family (it decides the topic shown in progress)."""
-    core = decl._core_keys()
-    for it in items:
-        right = bool(it.get("correct"))
-        if it.get("key") in core:
-            decl.update_skill(it["key"], right, False)
-        decl._log_answer(family, right)
-    return {"ok": True}
-
-
-def brief():
-    """The journey in a few numbers, for the Today page."""
-    j = journey()
-    cur = next(s for s in j["stages"] if s["id"] == j["current"])
-    todo = [x for x in cur["steps"] if not x["done"]]
-    return {"finished": j["finished"], "title": cur["title"], "planet": cur["planet"], "blurb": cur["blurb"],
-            "steps_done": len(cur["steps"]) - len(todo), "steps_total": len(cur["steps"]),
-            "next_step": todo[0]["label"] if todo else None,
-            "planets_done": sum(1 for s in j["stages"] if s["complete"]), "planets_total": len(j["stages"]),
-            "stars": j["stars"], "max_stars": j["max_stars"]}
-
-
-def coach_summary():
-    j = journey()
-    cur = next(s for s in j["stages"] if s["id"] == j["current"])
-    return {
-        "what": "A guided course on the Declensions page: planets unlocked in order (Nominativ, Akkusativ, Dativ, two-way "
-                "prepositions, ein-words, Genitiv, three adjective stages, pronouns, final mix). Each has a briefing, charts, "
-                "a drill, a reading, flashcards and a checkpoint.",
-        "planets_complete": sum(1 for s in j["stages"] if s["complete"]), "planets_total": len(j["stages"]),
-        "finished": j["finished"],
-        "current_planet": f"{cur['title']} ({cur['planet']})",
-        "steps_left_on_current": [x["label"] for x in cur["steps"] if not x["done"]],
-    }
+# The module keeps its old functions, so the rest of the app doesn't change.
+STAGE, ORDER, STEP_INFO = DECL.STAGE, DECL.ORDER, DECL.step_info
+steps_of, checkpoint_size, stage_keys = DECL.steps_of, DECL.checkpoint_size, DECL.stage_keys
+question, reading_brief, journey, detail = DECL.question, DECL.reading_brief, DECL.journey, DECL.detail
+complete, add_cards, record, brief, coach_summary = DECL.complete, DECL.add_cards, DECL.record, DECL.brief, DECL.coach_summary
