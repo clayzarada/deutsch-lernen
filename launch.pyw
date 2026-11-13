@@ -3,18 +3,20 @@
 Closing the window stops the app. If the app is already running (e.g. from start.bat), it just opens a window.
 """
 import ctypes
+import json
 import os
 import socket
 import subprocess
 import sys
 import time
+import urllib.request
 import webbrowser
 from pathlib import Path
 
 import psutil
 
 ROOT = Path(__file__).resolve().parent
-PORT = 8777
+PORT = int(os.environ.get("GERMANSTUDY_PORT", 8777))  # tests set another port; normal use never does
 URL = f"http://127.0.0.1:{PORT}"
 BROWSERS = [
     r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe",
@@ -36,6 +38,40 @@ def error(msg):
     ctypes.windll.user32.MessageBoxW(None, msg, "Deutsch lernen", 0x10)
 
 
+def disk_version():
+    """The version of the code in this folder (after an update, newer than a server that is still running)."""
+    try:
+        return json.loads((ROOT / "version.json").read_text(encoding="utf-8"))["version"]
+    except (OSError, ValueError, KeyError):
+        return None
+
+
+def running_version():
+    """The version the server on PORT reports, or None if it doesn't answer like this app."""
+    try:
+        with urllib.request.urlopen(f"{URL}/api/version", timeout=2) as r:
+            return json.load(r).get("version")
+    except (OSError, ValueError):
+        return None
+
+
+def stop_old_server():
+    """Stop this app's own server holding PORT (never anything else), and wait until the port is free."""
+    for c in psutil.net_connections(kind="tcp"):
+        if c.laddr and c.laddr.port == PORT and c.status == psutil.CONN_LISTEN and c.pid:
+            try:
+                p = psutil.Process(c.pid)
+                if "app.main:app" in " ".join(p.cmdline()):
+                    p.terminate()
+                    p.wait(5)
+            except (psutil.Error, psutil.TimeoutExpired):
+                pass
+    for _ in range(40):
+        if not server_up():
+            return
+        time.sleep(0.25)
+
+
 def start_server():
     (ROOT / "data").mkdir(exist_ok=True)
     log = open(ROOT / "data" / "app.log", "a")
@@ -44,9 +80,12 @@ def start_server():
          "--log-level", "warning"],
         cwd=ROOT, stdout=log, stderr=log, creationflags=subprocess.CREATE_NO_WINDOW)
     for _ in range(80):
-        if server_up():
+        if server_up() and server.poll() is None:
             return server
         if server.poll() is not None:
+            # Opened twice at once: the other launch's server got the port first. Use it if it's this version.
+            if server_up() and running_version() == disk_version():
+                return None
             break
         time.sleep(0.25)
     server.kill()
@@ -56,7 +95,15 @@ def start_server():
 
 
 def main():
-    server = None if server_up() else start_server()
+    server = None
+    if server_up():
+        # A server is already running. After an update it can still be the old version, which doesn't know the
+        # new pages ("Not Found"), so replace it when its version doesn't match the files on disk.
+        if running_version() != disk_version():
+            stop_old_server()
+            server = start_server()
+    else:
+        server = start_server()
     browser = next((p for p in map(os.path.expandvars, BROWSERS) if Path(p).exists()), None)
     if not browser:
         webbrowser.open(URL)  # no Edge/Chrome: use the normal browser and leave the app running
