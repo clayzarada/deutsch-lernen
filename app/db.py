@@ -72,6 +72,8 @@ CREATE TABLE IF NOT EXISTS writings(
 CREATE TABLE IF NOT EXISTS resources(id INTEGER PRIMARY KEY, title TEXT, url TEXT, kind TEXT, notes TEXT);
 CREATE TABLE IF NOT EXISTS plans(id INTEGER PRIMARY KEY, date TEXT, data TEXT, created_at TEXT);
 CREATE TABLE IF NOT EXISTS coach_messages(id INTEGER PRIMARY KEY, role TEXT, content TEXT, ts TEXT);
+CREATE TABLE IF NOT EXISTS page_checks(book_id INTEGER, page INTEGER, data TEXT, checked_at TEXT,
+  PRIMARY KEY(book_id, page));
 """
 
 DEFAULT_SETTINGS = {
@@ -83,6 +85,7 @@ DEFAULT_SETTINGS = {
     "exam_date": "",
     "model": "claude-opus-5-5",
     "effort": "medium",
+    "quick_model": "claude-haiku-5-5",  # small, frequent jobs (look-ups, marking); "" = use "model" for everything
     "web_search": "1",
     "new_cards_per_day": "20",
     "coach_notes": "",

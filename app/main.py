@@ -10,7 +10,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import ai, anki, backup, course, db, decl, mistakelink, pdfs, planner, srs, tts, update, usage, verbs, wordorder, writing
+from . import ai, anki, backup, course, db, decl, mistakelink, pagecheck, pdfs, planner, srs, tts, update, usage, verbs, wordorder, writing
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
 from .i18n import localize
@@ -291,10 +291,43 @@ def check_page(book_id: int, body: dict):
     b = _book(book_id)
     page = int(body["page"])
     image = body["image"].split(",", 1)[-1]
-    text = pdfs.page_text(db.BOOKS / b["filename"], page, page)
-    result = ai.check_page(image, text)
+    pdf = db.BOOKS / b["filename"]
+    annots = [{**a, "data": json.loads(a["data"] or "{}")}
+              for a in db.q("SELECT * FROM annotations WHERE book_id=? AND page=?", (book_id, page))]
+    page_text, answers, handwriting = pagecheck.transcript(pdf, page, annots)
+    if not page_text.strip():  # a scanned page with no text layer: mark from the picture as before
+        result = ai.check_page(image, pdfs.page_text(pdf, page, page))
+        new_items, reused = result["items"], []
+    else:
+        # Typed answers that haven't changed since the last check keep their marks; only the rest go to the AI.
+        before = pagecheck.previous(book_id, page)
+        same = {ref for ref, a in answers.items() if a["id"] in before and before[a["id"]][0] == a["text"]}
+        todo = [ref for ref in answers if ref not in same]
+        if todo or handwriting:
+            result = ai.check_page_text(page_text, todo, image if handwriting else None)
+            new_items = result["items"]
+        else:
+            result, new_items = {"summary": "Nothing has changed since your last check, so here are the same marks."}, []
+        renewed = {r.strip() for i in new_items for r in (i.get("refs") or "").split("+") if r.strip()}
+        reused, seen = [], set()
+        for ref in sorted(same - renewed, key=lambda r: int(r[1:])):
+            item = before[answers[ref]["id"]][1]
+            key = json.dumps(item, sort_keys=True)
+            if key not in seen:
+                seen.add(key)
+                reused.append(item)
+        typed = {}
+        for ref in same - renewed:
+            typed[answers[ref]["id"]] = before[answers[ref]["id"]]
+        for i in new_items:
+            for r in (i.get("refs") or "").split("+"):
+                if r.strip() in answers:
+                    typed[answers[r.strip()]["id"]] = (answers[r.strip()]["text"], i)
+        pagecheck.remember(book_id, page, typed)
+        result["items"] = reused + new_items
+        result["reused"] = len(reused)
     ts, date = db.now(), db.today()
-    graded = [i for i in result["items"] if i["verdict"] != "unclear"]
+    graded = [i for i in new_items if i["verdict"] != "unclear"]  # marks carried over were counted last time
     db.exmany("INSERT INTO answers(source, topic, correct, ts, date) VALUES(?,?,?,?,?)",
               [("page", i["topic"], 1 if i["verdict"] == "correct" else 0, ts, date) for i in graded])
     db.add_mistakes("page", [

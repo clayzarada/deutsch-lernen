@@ -32,7 +32,7 @@ $('#res-list').addEventListener('click', async e => {
 
 // ---------- settings ----------
 const FIELDS = {
-  ui_language: 's-ui-lang', model: 's-model', effort: 's-effort', level: 's-level', native_language: 's-native', daily_minutes: 's-minutes',
+  ui_language: 's-ui-lang', model: 's-model', quick_model: 's-quick-model', effort: 's-effort', level: 's-level', native_language: 's-native', daily_minutes: 's-minutes',
   goal: 's-goal', exam_date: 's-exam', new_cards_per_day: 's-newcards', monthly_budget: 's-budget', tts_model: 's-tts-model', voice_a: 's-voice-a', voice_b: 's-voice-b',
 };
 

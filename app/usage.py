@@ -21,7 +21,7 @@ WEB_SEARCH_PER_1000 = 10.0
 FEATURES = {
     "generate_exercises": "Practice sets", "generate_cards": "Flashcard generation", "convert_import": "Gemini Notebook import",
     "recover_questions": "Mistake Book repair", "drill_mistakes": "Mistake drills (AI)", "write_episode": "Listening scripts",
-    "grade_answers": "Marking practice answers", "check_page": "Checking textbook pages", "lookup": "Word look-ups",
+    "grade_answers": "Marking practice answers", "check_page": "Checking textbook pages", "check_page_text": "Checking textbook pages (typed answers)", "lookup": "Word look-ups",
     "explain": "Explanations", "decl_reading": "Declension readings", "make_plan": "Daily plans", "coach_reply": "Coach chat",
     "classify_mistakes": "Linking mistakes to drills", "grade_writing": "Writing marking", "writing_task": "Writing tasks",
     "synthesize": "Listening audio (Gemini)", "speak": "Pronunciation (Gemini)",

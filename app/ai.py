@@ -19,6 +19,20 @@ class AIError(Exception):
     pass
 
 
+# Small, frequent jobs that a fast, cheap model does well. They use the "quick model" setting (Haiku by default);
+# everything else (writing exercises and cards, marking essays, listening scripts, the coach, reading handwriting)
+# uses the main model.
+QUICK_FEATURES = {"lookup", "explain", "grade_answers", "classify_mistakes", "recover_questions", "writing_task",
+                  "decl_reading", "verb_reading", "make_plan", "check_page_text"}
+
+
+def model_for(feature, s=None):
+    s = s or db.get_settings()
+    if feature in QUICK_FEATURES and s.get("quick_model"):
+        return s["quick_model"]
+    return s["model"]
+
+
 S, I, B = {"type": "string"}, {"type": "integer"}, {"type": "boolean"}
 
 
@@ -67,11 +81,12 @@ def _parse_json(text, texts):
     raise AIError("Couldn't read the AI's response. Please try again.")
 
 
-def call(system, content, schema=None, effort=None, web=False, history=None, max_tokens=16000):
-    feature = sys._getframe(1).f_code.co_name  # the helper that called us, e.g. generate_exercises, for the cost meter
+def call(system, content, schema=None, effort=None, web=False, history=None, max_tokens=16000, feature=None):
+    # the helper that called us (e.g. generate_exercises): for the cost meter and to pick the model
+    feature = feature or sys._getframe(1).f_code.co_name
     usage.check_budget()
     s = db.get_settings()
-    model = s["model"]
+    model = model_for(feature, s)
     messages = list(history or []) + [{"role": "user", "content": content}]
     output_config = {"effort": effort or s["effort"]}
     if schema:
@@ -275,7 +290,60 @@ def grade_answers(items):
     return {r["id"]: r for r in data["results"]}
 
 
+MARKING_RULES = (
+    "Marking rules:\n"
+    "- Judge the German, not the typing. A missing or extra full stop or question mark at the end, extra spaces, "
+    "a capital at the start of a gap word, and writing the whole sentence instead of just the gap word never make "
+    "an answer wrong, and aren't worth mentioning.\n"
+    "- Accept any correct German that does what the task asks, even if it differs from the textbook's likely "
+    "answer (another word order, a synonym, du instead of Sie when the task doesn't say).\n"
+    "- Real errors: wrong ending, case or gender; wrong verb form; wrong word order; a misspelling that breaks the "
+    "word; a missing umlaut (but ae/oe/ue/ss typed for ä/ö/ü/ß is fine); a noun written in lower case. An obvious "
+    "typo of an otherwise right answer is 'partly'.\n"
+    "- When the task asks for several forms or parts and the answer gives only some, mark what is there and say "
+    "what's missing ('partly'), unless a note from the student explains it.\n")
+
+
+def check_page_text(page, refs, image_b64=None):
+    """Mark a page from its text, with the student's typed answers placed in it (see pagecheck.py).
+    refs: the answer refs to mark (the others were marked before). image_b64: only when there's handwriting."""
+    s = db.get_settings()
+    schema = _obj({
+        "summary": S,
+        "items": _arr(_obj({
+            "refs": S, "exercise": S, "question": S, "student_answer": S,
+            "verdict": _enum(["correct", "partly", "incorrect", "unclear"]),
+            "correction": S, "corrected_sentence": S, "explanation": S, "topic": S}))})
+    system = ("You are a German teacher marking a student's textbook page. Be fair and encouraging, strict about "
+              "German grammar, relaxed about typing details. " + _learner(s))
+    task = (
+        "Below is the page as text, line by line (L1, L2, ...). The student's typed answers are inserted where they "
+        "typed them, as ⟦A3: text⟧. The answer text is exact; don't question how it reads.\n"
+        "Positions are approximate: an answer can sit next to, after or below its item, and the student may number "
+        "answers themselves ('3. ...'). Match each answer to the item it answers using the numbering, the content "
+        "and the position. One answer may be split over several boxes on consecutive lines: treat those as one "
+        "answer and list it once. Some boxes are notes, not answers (e.g. 'double-check 5.3'): don't mark them, "
+        "but respect what they say about how the student answered.\n"
+        + ("The page image shows handwritten (pen) answers too: mark those from the image (refs = ''). For typed "
+           "answers use the text, not the image.\n" if image_b64 else "")
+        + f"Mark only these typed answers: {', '.join(refs)}. Other ⟦A..⟧ answers were marked before; use them as "
+          "context only.\n\n" + MARKING_RULES + "\n"
+        "For each answer: refs: its ref(s), e.g. 'A3' or 'A3+A4'. exercise: the item, e.g. '4.2 #7'. "
+        "student_answer: what the student wrote. verdict. correction: the correct answer for the gap or task. "
+        "explanation: one short sentence, in the learner's language. topic: a short English grammar/vocab label.\n"
+        "question: the full task so it can be understood on its own later: the exercise instruction, then on a new "
+        "line the item's complete sentence with the student's part written as ___.\n"
+        "corrected_sentence: that sentence with the correct answer filled in.\n"
+        "summary: two or three sentences on these answers and what to review.\n\n<page>\n" + page + "\n</page>")
+    content = [{"type": "text", "text": task}]
+    if image_b64:
+        content.insert(0, {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": image_b64}})
+    # Handwriting needs the main model's eyes; text alone is a quick job.
+    return call(system, content, schema, effort="medium", feature="check_page" if image_b64 else "check_page_text")
+
+
 def check_page(image_b64, page_text):
+    """The old way, for pages without a text layer (scans): mark everything from the picture."""
     s = db.get_settings()
     schema = _obj({
         "summary": S,
@@ -289,7 +357,7 @@ def check_page(image_b64, page_text):
         "Look at the page image. Find every answer the student wrote and mark it. Ignore exercises the student "
         "hasn't attempted. For each answer give: which exercise/item it belongs to (e.g. '3b'), what the student "
         "wrote, a verdict, the corrected answer, a short explanation, and a short English grammar/vocab topic "
-        "label. If handwriting is unreadable, use verdict 'unclear'.\n"
+        "label. If handwriting is unreadable, use verdict 'unclear'.\n" + MARKING_RULES +
         "question: the full task so it can be understood on its own later: the exercise instruction as printed "
         "(e.g. 'Ergänzen Sie die Possessivartikel.'), then on a new line the complete sentence of this item, with the "
         "gap the student filled written as ___ (keep other gaps' printed text or fill them correctly).\n"

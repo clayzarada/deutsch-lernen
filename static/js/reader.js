@@ -523,6 +523,7 @@ $('#r-check').addEventListener('click', e => {
       const right = r.items.filter(i => i.verdict === 'correct').length;
       if (r.new_mistakes) toast(`${r.new_mistakes} mistake${r.new_mistakes === 1 ? '' : 's'} saved to your Mistake Book`);
       out.innerHTML = (r.items.length ? `<div class="score">${right}/${r.items.length} correct</div>` : '') + md(r.summary)
+        + (r.reused ? `<p class="muted small">${r.reused === 1 ? '1 answer hadn’t changed since your last check and kept its mark.' : `${r.reused} answers hadn’t changed since your last check and kept their marks.`}</p>` : '')
         + (r.items.length ? r.items.map(i => `
           <div class="check-item ${i.verdict}">
             <div class="ci-head">${icon(VERDICT_ICON[i.verdict])}<b>${esc(i.exercise)}</b><span class="verdict">${esc(i.verdict)}</span></div>
