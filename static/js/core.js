@@ -197,7 +197,7 @@ export function registerView(name, load) { views[name] = load; }
 // The sidebar has five sections; a section with several pages shows them as tabs across the top.
 export const SECTIONS = {
   home: [['today', 'Today', 'today'], ['coach', 'Coach', 'coach']],
-  learn: [['decl', 'Declensions', 'rocket'], ['verbs', 'Verbs', 'spear']],
+  learn: [['course', 'Course', 'book'], ['decl', 'Declensions', 'rocket'], ['verbs', 'Verbs', 'spear']],
   practice: [['practice', 'Exercises', 'practice'], ['writing', 'Writing', 'edit'], ['listening', 'Listening', 'headphones'], ['mistakes', 'Mistakes', 'mistake']],
   cards: [['cards', 'Flashcards', 'cards']],
   library: [['library', 'Books', 'library'], ['reader', 'Reader', 'reader'], ['resources', 'Resources', 'resources']],

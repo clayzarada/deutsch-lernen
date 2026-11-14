@@ -3,7 +3,7 @@ import datetime as dt
 import json
 
 from .i18n import localize
-from . import ai, course, db, decl, verbs, writing
+from . import ai, course, db, decl, lessons, verbs, writing
 from .verbcourse import VERBS_COURSE
 
 PAGE_READ_SECONDS = 20  # time on a page before it counts as read
@@ -318,6 +318,14 @@ def quick_plan(minutes):
             budget -= block["minutes"]
             return True
         return False
+
+    lesson = lessons.brief() if db.get_settings()["use_course"] == "1" else None
+    if lesson and not lesson["finished"]:
+        nxt = lesson["next"]
+        if add({"kind": "course", "lesson_id": nxt["id"], "title": f"Lesson {nxt['n']}: {nxt['title']}", "minutes": 10,
+                "target_questions": 14, "instructions": f"{nxt['subtitle']}. New words, a short dialogue, one grammar point and a quiz.",
+                "why": "One lesson a day keeps the course moving."}):
+            why.append(f"lesson {nxt['n']} of the course")
 
     cc = card_counts()
     cards = cc["due"] + cc["new_available"]

@@ -69,6 +69,9 @@
     <div id="stat-tiles" class="tiles"></div>
   </section>
 
+  <!-- COURSE -->
+  <section id="view-course" class="view hidden"><div id="course-box"></div></section>
+
   <!-- LIBRARY -->
   <section id="view-library" class="view hidden">
     <header class="page-head">
@@ -410,6 +413,8 @@
         </div>
         <label>Goal<input id="s-goal" placeholder="e.g. pass Goethe B1, move to Berlin, read novels"></label>
         <label>Exam or deadline (optional)<input id="s-exam" type="date"></label>
+        <label class="check"><input type="checkbox" id="s-course"> Include the built-in beginner course on Home and in quick plans</label>
+        <button type="button" id="s-welcome" class="ghost small">Run the welcome setup again</button>
       </div>
       <div class="panel">
         <h2>AI costs</h2>
@@ -487,6 +492,7 @@
     </section>
   </div>
 </dialog>
+<div id="welcome" class="welcome hidden"></div>
 <div id="toast"></div>
 <script type="module" src="/static/js/main.js"></script>
 </body>

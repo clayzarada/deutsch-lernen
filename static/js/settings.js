@@ -156,3 +156,12 @@ $('#s-remove-key').addEventListener('click', async () => {
   loadSettings();
   updateNavStatus();
 });
+
+// The beginner course switch and the welcome flow.
+import('./welcome.js').then(({ startWelcome }) => {
+  $('#s-welcome').addEventListener('click', startWelcome);
+});
+$('#s-course').addEventListener('change', async e => {
+  S.settings = await api('/settings', { method: 'PUT', body: { use_course: e.target.checked ? '1' : '0' } });
+});
+document.addEventListener('viewchange', e => { if (e.detail === 'settings') $('#s-course').checked = S.settings?.use_course === '1'; });

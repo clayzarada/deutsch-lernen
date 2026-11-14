@@ -95,6 +95,11 @@ A built-in German dictionary (from Wiktionary, about 78,000 words, works offline
   adjectives, ten topics, irregular verbs, dative verbs, verbs with prepositions, prepositions by case, false friends).
 - **Flashcards > Anki > Import from Anki**: .apkg and .colpkg decks (old and new Anki formats) and Anki's plain-text
   export. Text and cloze cards come across, and learned cards keep their Anki intervals.
+- **Learn > Course**: a built-in beginner course (A1, 12 lessons so far). Each lesson has new words, a short
+  dialogue, one grammar point and a quiz, and its words can go straight into your flashcards. The lessons live in
+  `app/lessons_data.py`.
+- **Welcome setup**: on first start the app asks your level, how you want to learn (the course, your own textbook
+  or both), a daily goal and which starter flashcards you want. No API key or textbook is needed to begin.
 - **Today > Quick plan**: an instant daily plan built from your flashcards, mistakes, book and grammar courses by
   simple rules, with the same live progress as the coach's plan.
 

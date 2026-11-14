@@ -7,11 +7,12 @@ const KIND = {
   reader: { label: 'Textbook', icon: 'reader' }, practice: { label: 'Practice', icon: 'practice' },
   flashcards: { label: 'Flashcards', icon: 'cards' }, mistakes: { label: 'Mistakes', icon: 'mistake' },
   declensions: { label: 'Declensions', icon: 'rocket' }, verbs: { label: 'Verbs', icon: 'spear' },
+  course: { label: 'Course', icon: 'book' },
   video: { label: 'Video', icon: 'play' },
   listening: { label: 'Listening', icon: 'headphones' }, speaking: { label: 'Speaking', icon: 'mic' },
   writing: { label: 'Writing', icon: 'edit' }, other: { label: 'Activity', icon: 'target' },
 };
-const IN_APP = ['reader', 'practice', 'flashcards', 'mistakes', 'declensions', 'verbs', 'writing'];
+const IN_APP = ['reader', 'practice', 'flashcards', 'mistakes', 'declensions', 'verbs', 'writing', 'course'];
 const inApp = b => IN_APP.includes(b.kind) || !!b.media_id;
 
 registerView('today', loadToday);
@@ -179,7 +180,9 @@ function renderHero() {
   const waiting = c.due + c.new_available;
   $('#home-next').innerHTML =
     card('cards', 'cards', waiting ? `${waiting} cards waiting` : 'Flashcards', waiting ? `About ${Math.max(1, Math.round(waiting / 4))} min` : (c.total ? 'Nothing due right now' : 'Add a pack from the Library tab'))
-    + card('decl', 'rocket', j.finished ? 'Declensions' : j.title, j.finished ? 'Course finished · free practice' : `Declensions · step ${Math.min(j.steps_done + 1, j.steps_total)} of ${j.steps_total}`)
+    + (st.course && !st.course.finished
+      ? card('lesson', 'book', `Lesson ${st.course.next.n}: ${st.course.next.title}`, `Course · ${st.course.done} of ${st.course.total} lessons done`)
+      : card('decl', 'rocket', j.finished ? 'Declensions' : j.title, j.finished ? 'Course finished · free practice' : `Declensions · step ${Math.min(j.steps_done + 1, j.steps_total)} of ${j.steps_total}`))
     + (bk ? card('book', 'reader', bk.title, `Read on from page ${bk.page}`) : card('library', 'library', 'Add a textbook', 'Any PDF, read and practice inside the app'));
 }
 
@@ -205,6 +208,7 @@ $('#home-next').addEventListener('click', e => {
   const n = e.target.closest('[data-next]')?.dataset.next;
   if (!n) return;
   if (n === 'book') return openReader(S.homeStats.book.id, S.homeStats.book.page);
+  if (n === 'lesson') { S.courseLesson = S.homeStats.course.next.id; return show('course'); }
   if (n === 'cards') S.cardTab = 'review';
   if (n === 'decl') S.declTab = 'journey';
   show(n);
@@ -257,6 +261,7 @@ $('#plan').addEventListener('click', async e => {
 });
 
 function openBlock(b) {
+  if (b.kind === 'course') { S.courseLesson = b.lesson_id; return show('course'); }
   if (b.sub === 'gaps') { S.practiceTabWant = 'gaps'; S.gapChapterWant = b.chapter_id ? String(b.chapter_id) : null; return show('practice'); }
   if (b.kind === 'declensions' && b.sub) { S.declSub = b.sub === 'free' ? 'drill' : b.sub; return show('decl'); }
   if (b.kind === 'verbs' && b.sub) { S.verbsTab = 'free'; return show('verbs'); }

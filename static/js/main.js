@@ -15,6 +15,8 @@ import './umlauts.js';
 import './theme.js';
 import './coach.js';
 import './settings.js';
+import './course.js';
+import { startWelcome } from './welcome.js';
 import './update.js';
 
 fillIcons();
@@ -39,5 +41,6 @@ document.addEventListener('click', e => {
   }
   refreshNav();
   const start = store.get('view');
-  show(hasView(start) ? start : 'today');
+  show(hasView(start) && S.settings.onboarded ? start : 'today');
+  if (!S.settings.onboarded) startWelcome();
 })();

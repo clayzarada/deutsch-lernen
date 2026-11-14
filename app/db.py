@@ -72,6 +72,8 @@ CREATE TABLE IF NOT EXISTS writings(
 CREATE TABLE IF NOT EXISTS resources(id INTEGER PRIMARY KEY, title TEXT, url TEXT, kind TEXT, notes TEXT);
 CREATE TABLE IF NOT EXISTS plans(id INTEGER PRIMARY KEY, date TEXT, data TEXT, created_at TEXT);
 CREATE TABLE IF NOT EXISTS coach_messages(id INTEGER PRIMARY KEY, role TEXT, content TEXT, ts TEXT);
+CREATE TABLE IF NOT EXISTS lesson_progress(lesson_id TEXT PRIMARY KEY, best INTEGER, total INTEGER, tries INTEGER DEFAULT 0,
+  done_at TEXT, last_at TEXT);
 CREATE TABLE IF NOT EXISTS page_checks(book_id INTEGER, page INTEGER, data TEXT, checked_at TEXT,
   PRIMARY KEY(book_id, page));
 """
@@ -93,6 +95,8 @@ DEFAULT_SETTINGS = {
     "voice_a": "Kore",
     "voice_b": "Puck",
     "monthly_budget": "",
+    "onboarded": "",   # "1" once the welcome flow is finished (or skipped)
+    "use_course": "",  # "1" = the built-in beginner course is part of Home and quick plans
 }
 
 SEED_RESOURCES = [

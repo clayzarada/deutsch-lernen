@@ -11,7 +11,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import (ai, anki, ankiimport, backup, course, db, decl, dictionary, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
+from . import (ai, anki, ankiimport, backup, lessons, course, db, decl, dictionary, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
                update, usage, verbs, wordorder, wordtrain, writing)
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
@@ -122,6 +122,9 @@ def restart_for_update():
 
 @app.get("/api/settings")
 def get_settings():
+    if not db.get_settings()["onboarded"] and (db.q1("SELECT 1 AS x FROM books LIMIT 1") or db.q1("SELECT 1 AS x FROM cards LIMIT 1")
+                                               or db.q1("SELECT 1 AS x FROM answers LIMIT 1")):
+        db.set_setting("onboarded", "1")
     return {**db.get_settings(), "voices": tts.VOICES, "version": VERSION, "build_name": BUILD_NAME, "credits": {"author": AUTHOR, "owner": OWNER, "copyright": COPYRIGHT, "website": WEBSITE},
             "has_key": bool(os.environ.get("ANTHROPIC_API_KEY", "").strip()),
             "has_gemini_key": bool(os.environ.get("GEMINI_API_KEY", "").strip())}
@@ -727,6 +730,47 @@ def anki_import(body: dict):
         raise HTTPException(400, str(e))
 
 
+# ---------- Beginner course ----------
+@app.get("/api/lessons")
+def lessons_overview():
+    return lessons.overview()
+
+
+@app.get("/api/lessons/{lesson_id}")
+def lesson_detail(lesson_id: str):
+    if lesson_id not in lessons.BY_ID:
+        raise HTTPException(404, "No such lesson")
+    return lessons.lesson(lesson_id)
+
+
+@app.post("/api/lessons/{lesson_id}/complete")
+def lesson_complete(lesson_id: str, body: dict):
+    if lesson_id not in lessons.BY_ID:
+        raise HTTPException(404, "No such lesson")
+    try:
+        return lessons.complete(lesson_id, body.get("results") or [])
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/lessons/{lesson_id}/cards")
+def lesson_cards(lesson_id: str):
+    if lesson_id not in lessons.BY_ID:
+        raise HTTPException(404, "No such lesson")
+    return lessons.add_cards(lesson_id)
+
+
+@app.post("/api/welcome")
+def welcome(body: dict):
+    """Finishes the welcome flow: saves the answers, adds the chosen starter packs."""
+    for k in ("level", "daily_minutes", "use_course"):
+        if k in body:
+            db.set_setting(k, body[k])
+    added = sum(packs.add(p)["added"] for p in body.get("packs", []) if p in packs.BY_ID)
+    db.set_setting("onboarded", "1")
+    return {"added": added, "settings": get_settings()}
+
+
 # ---------- Pack library ----------
 @app.get("/api/packs")
 def pack_library():
@@ -1315,7 +1359,8 @@ def stats():
     return {"today": planner.day_stats(db.today()), "week": planner.week(), "streak": planner.streak(),
             "cards": planner.card_counts(), "weak_topics": planner.weak_topics(),
             "calendar": planner.calendar(), "journey": localize(course.brief()), "verbs_journey": localize(VERBS_COURSE.brief()),
-            "book": planner.current_book_brief()}
+            "book": planner.current_book_brief(),
+            "course": lessons.brief() if db.get_settings()["use_course"] == "1" else None}
 
 
 @app.get("/api/progress")
