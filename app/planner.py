@@ -276,3 +276,104 @@ def update_block(plan_id, idx, action):
         bl.update(status="todo", started_at=None, done_at=None)
     db.ex("UPDATE plans SET data=? WHERE id=?", (json.dumps(data, ensure_ascii=False), plan_id))
     return _with_progress(db.q1("SELECT * FROM plans WHERE id=?", (plan_id,)))
+
+
+# ---------- the free plan: same blocks as the coach's, built by rules instead of AI ----------
+def _current_book():
+    """The book read most recently, its page and the chapter that page is in."""
+    r = db.q1("SELECT book_id FROM reading ORDER BY ts DESC LIMIT 1")
+    b = db.q1("SELECT * FROM books WHERE id=?", (r["book_id"],)) if r else db.q1("SELECT * FROM books ORDER BY id DESC LIMIT 1")
+    if not b:
+        return None, None, None
+    page = b["last_page"] or 1
+    ch = db.q1("SELECT * FROM chapters WHERE book_id=? AND start_page<=? AND end_page>=? ORDER BY ord LIMIT 1",
+               (b["id"], page, page)) or db.q1("SELECT * FROM chapters WHERE book_id=? ORDER BY ord LIMIT 1", (b["id"],))
+    return b, ch, page
+
+
+
+
+def quick_plan(minutes):
+    """A plan without AI, in the same blocks (with live progress) as the coach's plan. About a third of the time goes
+    to the textbook where you left off; the rest, in this order while it fits: flashcards that are due, the most
+    repeated open mistake, a grammar course step (both courses from an hour up), a short noun or number drill, and
+    gap-fills from the current chapter."""
+    minutes = max(10, min(int(minutes), 300))
+    day = db.study_date().toordinal()
+    book, ch, page = _current_book()
+    reading = round(minutes * 0.35) if book and minutes >= 20 else 0
+    budget = minutes - reading
+    blocks, why = [], []
+
+    def add(block):
+        nonlocal budget
+        if block["minutes"] <= budget:
+            blocks.append(block)
+            budget -= block["minutes"]
+            return True
+        return False
+
+    cc = card_counts()
+    cards = cc["due"] + cc["new_available"]
+    if cards:
+        m = max(5, min(round(cards / 4), round(budget * 0.45)))
+        if add({"kind": "flashcards", "title": "Flashcards", "minutes": m, "target_cards": min(cards, m * 4),
+                "instructions": f"{cc['due']} cards are due and {cc['new_available']} new ones are waiting. Due cards come first.",
+                "why": "Reviews done on the day they're due take the least time."}):
+            why.append(f"{cards} flashcards waiting")
+
+    mk = db.q("SELECT topic FROM mistakes WHERE status='open' GROUP BY topic ORDER BY SUM(times) DESC LIMIT 1")
+    if mk and minutes >= 20:
+        m = 5 if minutes < 60 else 10
+        if add({"kind": "mistakes", "title": f"Mistake Book: {mk[0]['topic']}", "minutes": m, "target_questions": m * 2,
+                "instructions": f"Open the Mistake Book and drill **{mk[0]['topic']}**, the topic you've missed most.",
+                "why": "Fixing a repeated mistake now stops it from setting in."}):
+            why.append(f"open mistakes in {mk[0]['topic']}")
+
+    grammar = []
+    for kind, b, page_name in (("declensions", course.brief(), "Declensions"), ("verbs", VERBS_COURSE.brief(), "Verbs")):
+        if b["finished"]:
+            grammar.append({"kind": kind, "sub": "free", "title": f"{page_name}: free practice",
+                            "instructions": f"The {page_name.lower()} course is finished. Drill your weakest skills in Free practice."})
+        else:
+            step = f" Next step: **{b['next_step']}**." if b["next_step"] else ""
+            grammar.append({"kind": kind, "title": f"{page_name}: {b['title']}",
+                            "instructions": f"Continue the course at **{b['title']}** ({b['steps_done']} of {b['steps_total']} steps done).{step}"})
+    for g in (grammar if minutes >= 60 else [grammar[day % 2]]):
+        m = 10 if minutes < 90 else 15
+        add({**g, "minutes": m, "target_questions": m * 3,
+             "why": "Endings and verb forms only become automatic with a little practice every day."})
+
+    if minutes >= 25:
+        sub, title, text = (("nouns", "Nouns: der, die, das and plurals", "Genders and plurals, most common nouns first.")
+                            if day % 2 == 0 else ("numbers", "Numbers, times and dates", "Numbers, clock times, dates and prices."))
+        add({"kind": "declensions", "sub": sub, "title": title, "minutes": 5, "target_questions": 15,
+             "instructions": f"Declensions → Free practice → {sub.title()}. {text}",
+             "why": "A few minutes a day is enough for these to stick."})
+
+    if book and ch and minutes >= 50:
+        add({"kind": "practice", "sub": "gaps", "chapter_id": ch["id"], "book_id": book["id"], "minutes": 8,
+             "target_questions": 10, "title": f"Gap-fills: {ch['title']}",
+             "instructions": "Practice → Gap-fills from the book: real sentences from the chapter with one word to fill in.",
+             "why": "Grammar in sentences from your own book."})
+
+    reading += budget  # whatever didn't fit goes to the book
+    if book and reading >= 8:
+        blocks.append({"kind": "reader", "book_id": book["id"], "chapter_id": ch["id"] if ch else None, "start_page": page,
+                       "minutes": reading, "target_pages": max(1, reading // 4), "target_questions": max(1, reading // 3),
+                       "title": f"Read on: {book['title']}, page {page}",
+                       "instructions": "Read where you left off and do the exercises on the page. Check them when you're done.",
+                       "why": "Working through the book in order keeps everything else connected."})
+        why.append(f"{book['title']}, page {page}")
+    elif reading and blocks:
+        g = next((b for b in blocks if b["kind"] in ("declensions", "verbs") and not b.get("sub")), blocks[-1])
+        g["minutes"] += reading
+        if g.get("target_questions"):
+            g["target_questions"] = g["minutes"] * 3
+
+    for bl in blocks:
+        bl.update(status="todo", started_at=None, done_at=None)
+    summary = "A quick plan built from your data, without AI" + (": " + ", ".join(why) + "." if why else ".")
+    data = {"summary": summary, "blocks": blocks, "minutes": minutes, "quick": True}
+    db.ex("INSERT INTO plans(date, data, created_at) VALUES(?,?,?)", (db.today(), json.dumps(data, ensure_ascii=False), db.now()))
+    return today_plan()

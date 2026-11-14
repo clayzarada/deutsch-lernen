@@ -7,3 +7,4 @@ pymupdf
 genanki
 psutil
 google-genai>=2.25.0
+zstandard; python_version < "3.14"

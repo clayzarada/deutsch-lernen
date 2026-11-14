@@ -35,7 +35,7 @@ async function loadToday() {
 
 function renderSetup(plan) {
   const steps = [
-    { done: S.settings.has_key, title: 'Add your Claude API key', text: 'Turns on practice sets, flashcards, marking and the coach.', go: 'settings', btn: 'Open Settings' },
+    { done: S.settings.has_key, title: 'Add your Claude API key', text: 'Turns on practice sets, AI flashcards, marking and the coach. The dictionary, drills, flashcard packs and quick plans work without it.', go: 'settings', btn: 'Open Settings' },
     { done: S.books.length > 0, title: 'Import a textbook', text: 'Any PDF. Chapters are detected from its bookmarks.', go: 'library', btn: 'Go to Library' },
     { done: !!plan, title: 'Plan your first day', text: 'Use the form below.' },
   ];
@@ -148,13 +148,13 @@ function renderPlan(plan) {
   $('#plan-form button[type=submit] span').textContent = plan ? 'New plan' : 'Plan my day';
   if (!plan) {
     $('#plan-meta').textContent = 'Your coach builds a session from your progress, weak spots and flashcards.';
-    $('#plan').innerHTML = `<div class="plan-empty">${icon('sparkles')}<p>No plan yet today. Set your time and press <b>Plan my day</b>.</p></div>`;
+    $('#plan').innerHTML = `<div class="plan-empty">${icon('sparkles')}<p>No plan yet today. Set your time and press <b>Plan my day</b>, or <b>Quick plan</b> for an instant one without AI.</p></div>`;
     return;
   }
   const done = plan.blocks.filter(b => b.status === 'done').length;
   const total = plan.blocks.reduce((a, b) => a + (b.minutes || 0), 0);
   const left = plan.blocks.filter(b => !['done', 'skipped'].includes(b.status)).reduce((a, b) => a + (b.minutes || 0), 0);
-  $('#plan-meta').innerHTML = `${total} min · ${done} of ${plan.blocks.length} done${left && left < total ? ` · <b>${left} min left</b>` : ''}`;
+  $('#plan-meta').innerHTML = `${plan.quick ? '<span class="chip">Quick plan · no AI</span> ' : ''}${total} min · ${done} of ${plan.blocks.length} done${left && left < total ? ` · <b>${left} min left</b>` : ''}`;
   $('#plan').innerHTML = `<div class="plan-progress"><span style="width:${(100 * done) / plan.blocks.length}%"></span></div>
     <div class="plan-summary">${md(plan.summary)}</div>
     <ol class="blocks">${plan.blocks.map(blockHtml).join('')}</ol>
@@ -189,6 +189,9 @@ $('#plan').addEventListener('click', async e => {
 });
 
 function openBlock(b) {
+  if (b.sub === 'gaps') { S.practiceTabWant = 'gaps'; S.gapChapterWant = b.chapter_id ? String(b.chapter_id) : null; return show('practice'); }
+  if (b.kind === 'declensions' && b.sub) { S.declSub = b.sub === 'free' ? 'drill' : b.sub; return show('decl'); }
+  if (b.kind === 'verbs' && b.sub) { S.verbsTab = 'free'; return show('verbs'); }
   if (b.kind === 'reader') openReader(b.book_id, b.start_page || null);
   else if (b.kind === 'practice') { S.practiceChapter = b.chapter_id; show('practice'); }
   else if (b.kind === 'flashcards') { S.cardTab = 'review'; show('cards'); }
@@ -199,6 +202,10 @@ function openBlock(b) {
   else if (b.media_id) { S.listenMedia = b.media_id; show('listening'); }
   else if (b.url) window.open(b.url, '_blank', 'noopener');
 }
+
+$('#plan-quick').addEventListener('click', e => busy(e.currentTarget, 'Planning...', async () => {
+  renderPlan(await api('/plan/quick', { method: 'POST', body: { minutes: +$('#plan-minutes').value } }));
+}));
 
 $('#plan-form').addEventListener('submit', e => {
   e.preventDefault();

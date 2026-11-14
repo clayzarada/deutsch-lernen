@@ -24,6 +24,7 @@ $('#p-tabs').addEventListener('click', e => {
 });
 
 async function loadPractice() {
+  if (S.practiceTabWant) { ptab = S.practiceTabWant; S.practiceTabWant = null; store.set('practiceTab', ptab); }
   showPtab();
   if (ptab === 'gaps') return loadGaps();
   await loadBooks();
@@ -182,7 +183,8 @@ const gnorm = s => (s || '').trim().toLowerCase().replace(/[.,!?;:]+$/, '');
 
 async function loadGaps() {
   await loadBooks();
-  const keep = $('#g-chapter').value || store.get('gapChapter') || '';
+  const keep = S.gapChapterWant || $('#g-chapter').value || store.get('gapChapter') || '';
+  S.gapChapterWant = null;
   $('#g-chapter').innerHTML = chapterOptions(keep) || '<option value="">Import a book first</option>';
   $$('#g-kinds [data-kind]').forEach(b => b.classList.toggle('on', b.dataset.kind === G.kind));
   if (!G.sheet) {

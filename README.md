@@ -91,6 +91,12 @@ A built-in German dictionary (from Wiktionary, about 78,000 words, works offline
 - **Declensions > Free practice > Nouns**: der/die/das and plurals for the 8,500 most common nouns, most common first.
 - **Declensions > Free practice > Numbers**: numbers, clock times, dates, prices and years, read and written, with an
   optional listening mode that uses the computer's own German voice.
+- **Flashcards > Library**: ready-made packs (everyday phrases, the 1,000 most common nouns, core verbs and
+  adjectives, ten topics, irregular verbs, dative verbs, verbs with prepositions, prepositions by case, false friends).
+- **Flashcards > Anki > Import from Anki**: .apkg and .colpkg decks (old and new Anki formats) and Anki's plain-text
+  export. Text and cloze cards come across, and learned cards keep their Anki intervals.
+- **Today > Quick plan**: an instant daily plan built from your flashcards, mistakes, book and grammar courses by
+  simple rules, with the same live progress as the coach's plan.
 
 The dictionary is rebuilt with `python tools/make_dictionary.py <kaikki German .jsonl.gz> <de_50k.txt>`
 (sources and license in `static/vendor/dict/SOURCES.txt`).

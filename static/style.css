@@ -1161,3 +1161,28 @@ mark.w-err sup { font-size: 10px; font-weight: 700; color: var(--bad); margin-le
 .nn-meter { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 10px; margin: 8px 0; }
 .nn-meter .dc-meter { grid-column: 1 / -1; }
 .num-listen { margin-top: 12px; font-size: 13px; }
+
+/* ---------- flashcard library and Anki import ---------- */
+.lib-intro { max-width: 760px; margin: 0 0 6px; }
+.lib-group { font-size: 15px; margin: 22px 0 10px; }
+.lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.lib-pack { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: var(--shadow-sm); }
+.lib-pack.added { border-color: var(--ok); }
+.lib-pack p { margin: 0; }
+.lib-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lib-sample { list-style: none; margin: 0; padding: 0; font-size: 13.5px; }
+.lib-sample li { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; border-bottom: 1px dashed var(--line); }
+.lib-sample li span:last-child { text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%; }
+.lib-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: auto; }
+.chip.ok { color: var(--ok); background: var(--ok-soft); }
+.lib-all { max-height: 320px; overflow: auto; border-top: 1px solid var(--line); }
+.lib-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.lib-table td { padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ai-preview { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.ai-preview p { margin: 0; }
+.ai-decks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow: auto; }
+.ai-decks label { display: flex; flex-direction: row; gap: 10px; align-items: flex-start; font-weight: 450; }
+.ai-decks input { width: auto; margin-top: 4px; accent-color: var(--accent); }
+.ai-sample { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 520px; }
+.ok-line { color: var(--ok); display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+#plan-meta .chip { margin-right: 4px; }

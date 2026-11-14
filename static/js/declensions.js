@@ -92,6 +92,7 @@ function loadCourse(id) {
 
 async function loadDecl() {
   if (S[skey('Tab')]) { V.tab = S[skey('Tab')]; S[skey('Tab')] = null; }
+  if (S[skey('Sub')]) { V.tab = 'free'; stopSprint(); D.sub = S[skey('Sub')]; S[skey('Sub')] = null; }
   if (S[skey('Keys')]) { D.keys = S[skey('Keys')]; S[skey('Keys')] = null; D.sub = 'drill'; stopSprint(); free.q = null; }
   $$('#dv-tabs button').forEach(b => b.classList.toggle('active', b.dataset.dv === V.tab));
   $('#dv-journey').classList.toggle('hidden', V.tab !== 'journey');

@@ -2,6 +2,7 @@
 import json
 import os
 import re
+import sqlite3
 import uuid
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import (ai, anki, backup, course, db, decl, dictionary, mistakelink, pagecheck, pdfs, planner, srs, textwork, tts,
+from . import (ai, anki, ankiimport, backup, course, db, decl, dictionary, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
                update, usage, verbs, wordorder, wordtrain, writing)
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
@@ -709,6 +710,50 @@ def anki_push(body: dict):
         raise HTTPException(400, str(e))
 
 
+@app.post("/api/anki/import/preview")
+def anki_import_preview(file: UploadFile = File(...)):
+    raw = file.file.read(400 << 20)  # decks with lots of audio can be big; only the collection inside is read
+    try:
+        return ankiimport.preview(file.filename or "", raw)
+    except (ValueError, sqlite3.DatabaseError) as e:
+        raise HTTPException(400, str(e) if isinstance(e, ValueError) else "That file couldn't be read as an Anki deck.")
+
+
+@app.post("/api/anki/import")
+def anki_import(body: dict):
+    try:
+        return ankiimport.run(body["token"], body.get("decks"), bool(body.get("keep_progress", True)))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+# ---------- Pack library ----------
+@app.get("/api/packs")
+def pack_library():
+    return {"packs": packs.library()}
+
+
+@app.get("/api/packs/{pack_id}")
+def pack_detail(pack_id: str):
+    if pack_id not in packs.BY_ID:
+        raise HTTPException(404, "No such pack")
+    return {"cards": packs.pack_cards(pack_id)}
+
+
+@app.post("/api/packs/{pack_id}/add")
+def pack_add(pack_id: str):
+    if pack_id not in packs.BY_ID:
+        raise HTTPException(404, "No such pack")
+    return packs.add(pack_id)
+
+
+@app.post("/api/packs/{pack_id}/remove")
+def pack_remove(pack_id: str, body: dict):
+    if pack_id not in packs.BY_ID:
+        raise HTTPException(404, "No such pack")
+    return packs.remove(pack_id, bool(body.get("only_new")))
+
+
 # ---------- Listening (audio episodes & pronunciation) ----------
 
 def _media(mid):
@@ -1286,6 +1331,11 @@ def plan_today():
 def plan_generate(body: dict):
     minutes = int(body.get("minutes") or db.get_settings()["daily_minutes"])
     return planner.generate(minutes, body.get("note", ""))
+
+
+@app.post("/api/plan/quick")
+def plan_quick(body: dict):
+    return planner.quick_plan(int(body.get("minutes") or db.get_settings()["daily_minutes"]))
 
 
 @app.post("/api/plan/{plan_id}/blocks/{idx}")

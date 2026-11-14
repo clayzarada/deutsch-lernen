@@ -62,9 +62,9 @@ def short(meanings, n=2):
 def forms_text(e):
     i = e["info"]
     if e["pos"] == "verb" and (i.get("praet") or i.get("pp")):
-        aux = (i.get("aux") or "haben").split(" / ")[0]
-        parts = [p for p in (i.get("pres3") and f"er {i['pres3']}", i.get("praet"),
-                             i.get("pp") and f"{'ist' if aux == 'sein' else 'hat'} {i['pp']}") if p]
+        # Motion verbs often take both (ist gefahren / hat das Auto gefahren): show both, in Wiktionary's order.
+        aux = "/".join({"haben": "hat", "sein": "ist"}[a] for a in (i.get("aux") or "haben").split(" / ") if a in ("haben", "sein")) or "hat"
+        parts = [p for p in (i.get("pres3") and f"er {i['pres3']}", i.get("praet"), i.get("pp") and f"{aux} {i['pp']}") if p]
         return ", ".join(parts)
     if e["pos"] == "adj" and i.get("comp"):
         return ", ".join(p for p in (i["comp"], i.get("sup")) if p)

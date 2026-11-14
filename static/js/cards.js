@@ -1,7 +1,7 @@
 // Flashcards page: spaced-repetition review, browsing/editing/generating cards, Anki export.
 import {
   $, $$, S, api, esc, icon, busy, toast, emptyState, loadBooks, chapterOptions, scopeParams, queryString,
-  registerView, cardEditor, setBadge, confirmDialog, hearButton, refreshNav,
+  registerView, cardEditor, setBadge, confirmDialog, hearButton, refreshNav, loading, fillIcons,
 } from './core.js';
 
 const GRADES = [['Again', 1], ['Hard', 2], ['Good', 3], ['Easy', 4]];
@@ -19,6 +19,7 @@ function cardTab(tab) {
   $$('#view-cards .tab').forEach(t => t.classList.toggle('hidden', t.id !== 'tab-' + tab));
   if (tab === 'review') loadReview();
   if (tab === 'browse') loadBrowse();
+  if (tab === 'library') loadLibrary();
   if (tab === 'anki') $('#anki-scope').innerHTML = chapterOptions(S.cardScope || '', { all: true });
 }
 $$('[data-tab]').forEach(b => b.addEventListener('click', () => cardTab(b.dataset.tab)));
@@ -397,3 +398,96 @@ $('#anki-push').addEventListener('click', e => busy(e.currentTarget, 'Sending...
   const r = await api('/anki/push', { method: 'POST', body: scopeParams($('#anki-scope').value) });
   toast(`Sent ${r.added} cards to Anki${r.skipped ? ` (${r.skipped} were already there)` : ''}`);
 }));
+
+// ---------- Anki import ----------
+$('#ai-choose').addEventListener('click', () => $('#ai-file').click());
+$('#ai-file').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  const fd = new FormData();
+  fd.append('file', f);
+  $('#ai-preview').innerHTML = loading(`Reading ${f.name}...`);
+  try {
+    renderImport(await api('/anki/import/preview', { method: 'POST', body: fd }));
+  } catch (err) { $('#ai-preview').innerHTML = ''; toast(err.message, 'error'); }
+});
+
+function renderImport(p) {
+  const learned = p.decks.reduce((a, d) => a + d.learned, 0);
+  $('#ai-preview').innerHTML = `<div class="ai-preview" data-token="${p.token}">
+    <p><b>${esc(p.file)}</b>: ${p.total} card${p.total === 1 ? '' : 's'}${p.media ? ` · ${p.media} pictures or sounds (not imported)` : ''}</p>
+    <ul class="ai-decks">${p.decks.map(d => `<li><label><input type="checkbox" checked value="${esc(d.name)}">
+      <span class="grow"><b>${esc(d.name)}</b> <span class="muted small">${d.count} cards${d.duplicates ? ` · ${d.duplicates} already in your cards` : ''}${d.learned ? ` · ${d.learned} learned` : ''}</span>
+      <small class="muted ai-sample">${d.sample.map(s => `${esc(s.front)} → ${esc(s.back)}`).join(' · ')}</small></span></label></li>`).join('')}</ul>
+    ${learned ? `<label class="check"><input type="checkbox" id="ai-progress" checked> Keep Anki's review progress (${learned} learned cards keep their intervals and due dates)</label>` : ''}
+    <div class="row"><button id="ai-go" data-icon="check"><span>Import</span></button><button id="ai-cancel" class="ghost">Cancel</button></div></div>`;
+  fillIcons($('#ai-preview'));
+}
+
+$('#ai-preview').addEventListener('click', e => {
+  if (e.target.closest('#ai-cancel')) { $('#ai-preview').innerHTML = ''; return; }
+  const go = e.target.closest('#ai-go');
+  if (!go) return;
+  const box = $('.ai-preview');
+  const decks = $$('.ai-decks input:checked', box).map(i => i.value);
+  if (!decks.length) return toast('Tick at least one deck.', 'error');
+  busy(go, 'Importing...', async () => {
+    const r = await api('/anki/import', { method: 'POST', body: { token: box.dataset.token, decks, keep_progress: $('#ai-progress')?.checked ?? true } });
+    $('#ai-preview').innerHTML = `<p class="ok-line">${icon('check')}Imported ${r.added} card${r.added === 1 ? '' : 's'}${r.learned ? ` (${r.learned} with their Anki progress)` : ''}${r.skipped ? `. Skipped ${r.skipped} you already had` : ''}.</p>`;
+    refreshNav();
+  });
+});
+
+// ---------- pack library ----------
+async function loadLibrary() {
+  if (!$('#lib-list').innerHTML) $('#lib-list').innerHTML = loading('Opening the library...');
+  const { packs } = await api('/packs');
+  const groups = [['Words', 'Vocabulary'], ['Topics', 'By topic'], ['Grammar', 'Grammar']];
+  $('#lib-list').innerHTML = groups.map(([g, title]) => `<h2 class="lib-group">${title}</h2><div class="lib-grid">${
+    packs.filter(p => p.group === g).map(packHtml).join('')}</div>`).join('');
+  fillIcons($('#lib-list'));
+}
+
+function packHtml(p) {
+  const left = p.count - p.have;
+  return `<div class="lib-pack ${p.added ? 'added' : ''}" data-pack="${p.id}">
+    <div class="lib-head"><b>${esc(p.title)}</b><span class="chip">${p.level}</span></div>
+    <p class="muted small">${esc(p.description)}</p>
+    <ul class="lib-sample">${p.sample.map(c => `<li><span>${esc(c.front)}</span><span class="muted">${esc(c.back)}</span></li>`).join('')}</ul>
+    <div class="lib-foot"><span class="muted small">${p.count} cards${p.added ? ` · ${p.added} in your deck` : p.have ? ` · you have ${p.have}` : ''}</span><span class="grow"></span>
+      <button class="link-btn" data-lib="view">See all</button>
+      ${left > 0 ? `<button class="small" data-lib="add" data-icon="plus"><span>Add ${left}</span></button>` : `<span class="chip ok">${icon('check')}In your deck</span>`}
+      ${p.added ? `<button class="link-btn" data-lib="remove">Remove</button>` : ''}</div>
+    <div class="lib-all hidden"></div></div>`;
+}
+
+$('#lib-list').addEventListener('click', async e => {
+  const b = e.target.closest('[data-lib]');
+  if (!b) return;
+  const box = b.closest('[data-pack]'), id = box.dataset.pack;
+  if (b.dataset.lib === 'view') {
+    const all = $('.lib-all', box);
+    if (all.classList.toggle('hidden')) { b.textContent = 'See all'; return; }
+    b.textContent = 'Hide';
+    if (!all.innerHTML) {
+      const { cards } = await api(`/packs/${id}`);
+      all.innerHTML = `<table class="lib-table">${cards.map(c => `<tr><td>${esc(c.front)}</td><td>${esc(c.back)}</td><td class="muted small">${esc(c.extra)}</td></tr>`).join('')}</table>`;
+    }
+  } else if (b.dataset.lib === 'add') {
+    await busy(b, 'Adding...', async () => {
+      const r = await api(`/packs/${id}/add`, { method: 'POST' });
+      toast(`Added ${r.added} cards. They come up a few a day, after your other new cards.`);
+      refreshNav();
+      await loadLibrary();
+    });
+  } else if (b.dataset.lib === 'remove') {
+    const all = await confirmDialog('Remove this pack?', "Removes all of the pack's cards from your deck, including their review history. Press Cancel to remove only the ones you haven't studied yet.", { ok: 'Remove all', danger: true });
+    const onlyNew = !all && await confirmDialog('Remove only the cards you haven\'t studied?', "Cards you've already reviewed stay in your deck.", { ok: 'Remove unstudied cards' });
+    if (!all && !onlyNew) return;
+    const r = await api(`/packs/${id}/remove`, { method: 'POST', body: { only_new: onlyNew } });
+    toast(`Removed ${r.removed} cards`);
+    refreshNav();
+    loadLibrary();
+  }
+});
