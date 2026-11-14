@@ -391,6 +391,13 @@
         <h2>Backups</h2>
         <p class="muted small">The app backs up your progress automatically once a day and keeps the last 14. Restoring first backs up what you have now, so it can be undone.</p>
         <div id="backup-box"></div>
+        <h3 class="backup-file-head">Backup file</h3>
+        <p class="muted small">Everything in one file (progress, cards, answers, books and audio) to keep somewhere safe or move to another computer. Your API keys aren't included.</p>
+        <div class="backup-file-actions">
+          <button type="button" class="ghost small" id="backup-save">Save backup file</button>
+          <button type="button" class="ghost small" id="backup-load">Load backup file</button>
+          <input type="file" id="backup-load-file" accept=".zip" hidden>
+        </div>
       </div>
       <div class="panel about-panel">
         <h2>About</h2>

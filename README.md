@@ -81,7 +81,10 @@ Everything stays on this computer, in the `data` folder: `study.db` holds your p
 AI features use your Claude API key and are billed per use. Generating a practice set or a set of cards for one chapter costs a few cents on the default model. You can pick a cheaper model in Settings.
 
 ## Costs and backups
-Settings shows an estimate of what the AI features cost this month, by feature, and lets you set a monthly budget that pauses Claude features once it's reached. The app also backs up your data once a day (the last 14 are kept in `data/backups`); Settings lists them and can restore one.
+Settings shows an estimate of what the AI features cost this month, by feature, and lets you set a monthly budget that pauses Claude features once it's reached. The app also backs up your data once a day (the last 14 are kept in `data/backups`); Settings lists them and can restore one. "Save backup file" puts everything (progress, cards, answers, books and audio, but never your API keys) into one .zip to keep or move to another computer; "Load backup file" brings it back.
+
+## Releases
+Publishing a GitHub release (`gh release create vX.Y.Z --title ... --notes ...`, no files) starts `.github/workflows/release.yml`: it runs the tests, then builds and attaches the Windows app, the Mac installer kit and the ready-made Mac apps. `version.json` must already say X.Y.Z with a current fingerprint. The tests (`python -m pytest tests`, needs `requirements-dev.txt`) also run on every push.
 
 ## License
 

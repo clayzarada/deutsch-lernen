@@ -4,12 +4,14 @@ own data (books, progress, cards) and WITHOUT your API keys, so the zip is safe 
     .venv\\Scripts\\python make_mac_package.py               public build: no keys, no Goethe PDFs
     .venv\\Scripts\\python make_mac_package.py --personal    for your own Mac: includes your keys and the Goethe PDFs
 """
+import os
 import sys
 import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-OUT = Path.home() / "Desktop" / "Deutsch lernen for Mac.zip"
+# PACKAGE_OUT_DIR: where the zip goes (GitHub's release build sets it; on a PC it's the Desktop).
+OUT = Path(os.environ.get("PACKAGE_OUT_DIR") or Path.home() / "Desktop") / "Deutsch lernen for Mac.zip"
 TOP = "Deutsch lernen for Mac"
 SKIP_DIRS = {"__pycache__"}
 SKIP_FILES = {"icon.ico"}

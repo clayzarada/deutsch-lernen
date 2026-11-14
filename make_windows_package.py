@@ -6,6 +6,7 @@ It contains "Deutsch lernen.exe" (built with PyInstaller from launch_windows.py)
 It never contains your data or your API keys: the packaged app keeps its own data in %APPDATA%\\Deutsch lernen.
 The build uses its own environment (.build-venv-win), so your everyday .venv is left alone.
 """
+import os
 import shutil
 import subprocess
 import sys
@@ -16,7 +17,8 @@ ROOT = Path(__file__).resolve().parent
 VENV = ROOT / ".build-venv-win"
 PY = VENV / "Scripts" / "python.exe"
 DIST = ROOT / "dist" / "Deutsch lernen"
-OUT = Path.home() / "Desktop" / "Deutsch-lernen-Windows.zip"
+# PACKAGE_OUT_DIR: where the zip goes (GitHub's release build sets it; on a PC it's the Desktop).
+OUT = Path(os.environ.get("PACKAGE_OUT_DIR") or Path.home() / "Desktop") / "Deutsch-lernen-Windows.zip"
 
 README = """DEUTSCH LERNEN FOR WINDOWS  (version {version} {name})
 ==========================

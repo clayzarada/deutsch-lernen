@@ -667,7 +667,8 @@ TIME = {"praes": "heute", "praet": "damals", "perf": "gestern", "fut1": "morgen"
 
 
 def _sent_verb(key):
-    return random.choice(_verbs_for(key, need=lambda v: v["inf"] in COMPL))
+    # Reflexive verbs share an infinitive with their plain verb ("sich treffen"/"treffen") but not its object.
+    return random.choice(_verbs_for(key, need=lambda v: v["inf"] in COMPL and not v["refl"]))
 
 
 def gen_vsent(key):
@@ -680,7 +681,7 @@ def gen_vsent(key):
         prompt = f"{subj} ___ {c}."
         return _q("vsent", key, prompt, f, f[0], why(v, "konj2", key), display_inf(v), "konj2", full=prompt.replace("___", f[0]))
     v = _sent_verb(key)
-    if v["inf"] not in COMPL:
+    if v["inf"] not in COMPL or v["refl"]:
         return gen_conj(key)
     c, inf, pp = COMPL[v["inf"]], v["inf"], partizip(v)
     auxinf = "sein" if v["aux"] == "s" else "haben"

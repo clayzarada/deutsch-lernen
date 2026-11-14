@@ -104,6 +104,23 @@ $('#backup-box').addEventListener('click', async e => {
   } catch (err) { toast(err.message, 'error'); }
 });
 
+$('#backup-save').addEventListener('click', () => { window.location.href = '/api/backups/export'; });
+$('#backup-load').addEventListener('click', () => $('#backup-load-file').click());
+$('#backup-load-file').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  if (!await confirmDialog('Load this backup file?', 'Your progress, cards and answers are replaced by the ones in the file, and its books and audio are added. What you have now is backed up first, so you can switch back under Backups.', { ok: 'Load backup', danger: true })) return;
+  const fd = new FormData();
+  fd.append('file', f);
+  try {
+    toast('Loading the backup...');
+    await api('/backups/import', { method: 'POST', body: fd });
+    toast('Backup loaded. Reloading...');
+    setTimeout(() => location.reload(), 900);
+  } catch (err) { toast(err.message, 'error'); }
+});
+
 $('#s-voice-test').addEventListener('click', async e => {
   if ($('#s-voice-a').value !== S.settings.voice_a) await saveSettings(true);
   playClip('Hallo! Schön, dass du da bist. Heute lernen wir zusammen Deutsch.', e.currentTarget);

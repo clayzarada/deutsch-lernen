@@ -1124,6 +1124,32 @@ def backups_restore(body: dict):
     return backup.restore(body.get("name"))
 
 
+@app.get("/api/backups/export")
+def backups_export():
+    """Everything (progress, books, audio) in one file to keep or move to another computer."""
+    import datetime as _dt
+    import tempfile as _tf
+    from starlette.background import BackgroundTask
+    fd, tmp = _tf.mkstemp(suffix=".zip")
+    os.close(fd)
+    backup.export_file(tmp)
+    return FileResponse(tmp, media_type="application/zip", background=BackgroundTask(os.unlink, tmp),
+                        filename=f"Deutsch-lernen-backup-{_dt.date.today():%Y-%m-%d}.zip")
+
+
+@app.post("/api/backups/import")
+def backups_import(file: UploadFile = File(...)):
+    import shutil as _sh
+    import tempfile as _tf
+    fd, tmp = _tf.mkstemp(suffix=".zip")
+    try:
+        with os.fdopen(fd, "wb") as out:
+            _sh.copyfileobj(file.file, out)
+        return backup.import_file(tmp)
+    finally:
+        os.unlink(tmp)
+
+
 @app.get("/api/stats")
 def stats():
     return {"today": planner.day_stats(db.today()), "week": planner.week(), "streak": planner.streak(),

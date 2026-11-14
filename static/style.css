@@ -1118,3 +1118,6 @@ mark.w-err sup { font-size: 10px; font-weight: 700; color: var(--bad); margin-le
 .wo-tile kbd { font-size: 10.5px; color: var(--muted); }
 .wo.right .wo-word:not(.locked) { background: var(--ok-soft); border-color: var(--ok); }
 .wo.wrong .wo-word:not(.locked) { background: var(--bad-soft); border-color: var(--bad); }
+
+.backup-file-head { margin: 18px 0 4px; font-size: 1rem; }
+.backup-file-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
