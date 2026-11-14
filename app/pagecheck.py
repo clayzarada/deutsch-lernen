@@ -6,7 +6,7 @@ put into the printed line it sits on, at the place it was typed, so a gap-fill r
     L14: 3. Wie heißt ⟦A2: sein⟧ Vater?
 
 The AI then marks text it can read exactly (no misreading, no answers split over two lines lost), which a small,
-cheap model does well. Only handwriting still needs the page image.
+cheap model does well. Pen marks are never sent: they are for circling and brackets, not answers.
 
 Re-checking a page only marks typed answers that changed since the last check; the others keep their marks.
 """

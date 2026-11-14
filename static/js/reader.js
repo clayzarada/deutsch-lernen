@@ -529,7 +529,7 @@ $('#r-check').addEventListener('click', e => {
             <div class="ci-head">${icon(VERDICT_ICON[i.verdict])}<b>${esc(i.exercise)}</b><span class="verdict">${esc(i.verdict)}</span></div>
             <div class="small">You wrote: <i>${esc(i.student_answer)}</i></div>
             ${i.verdict !== 'correct' ? `<div class="small">Correct: <b>${esc(i.correction)}</b></div>` : ''}
-            <div class="muted small">${esc(i.explanation)}</div></div>`).join('') : '<p class="muted small">No answers found on this page.</p>');
+            ${i.explanation ? `<div class="muted small">${esc(i.explanation)}</div>` : ''}</div>`).join('') : '<p class="muted small">No answers found on this page.</p>');
     } catch (err) { out.innerHTML = ''; throw err; }
   });
 });

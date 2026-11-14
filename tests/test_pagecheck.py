@@ -49,8 +49,8 @@ def test_recheck_only_sends_changed_answers(client, book, monkeypatch):
     from app import ai
     calls = []
 
-    def fake(page, refs, image=None):
-        calls.append((refs, image))
+    def fake(page, refs):
+        calls.append((refs, None))
         return {"summary": "ok", "items": [
             {"refs": r, "exercise": r, "question": "q", "student_answer": "a", "verdict": "correct", "correction": "",
              "corrected_sentence": "", "explanation": "", "topic": "Articles"} for r in refs]}
@@ -73,8 +73,9 @@ def test_recheck_only_sends_changed_answers(client, book, monkeypatch):
 
     client.post("/api/annotations", json={"book_id": book, "page": 1, "kind": "ink", "x": 0, "y": 0,
                                           "data": {"points": [[.1, .5], [.2, .5]], "color": "#000", "width": 2}})
-    check()
-    assert calls[-1] == ([], "AAAA")  # handwriting: the image goes along, typed answers keep their marks
+    n = len(calls)
+    r = check()
+    assert len(calls) == n and r["reused"] == 2  # pen marks (circles, brackets) aren't answers: nothing to send
 
 
 def test_quick_tasks_use_the_quick_model(client):
@@ -83,7 +84,30 @@ def test_quick_tasks_use_the_quick_model(client):
     db.set_setting("quick_model", "claude-haiku-5-5")
     assert ai.model_for("lookup") == "claude-haiku-5-5"
     assert ai.model_for("check_page_text") == "claude-haiku-5-5"
-    assert ai.model_for("check_page") == "claude-sonnet-5-5"  # handwriting
+    assert ai.model_for("check_page") == "claude-sonnet-5-5"  # scanned pages, read from the picture
     assert ai.model_for("generate_exercises") == "claude-sonnet-5-5"
     db.set_setting("quick_model", "")
     assert ai.model_for("lookup") == "claude-sonnet-5-5"
+
+
+def _item(ref, verdict="correct"):
+    return {"refs": ref, "exercise": ref, "question": "q", "student_answer": "a", "verdict": verdict,
+            "correction": "c" if verdict != "correct" else "", "corrected_sentence": "", "explanation": "", "topic": "t"}
+
+
+def test_marking_asks_again_when_answers_are_missing_and_double_checks_mistakes(monkeypatch):
+    from app import ai
+    refs = ["A1", "A2", "A3", "A4", "A5"]
+    replies = [{"summary": "s", "items": [_item("A2", "incorrect")]},  # left most answers out
+               {"summary": "s", "items": [_item(r, "incorrect" if r in ("A2", "A3") else "correct") for r in refs]},
+               {"results": [{"n": 0, "student_is_right": True}, {"n": 1, "student_is_right": False}]}]
+    sent = []
+
+    def fake_call(system, content, schema=None, effort=None, **kw):
+        sent.append((content, effort))
+        return replies[len(sent) - 1]
+    monkeypatch.setattr(ai, "call", fake_call)
+    r = ai.check_page_text("L1: page", refs)
+    assert len(sent) == 3 and "IMPORTANT" in sent[1][0] and sent[2][1] == "high"
+    verdicts = {i["refs"]: i["verdict"] for i in r["items"]}
+    assert verdicts == {"A1": "correct", "A2": "correct", "A3": "incorrect", "A4": "correct", "A5": "correct"}

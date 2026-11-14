@@ -20,10 +20,10 @@ class AIError(Exception):
 
 
 # Small, frequent jobs that a fast, cheap model does well. They use the "quick model" setting (Haiku by default);
-# everything else (writing exercises and cards, marking essays, listening scripts, the coach, reading handwriting)
+# everything else (writing exercises and cards, marking essays, listening scripts, the coach, reading scanned pages)
 # uses the main model.
 QUICK_FEATURES = {"lookup", "explain", "grade_answers", "classify_mistakes", "recover_questions", "writing_task",
-                  "decl_reading", "verb_reading", "make_plan", "check_page_text"}
+                  "decl_reading", "verb_reading", "make_plan", "check_page_text", "confirm_mistakes"}  # check_page (scans) stays main
 
 
 def model_for(feature, s=None):
@@ -304,9 +304,10 @@ MARKING_RULES = (
     "what's missing ('partly'), unless a note from the student explains it.\n")
 
 
-def check_page_text(page, refs, image_b64=None):
+def check_page_text(page, refs):
     """Mark a page from its text, with the student's typed answers placed in it (see pagecheck.py).
-    refs: the answer refs to mark (the others were marked before). image_b64: only when there's handwriting."""
+    refs: the answer refs to mark (the others were marked before). Pen marks are never answers (they're for
+    circling and brackets), so no picture of the page is sent."""
     s = db.get_settings()
     schema = _obj({
         "summary": S,
@@ -324,22 +325,54 @@ def check_page_text(page, refs, image_b64=None):
         "and the position. One answer may be split over several boxes on consecutive lines: treat those as one "
         "answer and list it once. Some boxes are notes, not answers (e.g. 'double-check 5.3'): don't mark them, "
         "but respect what they say about how the student answered.\n"
-        + ("The page image shows handwritten (pen) answers too: mark those from the image (refs = ''). For typed "
-           "answers use the text, not the image.\n" if image_b64 else "")
-        + f"Mark only these typed answers: {', '.join(refs)}. Other ⟦A..⟧ answers were marked before; use them as "
+        f"Mark only these typed answers: {', '.join(refs)}. Other ⟦A..⟧ answers were marked before; use them as "
           "context only.\n\n" + MARKING_RULES + "\n"
         "For each answer: refs: its ref(s), e.g. 'A3' or 'A3+A4'. exercise: the item, e.g. '4.2 #7'. "
-        "student_answer: what the student wrote. verdict. correction: the correct answer for the gap or task. "
-        "explanation: one short sentence, in the learner's language. topic: a short English grammar/vocab label.\n"
-        "question: the full task so it can be understood on its own later: the exercise instruction, then on a new "
-        "line the item's complete sentence with the student's part written as ___.\n"
-        "corrected_sentence: that sentence with the correct answer filled in.\n"
+        "student_answer: what the student wrote. verdict. topic: a short English grammar/vocab label.\n"
+        "List EVERY answer you were asked to mark, correct ones included (only notes are left out). For a correct "
+        "answer, leave correction, question, corrected_sentence and explanation empty "
+        "(\"\"). For any other verdict, also fill in:\n"
+        "- correction: the correct answer for the gap or task.\n"
+        "- explanation: one or two short sentences on what's wrong and why, in the learner's language.\n"
+        "- question: the full task so it can be understood on its own later: the exercise instruction, then on a "
+        "new line the item's complete sentence with the student's part written as ___.\n"
+        "- corrected_sentence: that sentence with the correct answer filled in.\n"
         "summary: two or three sentences on these answers and what to review.\n\n<page>\n" + page + "\n</page>")
-    content = [{"type": "text", "text": task}]
-    if image_b64:
-        content.insert(0, {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": image_b64}})
-    # Handwriting needs the main model's eyes; text alone is a quick job.
-    return call(system, content, schema, effort="medium", feature="check_page" if image_b64 else "check_page_text")
+    result = call(system, task, schema, effort="medium")
+    got = {r.strip() for i in result["items"] for r in (i.get("refs") or "").split("+")}
+    if len(refs) >= 4 and len(got & set(refs)) < len(refs) / 2:
+        # It left most answers out (it happens now and then): ask once more, saying so.
+        retry = task + ("\n\nIMPORTANT: your last reply listed only some answers. List every answer from "
+                        f"{', '.join(refs)}, including the correct ones.")
+        result = call(system, retry, schema, effort="medium")
+    result["items"] = confirm_mistakes(result["items"])
+    return result
+
+
+def confirm_mistakes(items):
+    """A second, careful look at each answer marked wrong, one at a time. Marking a whole page in one go sometimes
+    flags a right answer (e.g. a dative recipient taken for a direct object); a false mistake costs the learner a
+    rescan and pollutes the Mistake Book, so it's worth this small extra call. Answers it clears become correct."""
+    flagged = [i for i in items if i["verdict"] in ("incorrect", "partly")]
+    if not flagged:
+        return items
+    s = db.get_settings()
+    schema = _obj({"results": _arr(_obj({"n": I, "student_is_right": B}))})
+    cases = [{"n": n, "task": i["question"], "student_answer": i["student_answer"], "proposed_correction": i["correction"]}
+             for n, i in enumerate(flagged)]
+    task = (
+        "A first marker flagged these answers on a German exercise page as wrong. Check each one yourself, "
+        "independently, without trusting the proposed correction. Work out the sentence: the verb, the subject, any "
+        "direct and indirect (dative) objects, prepositions, and the case, gender and number each phrase needs. "
+        "Then decide: is the student's answer acceptable German for this task? Ignore final punctuation, spacing "
+        "and capitals at the start of a gap word. A real typo or a wrong ending is not acceptable.\n\n"
+        + json.dumps(cases, ensure_ascii=False))
+    data = call("You are a careful German grammar checker. " + _learner(s), task, schema, effort="high")
+    cleared = {r["n"] for r in data["results"] if r["student_is_right"]}
+    for n, i in enumerate(flagged):
+        if n in cleared:
+            i.update(verdict="correct", correction="", explanation="", question="", corrected_sentence="")
+    return items
 
 
 def check_page(image_b64, page_text):

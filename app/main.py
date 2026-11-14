@@ -294,7 +294,7 @@ def check_page(book_id: int, body: dict):
     pdf = db.BOOKS / b["filename"]
     annots = [{**a, "data": json.loads(a["data"] or "{}")}
               for a in db.q("SELECT * FROM annotations WHERE book_id=? AND page=?", (book_id, page))]
-    page_text, answers, handwriting = pagecheck.transcript(pdf, page, annots)
+    page_text, answers, _pen = pagecheck.transcript(pdf, page, annots)  # pen marks are circles and brackets, not answers
     if not page_text.strip():  # a scanned page with no text layer: mark from the picture as before
         result = ai.check_page(image, pdfs.page_text(pdf, page, page))
         new_items, reused = result["items"], []
@@ -303,8 +303,8 @@ def check_page(book_id: int, body: dict):
         before = pagecheck.previous(book_id, page)
         same = {ref for ref, a in answers.items() if a["id"] in before and before[a["id"]][0] == a["text"]}
         todo = [ref for ref in answers if ref not in same]
-        if todo or handwriting:
-            result = ai.check_page_text(page_text, todo, image if handwriting else None)
+        if todo:
+            result = ai.check_page_text(page_text, todo)
             new_items = result["items"]
         else:
             result, new_items = {"summary": "Nothing has changed since your last check, so here are the same marks."}, []
