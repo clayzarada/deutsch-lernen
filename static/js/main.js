@@ -1,6 +1,6 @@
 // Entry point: loads every page module, wires up navigation and starts the app.
 import { syncLanguage } from './i18n.js';  // first, so text is translated as soon as it appears
-import { $$, S, api, store, toast, show, hasView, fillIcons, loadBooks, refreshNav } from './core.js';
+import { $$, S, api, store, toast, show, showSection, hasView, fillIcons, loadBooks, refreshNav } from './core.js';
 import './today.js';
 import './library.js';
 import './reader.js';
@@ -19,7 +19,7 @@ import './update.js';
 
 fillIcons();
 
-$$('#nav a[data-view]').forEach(a => a.addEventListener('click', () => show(a.dataset.view)));
+$$('#nav a[data-section]').forEach(a => a.addEventListener('click', () => showSection(a.dataset.section)));
 document.addEventListener('click', e => {
   const g = e.target.closest('[data-go]');
   if (g) { e.preventDefault(); show(g.dataset.go); }

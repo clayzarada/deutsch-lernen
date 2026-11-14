@@ -194,11 +194,33 @@ export function md(src) {
 const views = {};
 export function registerView(name, load) { views[name] = load; }
 
+// The sidebar has five sections; a section with several pages shows them as tabs across the top.
+export const SECTIONS = {
+  home: [['today', 'Today', 'today'], ['coach', 'Coach', 'coach']],
+  learn: [['decl', 'Declensions', 'rocket'], ['verbs', 'Verbs', 'spear']],
+  practice: [['practice', 'Exercises', 'practice'], ['writing', 'Writing', 'edit'], ['listening', 'Listening', 'headphones'], ['mistakes', 'Mistakes', 'mistake']],
+  cards: [['cards', 'Flashcards', 'cards']],
+  library: [['library', 'Books', 'library'], ['reader', 'Reader', 'reader'], ['resources', 'Resources', 'resources']],
+  settings: [['settings', 'Settings', 'settings']],
+};
+export const sectionOf = view => Object.keys(SECTIONS).find(s => SECTIONS[s].some(v => v[0] === view)) || 'home';
+/** Opens a section at the page last used in it. */
+export function showSection(section) {
+  const last = store.get('sec-' + section);
+  show(SECTIONS[section].some(v => v[0] === last) ? last : SECTIONS[section][0][0]);
+}
+
 export function show(view, { load = true } = {}) {
   S.view = view;
+  const section = sectionOf(view), pages = SECTIONS[section];
+  store.set('sec-' + section, view);
+  const tabs = $('#section-tabs');
+  tabs.classList.toggle('hidden', pages.length < 2);
+  tabs.innerHTML = pages.length < 2 ? '' : pages.map(([v, label, ic]) =>
+    `<button data-go="${v}" class="${v === view ? 'active' : ''}">${icon(ic)}<span>${label}</span></button>`).join('');
+  $$('#nav a[data-section]').forEach(a => a.classList.toggle('active', a.dataset.section === section));
   // A section can serve several views (data-views="decl verbs": both grammar courses share one page).
   $$('.view').forEach(v => v.classList.toggle('hidden', !(v.id === 'view-' + view || (v.dataset.views || '').split(' ').includes(view))));
-  $$('#nav a[data-view]').forEach(a => a.classList.toggle('active', a.dataset.view === view));
   store.set('view', view);
   document.dispatchEvent(new CustomEvent('viewchange', { detail: view }));
   if (load) Promise.resolve(views[view]?.()).catch(e => toast(e.message, 'error'));
@@ -207,7 +229,7 @@ export function show(view, { load = true } = {}) {
 export function hasView(name) { return name in views; }
 
 export function setBadge(view, n) {
-  const b = $(`#nav a[data-view="${view}"] .badge`);
+  const b = $(`#nav a[data-section="${sectionOf(view)}"] .badge`);
   if (b) { b.textContent = n > 99 ? '99+' : n; b.classList.toggle('hidden', !n); }
 }
 
@@ -219,7 +241,7 @@ export function updateNavStatus(stats) {
     $('#nav-streak').classList.toggle('lit', st.today_done);
   }
   const ok = S.settings?.has_key;
-  $('#nav-ai').innerHTML = `<i class="dot ${ok ? 'on' : ''}"></i><span>${ok ? 'AI ready' : 'Add API key'}</span>`;
+  $('#nav-ai').innerHTML = `<i class="dot ${ok ? 'on' : ''}"></i><span>${ok ? 'AI is on' : 'Turn on AI features'}</span>`;
   const v = S.settings?.version;
   $('#nav-version').textContent = v ? `v${v}${S.settings.build_name ? ' · ' + S.settings.build_name : ''}` : '';
   const c = S.settings?.credits;

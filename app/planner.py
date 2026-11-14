@@ -293,6 +293,12 @@ def _current_book():
 
 
 
+def current_book_brief():
+    """For Home's "read on" shortcut: the book read last and the page it's on (None without a book)."""
+    book, ch, page = _current_book()
+    return {"id": book["id"], "title": book["title"], "page": page, "chapter": ch["title"] if ch else ""} if book else None
+
+
 def quick_plan(minutes):
     """A plan without AI, in the same blocks (with live progress) as the coach's plan. About a third of the time goes
     to the textbook where you left off; the rest, in this order while it fits: flashcards that are due, the most

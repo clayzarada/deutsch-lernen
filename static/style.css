@@ -1186,3 +1186,51 @@ mark.w-err sup { font-size: 10px; font-weight: 700; color: var(--bad); margin-le
 .ai-sample { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 520px; }
 .ok-line { color: var(--ok); display: flex; align-items: center; gap: 8px; margin-top: 12px; }
 #plan-meta .chip { margin-right: 4px; }
+
+/* ============ 2.3: five sections, Home, quieter look ============ */
+main { display: flex; flex-direction: column; }
+.view { width: 100%; flex: 0 0 auto; padding: 30px 40px 56px; }
+#view-reader { height: auto; flex: 1 1 0; min-height: 0; padding: 0; }
+.section-tabs { display: flex; gap: 4px; padding: 10px 40px 0; border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 0; z-index: 20; flex: 0 0 auto; }
+.section-tabs button { display: flex; align-items: center; gap: 8px; background: transparent; color: var(--muted); border: 0; border-bottom: 2px solid transparent; border-radius: 0; padding: 8px 12px 10px; font-weight: 550; box-shadow: none; }
+.section-tabs button:hover { background: transparent; color: var(--text); }
+.section-tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+.section-tabs .icon { width: 16px; height: 16px; }
+#nav { padding: 20px 12px 14px; gap: 4px; }
+#nav a { padding: 10px 12px; font-size: 15px; }
+#nav a .icon { width: 19px; height: 19px; }
+.nav-foot a { font-size: 13.5px !important; padding: 7px 12px !important; }
+.eyebrow { text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 13.5px; }
+h1 { font-weight: 680; }
+.panel { box-shadow: none; }
+
+.hero { display: flex; align-items: center; gap: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px 24px; margin-bottom: 12px; }
+.hero h2 { font-size: 20px; margin: 2px 0; }
+.hero p { margin: 0; }
+.hero-eyebrow { font-size: 13px; color: var(--muted); }
+.hero button { font-size: 15.5px; padding: 11px 22px; flex-shrink: 0; }
+.goal-ring { width: 72px; height: 72px; flex-shrink: 0; }
+.goal-ring circle { fill: none; stroke-width: 7; }
+.goal-ring .track { stroke: var(--sunken); }
+.goal-ring .fill { stroke: var(--accent); stroke-linecap: round; transition: stroke-dasharray .5s ease; }
+.goal-ring.met .fill { stroke: var(--ok); }
+.goal-ring text { font-size: 16px; font-weight: 650; fill: var(--text); }
+.home-next { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 26px; }
+.next-card { display: flex; align-items: center; gap: 12px; text-align: left; white-space: normal; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; box-shadow: none; font-weight: 400; }
+.next-card:hover { background: var(--surface); border-color: var(--line-strong); transform: translateY(-1px); }
+.next-card > .icon { width: 20px; height: 20px; color: var(--accent); flex-shrink: 0; }
+.next-card span { min-width: 0; }
+.next-card b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.next-card small { display: block; color: var(--muted); font-size: 12.5px; }
+.section-title { margin: 28px 0 12px; font-size: 15px; color: var(--muted); font-weight: 600; }
+.tiles { margin-bottom: 0; }
+.tile { box-shadow: none; padding: 12px 14px; }
+.tile > .icon, .tile:nth-child(n) > .icon { background: transparent; color: var(--muted); width: 22px; height: 22px; padding: 0; margin-top: 3px; }
+.tile b { font-size: 20px; }
+@media (max-width: 900px) {
+  .home-next, .tiles { grid-template-columns: 1fr 1fr; }
+  .today-grid { grid-template-columns: minmax(0, 1fr); }
+  .hero { flex-wrap: wrap; }
+  .view { padding: 22px 18px 40px; }
+  .section-tabs { padding: 8px 18px 0; overflow-x: auto; }
+}

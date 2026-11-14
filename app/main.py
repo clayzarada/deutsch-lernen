@@ -1314,7 +1314,8 @@ def backups_import(file: UploadFile = File(...)):
 def stats():
     return {"today": planner.day_stats(db.today()), "week": planner.week(), "streak": planner.streak(),
             "cards": planner.card_counts(), "weak_topics": planner.weak_topics(),
-            "calendar": planner.calendar(), "journey": localize(course.brief()), "verbs_journey": localize(VERBS_COURSE.brief())}
+            "calendar": planner.calendar(), "journey": localize(course.brief()), "verbs_journey": localize(VERBS_COURSE.brief()),
+            "book": planner.current_book_brief()}
 
 
 @app.get("/api/progress")

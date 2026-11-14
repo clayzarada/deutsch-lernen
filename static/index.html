@@ -20,26 +20,15 @@
 <body>
 <nav id="nav">
   <div class="brand"><span class="flag"><i></i><i></i><i></i></span>Deutsch <em>lernen</em></div>
-  <a data-view="today" data-icon="today"><span>Today</span></a>
-  <a data-view="coach" data-icon="coach"><span>Coach</span></a>
-  <p class="nav-label">Read</p>
-  <a data-view="library" data-icon="library"><span>Library</span></a>
-  <a data-view="reader" data-icon="reader"><span>Reader</span></a>
-  <p class="nav-label">Grammar</p>
-  <a data-view="decl" data-icon="rocket"><span>Declensions</span></a>
-  <a data-view="verbs" data-icon="spear"><span>Verbs</span></a>
-  <p class="nav-label" data-tr="Pratik">Practice</p>
-  <a data-view="practice" data-icon="practice"><span>Practice</span></a>
-  <a data-view="writing" data-icon="edit"><span>Writing</span></a>
-  <a data-view="cards" data-icon="cards"><span>Flashcards</span><b class="badge hidden"></b></a>
-  <a data-view="listening" data-icon="headphones"><span>Listening</span></a>
-  <a data-view="mistakes" data-icon="mistake"><span>Mistakes</span></a>
-  <p class="nav-label">More</p>
-  <a data-view="resources" data-icon="resources"><span>Resources</span></a>
+  <a data-section="home" data-icon="today"><span>Home</span></a>
+  <a data-section="learn" data-icon="rocket"><span>Learn</span></a>
+  <a data-section="practice" data-icon="practice"><span>Practice</span></a>
+  <a data-section="cards" data-icon="cards"><span>Flashcards</span><b class="badge hidden"></b></a>
+  <a data-section="library" data-icon="library"><span>Library</span></a>
   <div class="nav-foot">
     <div class="row nav-tools"><div id="nav-streak" class="streak grow"></div>
       <button id="theme-toggle" class="icon-btn" title="Switch day / night mode"></button></div>
-    <a data-view="settings" data-icon="settings"><span>Settings</span></a>
+    <a data-section="settings" data-icon="settings"><span>Settings</span></a>
     <a id="nav-ai" class="ai-status" data-go="settings"></a>
     <p id="nav-version" class="nav-version" title="App version"></p>
     <p id="nav-credit" class="nav-version">by Clay Zarada</p>
@@ -47,17 +36,19 @@
 </nav>
 
 <main>
+  <div id="section-tabs" class="section-tabs hidden"></div>
   <!-- TODAY -->
   <section id="view-today" class="view hidden">
     <header class="page-head">
       <div><p class="eyebrow" id="today-date"></p><h1 id="today-greeting">Hallo!</h1></div>
     </header>
+    <div id="home-hero"></div>
+    <div id="home-next" class="home-next"></div>
     <div id="setup"></div>
-    <div id="stat-tiles" class="tiles"></div>
     <div class="today-grid">
       <div class="panel plan-panel">
         <div class="panel-head">
-          <div><h2>Today's plan</h2><p class="muted small" id="plan-meta">Your coach builds a session from your progress, weak spots and flashcards.</p></div>
+          <div><h2>Today's plan</h2><p class="muted small" id="plan-meta">A session built from your progress, weak spots and flashcards.</p></div>
         </div>
         <form id="plan-form" class="plan-form">
           <label class="inline-field" data-icon="clock" title="Time available"><input id="plan-minutes" type="number" min="10" max="300"><span>min</span></label>
@@ -74,6 +65,8 @@
         <div class="panel"><h2>Weak spots</h2><p class="muted small">Topics you get wrong most (last 30 days)</p><div id="weak-topics"></div></div>
       </div>
     </div>
+    <h2 class="section-title">Today in numbers</h2>
+    <div id="stat-tiles" class="tiles"></div>
   </section>
 
   <!-- LIBRARY -->

@@ -24,6 +24,7 @@ async function loadToday() {
   // The study day (it runs until 4am), not the calendar date.
   $('#today-date').textContent = new Date(st.today.date + 'T12:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
   updateNavStatus(st);
+  S.homeStats = st;
   renderSetup(plan);
   renderTiles(st);
   renderWeek(st.week);
@@ -35,11 +36,12 @@ async function loadToday() {
 
 function renderSetup(plan) {
   const steps = [
-    { done: S.settings.has_key, title: 'Add your Claude API key', text: 'Turns on practice sets, AI flashcards, marking and the coach. The dictionary, drills, flashcard packs and quick plans work without it.', go: 'settings', btn: 'Open Settings' },
+    { done: S.settings.has_key, title: 'Turn on AI features (optional)', text: 'Practice sets, marking, AI flashcards and the coach need a Claude API key. The dictionary, drills, flashcard packs and quick plans work without one.', go: 'settings', btn: 'Open Settings' },
     { done: S.books.length > 0, title: 'Import a textbook', text: 'Any PDF. Chapters are detected from its bookmarks.', go: 'library', btn: 'Go to Library' },
     { done: !!plan, title: 'Plan your first day', text: 'Use the form below.' },
   ];
-  if (steps[0].done && steps[1].done) { $('#setup').innerHTML = ''; return; }
+  // Only for a brand-new copy: once there's a book, cards or a plan, Home's own cards say what to do next.
+  if ((steps[0].done && steps[1].done) || S.books.length || S.homeStats?.cards.total || plan) { $('#setup').innerHTML = ''; return; }
   $('#setup').innerHTML = `<div class="panel setup"><h2>Get started</h2><ol>${steps.map(s => `
     <li class="${s.done ? 'done' : ''}"><span class="step-mark">${s.done ? icon('check') : ''}</span>
       <div><b>${s.title}</b><p class="muted small">${s.text}</p></div>
@@ -143,11 +145,77 @@ function blockHtml(b, i) {
     <div class="block-actions">${actions}</div></li>`;
 }
 
+// The top of Home: how far today's goal is, the next thing to do and one button that starts it.
+function renderHero() {
+  const st = S.homeStats, plan = S.plan;
+  if (!st) return;
+  const goal = +S.settings.daily_minutes || 30, done = st.today.minutes;
+  const R = 26, C = 2 * Math.PI * R, part = Math.min(1, done / goal);
+  const ring = `<svg class="goal-ring ${part >= 1 ? 'met' : ''}" viewBox="0 0 64 64" role="img" aria-label="${done} of ${goal} minutes">
+    <circle cx="32" cy="32" r="${R}" class="track"/><circle cx="32" cy="32" r="${R}" class="fill" stroke-dasharray="${(C * part).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 32 32)"/>
+    <text x="32" y="37" text-anchor="middle">${done}</text></svg>`;
+  const idx = plan ? plan.blocks.findIndex(b => b.status === 'active') : -1;
+  const next = plan ? (idx >= 0 ? idx : plan.blocks.findIndex(b => b.status === 'todo')) : -1;
+  let eyebrow = `Today · ${done} of ${goal} minutes`, title, text, btn;
+  if (!plan) {
+    title = 'Start today\'s session';
+    text = 'A plan is put together from your flashcards, mistakes, book and courses.';
+    btn = `<button id="hero-go" data-hero="plan">${icon('play')}<span>Start</span></button>`;
+  } else if (next < 0) {
+    title = 'Alles erledigt!';
+    text = part >= 1 ? 'Today\'s plan is done and your goal is met.' : 'Today\'s plan is done. Anything extra is a bonus.';
+    btn = `<button id="hero-go" class="ghost" data-hero="more">${icon('cards')}<span>Practice more</span></button>`;
+  } else {
+    const b = plan.blocks[next], k = KIND[b.kind] || KIND.other;
+    eyebrow += ` · step ${next + 1} of ${plan.blocks.length}`;
+    title = b.title;
+    text = `${k.label} · ${b.minutes} min`;
+    btn = `<button id="hero-go" data-hero="block" data-idx="${next}">${icon('play')}<span>${b.status === 'active' || next > 0 ? 'Continue' : 'Start'}</span></button>`;
+  }
+  $('#home-hero').innerHTML = `<div class="hero">${ring}<div class="grow"><p class="hero-eyebrow">${eyebrow}</p><h2>${esc(title)}</h2><p class="muted">${esc(text)}</p></div>${btn}</div>`;
+
+  const c = st.cards, j = st.journey, bk = st.book;
+  const card = (go, ic, t, sub) => `<button class="next-card" data-next="${go}">${icon(ic)}<span><b>${esc(t)}</b><small>${esc(sub)}</small></span></button>`;
+  const waiting = c.due + c.new_available;
+  $('#home-next').innerHTML =
+    card('cards', 'cards', waiting ? `${waiting} cards waiting` : 'Flashcards', waiting ? `About ${Math.max(1, Math.round(waiting / 4))} min` : (c.total ? 'Nothing due right now' : 'Add a pack from the Library tab'))
+    + card('decl', 'rocket', j.finished ? 'Declensions' : j.title, j.finished ? 'Course finished · free practice' : `Declensions · step ${Math.min(j.steps_done + 1, j.steps_total)} of ${j.steps_total}`)
+    + (bk ? card('book', 'reader', bk.title, `Read on from page ${bk.page}`) : card('library', 'library', 'Add a textbook', 'Any PDF, read and practice inside the app'));
+}
+
+$('#home-hero').addEventListener('click', async e => {
+  const b = e.target.closest('[data-hero]');
+  if (!b) return;
+  if (b.dataset.hero === 'more') { S.cardTab = 'review'; return show('cards'); }
+  await busy(b, '', async () => {
+    let plan = S.plan, idx = +b.dataset.idx;
+    if (b.dataset.hero === 'plan') {
+      plan = await api('/plan/quick', { method: 'POST', body: { minutes: +$('#plan-minutes').value || +S.settings.daily_minutes || 30 } });
+      idx = plan.blocks.findIndex(x => x.status === 'todo');
+      renderPlan(plan);
+      if (idx < 0) return;
+    }
+    const bl = plan.blocks[idx];
+    if (bl.status !== 'active') renderPlan(await api(`/plan/${plan.id}/blocks/${idx}`, { method: 'POST', body: { action: 'start' } }));
+    openBlock(bl);
+  });
+});
+
+$('#home-next').addEventListener('click', e => {
+  const n = e.target.closest('[data-next]')?.dataset.next;
+  if (!n) return;
+  if (n === 'book') return openReader(S.homeStats.book.id, S.homeStats.book.page);
+  if (n === 'cards') S.cardTab = 'review';
+  if (n === 'decl') S.declTab = 'journey';
+  show(n);
+});
+
 function renderPlan(plan) {
   S.plan = plan;
+  renderHero();
   $('#plan-form button[type=submit] span').textContent = plan ? 'New plan' : 'Plan my day';
   if (!plan) {
-    $('#plan-meta').textContent = 'Your coach builds a session from your progress, weak spots and flashcards.';
+    $('#plan-meta').textContent = 'A session built from your progress, weak spots and flashcards.';
     $('#plan').innerHTML = `<div class="plan-empty">${icon('sparkles')}<p>No plan yet today. Set your time and press <b>Plan my day</b>, or <b>Quick plan</b> for an instant one without AI.</p></div>`;
     return;
   }
