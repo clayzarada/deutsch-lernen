@@ -443,7 +443,41 @@ function cardContext() {
   return { book_id: R.book?.id, chapter_id: currentChapter()?.id };
 }
 
+// The offline dictionary answers instantly and for free; the AI is only asked when it knows nothing, for phrases,
+// or when you want the word explained in its sentence.
+function dictEntryHtml(e) {
+  const head = [e.article, e.word].filter(Boolean).join(' ') + (e.plural && e.pos === 'noun' ? `, ${e.plural}` : '');
+  const tone = e.article ? `g-${e.article}` : '';
+  return `<div class="dict-entry">
+    <div class="lk-head"><span class="lk-word ${tone}">${esc(head)}</span>${e.grammar ? '' : hearButton([e.article, e.word].filter(Boolean).join(' '), 'tiny')}<span class="chip">${esc(e.pos_name)}</span></div>
+    ${e.form ? `<p class="muted small">“${esc(e.form)}” is a form of this word.</p>` : ''}
+    ${e.compound ? `<p class="muted small">Compound: ${esc(e.compound[0])} + ${esc(e.compound[1])}. The last part decides the gender.</p>` : ''}
+    <ol class="dict-meanings">${e.meanings.map(m => `<li>${esc(m)}</li>`).join('')}</ol>
+    ${e.forms_text ? `<p class="small"><b>Forms:</b> ${esc(e.forms_text)}</p>` : ''}</div>`;
+}
+
 async function doLookup(text, sentence) {
+  const out = $('#r-assist');
+  let entries = [];
+  if (text.split(' ').length === 1) {
+    try { entries = (await api('/dict?word=' + encodeURIComponent(text))).entries; } catch { /* use the AI */ }
+  }
+  if (!entries.length) return aiLookup(text, sentence);
+  out.innerHTML = `<div class="lookup">${entries.map(dictEntryHtml).join('')}
+    <div class="lk-actions"><button type="button" class="ghost small" data-ai-lookup>${icon('sparkles')}Explain it in this sentence</button></div>
+    <p class="muted tiny">From the built-in dictionary (Wiktionary), free and offline.</p></div>`;
+  $('[data-ai-lookup]', out).addEventListener('click', () => aiLookup(text, sentence));
+  const e = entries.find(x => !x.grammar);
+  if (e) {
+    out.append(cardEditor({
+      front: [e.article, e.word].filter(Boolean).join(' '), back: e.short || e.meanings.slice(0, 2).join('; '),
+      extra: [e.pos === 'noun' && e.plural ? `Plural: die ${e.plural}` : e.forms_text, sentence].filter(Boolean).join('\n'),
+      type: e.pos === 'verb' ? 'verb' : 'vocab',
+    }, { collapsed: true, context: cardContext }));
+  }
+}
+
+async function aiLookup(text, sentence) {
   const out = $('#r-assist');
   out.innerHTML = loading(`Looking up “${text}”...`);
   try {

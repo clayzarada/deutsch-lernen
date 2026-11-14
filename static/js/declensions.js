@@ -12,6 +12,7 @@ const INSTRUCTION = {
   adjw: 'Type the adjective ending', adjm: 'Type the adjective ending', adjs: 'Type the adjective ending',
   pers: 'Type the pronoun', refl: 'Type the reflexive pronoun', rel: 'Type the relative pronoun', wer: 'Type the question word',
   trig: 'Which case?', gender: 'Which article?', plural: 'Type the plural', noun: 'Type the noun with its ending',
+  ngender: 'Which article?', nplural: 'Type the plural',
   combo: 'Type the whole phrase in this case', sent: 'Type the missing phrase in the right case',
   conj: 'Type the verb form', vsent: 'Type the missing verb form', modsent: 'Type the modal verb', aux: 'haben or sein?',
   pp: 'Type the Partizip II', parts: 'Type the Präteritum and the Perfekt',
@@ -74,6 +75,7 @@ function useCourse(id) {
     STATES[id] = { V, J, D, free };
   } else ({ V, J, D, free } = STATES[id]);
   $('#dc-sub [data-sub="order"]').classList.toggle('hidden', C.id !== 'verbs');  // word order lives with the verbs
+  $$('#dc-sub [data-sub="nouns"], #dc-sub [data-sub="numbers"]').forEach(b => b.classList.toggle('hidden', C.id !== 'decl'));
   $('#dv-eyebrow').textContent = C.eyebrow;
   $('#dv-title').textContent = C.title;
   jbox.innerHTML = '';
@@ -147,7 +149,7 @@ function gridEnter(e, scope, checkBtn) {
 
 const GENDER_LETTER = { m: ['M', 'der', 'masculine'], f: ['F', 'die', 'feminine'], n: ['N', 'das', 'neuter'], pl: ['P', 'pl', 'plural'] };
 function genderHint(q) {
-  if (!q.gender || ['gender', 'plural'].includes(q.family)) return '';
+  if (!q.gender || ['gender', 'plural', 'ngender', 'nplural', 'numbers'].includes(q.family)) return '';
   const [letter, tone, word] = GENDER_LETTER[q.gender];
   return `<button class="dc-ghint g-${tone}" data-ghint title="Show the gender (Alt+G)" aria-label="Show the gender">
     <span class="q">?</span><span class="a">${letter}</span><span class="a full">${word}</span></button>`;
@@ -182,9 +184,9 @@ function makeRunner(box, o) {
     box.innerHTML = `${o.above?.() || ''}
       <div class="dc-card ${answered ? (r.correct ? 'right' : 'wrong') : ''}">
         <div class="dc-top"><span class="chip">${esc(q.label)}</span>${!q.hide_case || answered ? caseBadge(q.case) : ''}<span class="grow"></span>${o.stats?.() || ''}${genderHint(q)}</div>
-        <p class="dc-instr">${INSTRUCTION[q.family]}</p>
+        <p class="dc-instr">${esc(q.instr || INSTRUCTION[q.family] || '')}</p>
         ${q.cue ? `<p class="dc-cue">${esc(q.cue)}</p>` : ''}
-        <p class="dc-prompt ${q.family === 'gender' ? 'big' : ''}">${esc(q.prompt).replace('___', gap)}</p>
+        <p class="dc-prompt ${/^n?gender$/.test(q.family) || q.family === 'numbers' ? 'big' : ''}">${esc(q.prompt).replace('___', gap)}</p>
         ${q.kind === 'choice' ? choicesHtml(q, r, R.given) : `<input class="dc-input" autocomplete="off" spellcheck="false" placeholder="Your answer" ${answered ? 'readonly' : ''} value="${answered ? esc(R.given) : ''}">`}
         ${answered ? feedbackHtml(q, r, R.given, o.delay?.(r) == null) : `<div class="dc-hint"><span class="muted small">${q.kind === 'choice' ? q.choices.map((_, i) => `<kbd>${i + 1}</kbd>`).join(' ') + ' to answer' : '<kbd>Enter</kbd> to check'}</span><button class="link-btn" data-skip>I don't know</button></div>`}
       </div>`;
@@ -246,7 +248,7 @@ function choicesHtml(q, r, given) {
   return `<div class="dc-choices">${q.choices.map((c, i) => {
     let cls = '';
     if (r) { if (c === q.display) cls = 'right'; else if (c === given) cls = 'wrong'; }
-    return `<button class="dc-choice ${q.family === 'gender' ? `g-${c}` : ''} ${cls}" data-choice="${esc(c)}" ${r ? 'disabled' : ''}><kbd>${i + 1}</kbd>${esc(c)}</button>`;
+    return `<button class="dc-choice ${/^n?gender$/.test(q.family) ? `g-${c}` : ''} ${cls}" data-choice="${esc(c)}" ${r ? 'disabled' : ''}><kbd>${i + 1}</kbd>${esc(c)}</button>`;
   }).join('')}</div>`;
 }
 
@@ -723,6 +725,8 @@ function loadFree() {
 
 function renderSide() {
   if (D.sub === 'order') return renderOrderSide();
+  if (D.sub === 'nouns') { if (NV.state) renderNounSide(); return loadNounState().then(renderNounSide).catch(err => toast(err.message, 'error')); }
+  if (D.sub === 'numbers') { if (NM.state) renderNumSide(); return loadNumState().then(renderNumSide).catch(err => toast(err.message, 'error')); }
   const fams = V.state.families;
   const groups = [...new Set(fams.map(f => f.group))];
   if (D.sub === 'tables') {
@@ -747,6 +751,8 @@ function renderSide() {
 
 $('#dc-side').addEventListener('click', e => {
   if (D.sub === 'order') return;  // handled by the word order game
+  if (D.sub === 'nouns') return nounSideClick(e);
+  if (D.sub === 'numbers') return numSideClick(e);
   const fam = e.target.closest('[data-fam]'), kase = e.target.closest('[data-case]'), table = e.target.closest('[data-table]');
   if (table) { Object.assign(D, { table: table.dataset.table, checked: null, tableVals: {} }); renderSide(); return renderFreeMain(); }
   if (fam || kase || e.target.closest('[data-smart]')) D.keys = null;
@@ -769,6 +775,8 @@ function renderFreeMain() {
   $$('#dc-sub button').forEach(b => b.classList.toggle('active', b.dataset.sub === D.sub));
   $('#dc-sprint').classList.toggle('hidden', D.sub !== 'drill');
   if (D.sub === 'tables') { activeRunner = null; renderTable(); } else if (D.sub === 'order') { activeRunner = null; renderOrder(); }
+  else if (D.sub === 'nouns') resumeRunner(nounRunner);
+  else if (D.sub === 'numbers') resumeRunner(numRunner);
   else if (D.sprint?.done) renderSprintEnd(); else free.render();
 }
 
@@ -776,9 +784,120 @@ $('#dc-sub').addEventListener('click', e => {
   const b = e.target.closest('[data-sub]');
   if (!b) return;
   stopSprint();
+  activeRunner?.stop?.();  // so a runner's "next question" timer can't draw over the new tab
   D.sub = b.dataset.sub;
   loadFree();
 });
+
+// ================= nouns and numbers (Declensions only; offline, no AI) =================
+const sessionStats = s => `<span class="muted small">${s.n ? `${s.right}/${s.n} right${s.streak > 2 ? ` · ${icon('flame')}${s.streak} in a row` : ''}` : ''}</span>`;
+const tally = (s, res) => { s.n++; if (res.correct) { s.right++; s.streak++; } else s.streak = 0; };
+const NV = { level: store.get('nounLevel') || '650', mode: store.get('nounMode') || 'mix', state: null, session: { n: 0, right: 0, streak: 0 } };
+const NM = { groups: new Set(saved('numGroups', ['numbers', 'times', 'dates', 'prices', 'years'])), listen: store.get('numListen') === '1',
+  state: null, session: { n: 0, right: 0, streak: 0 }, said: null };
+
+const nounRunner = makeRunner($('#dc-main'), {
+  url: '/nouns', params: () => ({ level: NV.level, mode: NV.mode }), stats: () => sessionStats(NV.session),
+  onResult: res => { tally(NV.session, res); if (NV.session.n % 5 === 0) loadNounState().then(renderNounSide).catch(() => {}); },
+});
+const numRunner = makeRunner($('#dc-main'), {
+  url: '/numbers', params: () => ({ groups: [...NM.groups] }), stats: () => sessionStats(NM.session),
+  onResult: res => { tally(NM.session, res); if (NM.session.n % 5 === 0) loadNumState().then(renderNumSide).catch(() => {}); },
+  afterRender: () => listenPrompt(),
+});
+
+function resumeRunner(R) {
+  if (!R.q) return R.start().catch(err => toast(err.message, 'error'));
+  activeRunner = R;
+  if (R.phase === 'idle') R.phase = 'ask';
+  R.render();
+  $('.dc-input', R.box)?.focus();
+}
+
+async function loadNounState() { NV.state = await api(`/nouns/state?level=${NV.level}`); }
+function progressRow(label, solid, total, extra = '') {
+  return `<div class="nn-meter"><span class="grow">${label}</span><small>${solid}/${total} solid${extra}</small>
+    <span class="dc-meter"><i style="width:${total ? Math.round((100 * solid) / total) : 0}%"></i></span></div>`;
+}
+function renderNounSide() {
+  const st = NV.state;
+  if (!st || D.sub !== 'nouns') return;
+  if (!st.available) { $('#dc-side').innerHTML = '<div class="panel"><p class="muted small">The dictionary is missing from this copy of the app.</p></div>'; return; }
+  const p = st.progress;
+  $('#dc-side').innerHTML = `<div class="panel"><h2>Nouns</h2>
+      <p class="muted small">der, die, das and plurals for the most common German nouns, from the built-in dictionary. New nouns come in a few at a time, most common first.</p>
+      <h4 class="dc-group">Practice</h4>
+      ${[['mix', 'Both'], ['gender', 'der, die, das'], ['plural', 'Plurals']].map(([id, l]) => `<button class="dc-fam ${NV.mode === id ? 'on' : ''}" data-nmode="${id}"><span class="grow">${l}</span></button>`).join('')}
+      <h4 class="dc-group">Which nouns</h4>
+      ${st.levels.map(l => `<button class="dc-fam ${NV.level === l.id ? 'on' : ''}" data-nlevel="${l.id}"><span class="grow">${esc(l.label)}</span></button>`).join('')}
+    </div><div class="panel"><h2>Progress</h2>
+      ${progressRow('der, die, das', p.ng.solid, p.ng.total, ` · ${p.ng.seen} seen`)}${progressRow('Plurals', p.np.solid, p.np.total, ` · ${p.np.seen} seen`)}</div>`;
+}
+function nounSideClick(e) {
+  const m = e.target.closest('[data-nmode]'), l = e.target.closest('[data-nlevel]');
+  if (m) { NV.mode = m.dataset.nmode; store.set('nounMode', NV.mode); }
+  else if (l) { NV.level = l.dataset.nlevel; store.set('nounLevel', NV.level); NV.state = null; }
+  else return;
+  renderNounSide();
+  if (!NV.state) loadNounState().then(renderNounSide).catch(() => {});
+  nounRunner.start().catch(err => toast(err.message, 'error'));
+}
+
+const NUM_GROUP_LABEL = { numbers: 'Numbers', times: 'Clock times', dates: 'Dates', prices: 'Prices', years: 'Years' };
+async function loadNumState() { NM.state = await api('/numbers/state'); }
+function renderNumSide() {
+  const st = NM.state;
+  if (!st || D.sub !== 'numbers') return;
+  $('#dc-side').innerHTML = `<div class="panel"><h2>Numbers &amp; time</h2>
+      <p class="muted small">Numbers, clock times, dates, prices and years, read and written out.</p>
+      ${st.groups.map(g => `<button class="dc-fam ${NM.groups.has(g) ? 'on' : ''}" data-ngroup="${g}"><span class="grow">${NUM_GROUP_LABEL[g]}</span></button>`).join('')}
+      <label class="check num-listen"><input type="checkbox" id="num-listen" ${NM.listen ? 'checked' : ''}> Listen instead of reading, where you write digits (uses your computer's German voice)</label>
+    </div><div class="panel"><h2>Skills</h2>${st.skills.map(s => `<div class="nn-meter"><span class="grow small">${esc(s.label)}</span>
+      <span class="dc-meter"><i style="width:${Math.round((s.box / 5) * 100)}%"></i></span></div>`).join('')}</div>`;
+}
+function numSideClick(e) {
+  const g = e.target.closest('[data-ngroup]');
+  if (!g) return;
+  if (NM.groups.has(g.dataset.ngroup)) {
+    if (NM.groups.size === 1) return toast('Keep at least one on', 'error');
+    NM.groups.delete(g.dataset.ngroup);
+  } else NM.groups.add(g.dataset.ngroup);
+  store.set('numGroups', JSON.stringify([...NM.groups]));
+  renderNumSide();
+  numRunner.start().catch(err => toast(err.message, 'error'));
+}
+$('#dc-side').addEventListener('change', e => {
+  if (e.target.id !== 'num-listen') return;
+  if (e.target.checked && !germanVoice()) {
+    e.target.checked = false;
+    return toast('No German voice is installed on this computer. Add one in your system settings (Windows: Time & language > Speech), then try again.', 'error');
+  }
+  NM.listen = e.target.checked;
+  store.set('numListen', NM.listen ? '1' : '0');
+  NM.said = null;
+  numRunner.render();
+  $('.dc-input', numRunner.box)?.focus();
+});
+
+// Listening uses the computer's own German voice: free and offline.
+const germanVoice = () => ('speechSynthesis' in window ? speechSynthesis.getVoices().find(v => /^de([-_]|$)/i.test(v.lang)) : null);
+if ('speechSynthesis' in window) speechSynthesis.getVoices();  // the list loads in the background
+function say(text) {
+  const v = germanVoice();
+  if (!v) return;
+  const u = new SpeechSynthesisUtterance(text);
+  Object.assign(u, { voice: v, lang: v.lang, rate: 0.9 });
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+function listenPrompt() {
+  const R = numRunner, q = R.q;
+  if (!NM.listen || !q?.speak || q.speak !== q.prompt || R.phase === 'feedback') return;
+  const p = $('.dc-prompt', R.box);
+  p.innerHTML = `<button type="button" class="ghost" data-say>${icon('volume')}Listen again</button>`;
+  p.querySelector('[data-say]').addEventListener('click', () => { say(q.speak); $('.dc-input', R.box)?.focus(); });
+  if (NM.said !== q) { NM.said = q; say(q.speak); }
+}
 
 // ---------- sprint ----------
 $('#dc-sprint').addEventListener('click', () => { if (D.sprint && !D.sprint.done) { stopSprint(); free.start(); } else startSprint(); });

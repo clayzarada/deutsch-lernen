@@ -10,7 +10,8 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import ai, anki, backup, course, db, decl, mistakelink, pagecheck, pdfs, planner, srs, tts, update, usage, verbs, wordorder, writing
+from . import (ai, anki, backup, course, db, decl, dictionary, mistakelink, pagecheck, pdfs, planner, srs, textwork, tts,
+               update, usage, verbs, wordorder, wordtrain, writing)
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
 from .i18n import localize
@@ -359,6 +360,87 @@ def log_activity(body: dict):
 
 
 # ---------- AI helpers in the reader ----------
+
+@app.get("/api/dict")
+def dict_lookup(word: str):
+    """The offline dictionary: instant and free. The reader asks the AI only when this finds nothing."""
+    return {"entries": dictionary.explain(word), "available": dictionary.available()}
+
+
+# ---------- free practice from the learner's own book (dictionary, no AI) ----------
+def _card_words():
+    out = set()
+    for r in db.q("SELECT front FROM cards"):
+        w = re.sub(r"^(der|die|das)\s+", "", (r["front"] or "").strip(), flags=re.I).split(",")[0].strip()
+        if w:
+            out.add(w)
+    return out
+
+
+@app.get("/api/chapters/{chapter_id}/words")
+def chapter_words(chapter_id: int):
+    return {"words": textwork.words(_chapter_text(_chapter(chapter_id)), known=_card_words())}
+
+
+@app.post("/api/chapters/{chapter_id}/words/cards")
+def chapter_word_cards(chapter_id: int, body: dict):
+    c = _chapter(chapter_id)
+    have = {w.lower() for w in _card_words()}
+    cards = [textwork.card_for(w) for w in body.get("words", []) if w.get("word", "").lower() not in have]
+    db.exmany("INSERT INTO cards(book_id, chapter_id, type, front, back, extra, tags, created_at) VALUES(?,?,?,?,?,?,?,?)",
+              [(c["book_id"], chapter_id, k["type"], k["front"], k["back"], k["extra"],
+                json.dumps(k["tags"], ensure_ascii=False), db.now()) for k in cards])
+    return {"added": len(cards)}
+
+
+@app.get("/api/chapters/{chapter_id}/gapfill")
+def chapter_gapfill(chapter_id: int, kind: str = "mixed", n: int = 10):
+    return textwork.gapfills(_chapter_text(_chapter(chapter_id)), kind, max(3, min(n, 30)))
+
+
+@app.post("/api/gapfill/record")
+def gapfill_record(body: dict):
+    topic = {"articles": "Gap-fills: articles", "adjectives": "Gap-fills: adjective endings",
+             "verbs": "Gap-fills: verb forms"}.get(body.get("kind"), "Gap-fills")
+    db.ex("INSERT INTO answers(source, topic, correct, ts, date) VALUES('gapfill',?,?,?,?)",
+          (topic, int(bool(body.get("correct"))), db.now(), db.today()))
+    return {"ok": True}
+
+
+# ---------- noun and number drills (no AI) ----------
+@app.get("/api/nouns/state")
+def nouns_state(level: str = "650"):
+    return localize({"levels": wordtrain.levels(), "progress": wordtrain.noun_progress(level),
+                     "available": dictionary.available()})
+
+
+@app.post("/api/nouns/next")
+def nouns_next(body: dict):
+    return localize(wordtrain.noun_question(body.get("level", "650"), body.get("mode", "mix"), body.get("recent")))
+
+
+@app.post("/api/nouns/answer")
+def nouns_answer(body: dict):
+    res = wordtrain.grade(body["question"], body.get("answer", ""), body.get("ms"))
+    return localize({**res, "next": wordtrain.noun_question(body.get("level", "650"), body.get("mode", "mix"),
+                                                            body.get("recent"))})
+
+
+@app.get("/api/numbers/state")
+def numbers_state():
+    return localize({"skills": wordtrain.numbers_progress(), "groups": list(wordtrain.NUM_GROUPS)})
+
+
+@app.post("/api/numbers/next")
+def numbers_next(body: dict):
+    return localize(wordtrain.number_question(body.get("groups"), body.get("recent")))
+
+
+@app.post("/api/numbers/answer")
+def numbers_answer(body: dict):
+    res = wordtrain.grade(body["question"], body.get("answer", ""), body.get("ms"))
+    return localize({**res, "next": wordtrain.number_question(body.get("groups"), body.get("recent"))})
+
 
 @app.post("/api/lookup")
 def lookup(body: dict):

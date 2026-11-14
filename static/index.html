@@ -152,7 +152,25 @@
 
   <!-- PRACTICE -->
   <section id="view-practice" class="view hidden">
-    <header class="page-head"><div><p class="eyebrow">AI-written exercises per chapter</p><h1>Practice</h1></div></header>
+    <header class="page-head"><div><p class="eyebrow">Exercises from your textbook</p><h1>Practice</h1></div>
+      <div class="tabs" id="p-tabs"><button data-ptab="sets">AI practice sets</button><button data-ptab="gaps">Gap-fills from the book</button></div></header>
+    <div id="ptab-gaps" class="split hidden">
+      <div class="side-col">
+        <div class="panel">
+          <h2>Gap-fills</h2>
+          <p class="muted small">Real sentences from the chapter with one word taken out. Free: no AI needed.</p>
+          <label>Chapter<select id="g-chapter"></select></label>
+          <div class="g-kinds" id="g-kinds">
+            <button type="button" class="chip-btn" data-kind="mixed">Mixed</button>
+            <button type="button" class="chip-btn" data-kind="articles">Articles</button>
+            <button type="button" class="chip-btn" data-kind="adjectives">Adjective endings</button>
+            <button type="button" class="chip-btn" data-kind="verbs">Verb forms</button>
+          </div>
+          <button id="g-new" class="wide" data-icon="play"><span>New sheet</span></button>
+        </div>
+      </div>
+      <div class="panel main-col" id="g-sheet"></div>
+    </div>
     <div id="ptab-sets" class="split">
       <div class="side-col">
         <div class="panel">
@@ -181,7 +199,7 @@
       <div class="side-col" id="dc-side"></div>
       <div class="main-col">
         <div class="dc-bar">
-          <div class="tabs" id="dc-sub"><button data-sub="drill">Drill</button><button data-sub="tables">Tables</button><button data-sub="order" class="hidden">Word order</button></div>
+          <div class="tabs" id="dc-sub"><button data-sub="drill">Drill</button><button data-sub="tables">Tables</button><button data-sub="order" class="hidden">Word order</button><button data-sub="nouns">Nouns</button><button data-sub="numbers">Numbers</button></div>
           <button id="dc-sprint" class="ghost" data-icon="clock"><span>60-second sprint</span></button>
         </div>
         <div id="dc-main"></div>
@@ -225,7 +243,9 @@
           <input id="cb-focus" placeholder="Focus (optional)" class="grow">
           <input id="cb-count" type="number" value="25" min="5" max="60" class="w-num" title="How many cards">
           <button id="cb-generate" data-icon="sparkles"><span>Generate cards</span></button>
+          <button id="cb-words" class="ghost" data-icon="book"><span>Words from the chapter (free)</span></button>
         </div>
+        <div id="cb-words-box" class="hidden"></div>
         <details class="add-card"><summary>Add a card by hand</summary><div id="cb-new"></div></details>
       </div>
       <div id="cb-list"></div>
@@ -408,6 +428,7 @@
         <h2>About</h2>
         <p class="about-name">Deutsch lernen <span id="about-version" class="muted"></span></p>
         <p>Made by <b id="about-author">Clay Zarada</b></p>
+        <p class="muted small">Dictionary: Wiktionary (CC BY-SA), via kaikki.org. Word frequencies: FrequencyWords (CC BY-SA).</p>
         <p class="muted small" id="about-copyright">© 2026 Zarada Holdings Group. All rights reserved.</p>
         <p class="muted small">Personal, non-commercial use only. Copying, changing, redistributing or selling the app requires written permission.</p>
         <p class="row about-update"><button type="button" id="check-update" class="ghost small" data-icon="download"><span>Check for updates</span></button><span id="update-status" class="muted small"></span></p>

@@ -1,0 +1,10 @@
+de.sqlite: the app's offline German dictionary, built by tools/make_dictionary.py.
+
+Word data: Wiktionary (https://en.wiktionary.org), German entries as extracted by kaikki.org
+(https://kaikki.org/dictionary/German/). Licensed under CC BY-SA 4.0 and GFDL.
+
+Word frequencies: FrequencyWords by Hermit Dave (https://github.com/hermitdave/FrequencyWords),
+built from OpenSubtitles 2018. Licensed under CC BY-SA 4.0.
+
+This database is a derived work and is shared under the same license (CC BY-SA 4.0):
+https://creativecommons.org/licenses/by-sa/4.0/

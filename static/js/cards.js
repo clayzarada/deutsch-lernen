@@ -340,6 +340,55 @@ $('#cb-generate').addEventListener('click', e => {
   });
 });
 
+// ---------- words from a chapter (offline dictionary, no AI) ----------
+$('#cb-words').addEventListener('click', e => {
+  const v = $('#cb-scope').value;
+  if (!v || v.startsWith('b')) return toast('Pick a single chapter in the list first', 'error');
+  const box = $('#cb-words-box');
+  if (!box.classList.contains('hidden') && box.dataset.chapter === v) { box.classList.add('hidden'); return; }
+  busy(e.currentTarget, 'Reading the chapter...', async () => {
+    const r = await api(`/chapters/${v}/words`);
+    box.dataset.chapter = v;
+    box.classList.remove('hidden');
+    renderWords(r.words);
+  });
+});
+
+function renderWords(words) {
+  const box = $('#cb-words-box');
+  if (!words.length) {
+    box.innerHTML = '<p class="muted small">No German words found in this chapter (it may be mostly English explanations or pictures).</p>';
+    return;
+  }
+  const fresh = words.filter(w => !w.have).length;
+  box.innerHTML = `<div class="w-head"><b>${words.length} words in this chapter</b>
+      <span class="muted small">${fresh} not in your cards yet · in the order they appear · very common words left out</span>
+      <span class="grow"></span><button type="button" class="link-btn" data-wsel="all">Select all</button><button type="button" class="link-btn" data-wsel="none">None</button></div>
+    <div class="w-list">${words.map((w, i) => `<label class="w-row ${w.have ? 'have' : ''}">
+      <input type="checkbox" data-w="${i}" ${w.have ? 'disabled' : 'checked'}>
+      <span class="w-word ${w.article ? 'g-' + w.article : ''}">${esc([w.article, w.word].filter(Boolean).join(' '))}</span>
+      <span class="muted small">${esc(w.pos === 'noun' && w.plural ? 'die ' + w.plural : w.forms || w.pos_name)}</span>
+      <span class="w-mean small">${esc(w.meaning)}</span>${w.have ? '<span class="chip">have it</span>' : ''}</label>`).join('')}</div>
+    <div class="row"><button id="cb-words-add"><span>Add the selected as cards</span></button>
+      <span class="muted small">Meanings come from Wiktionary, in English. Example sentences come from your book.</span></div>`;
+  $('#cb-words-add').insertAdjacentHTML('afterbegin', icon('plus'));
+  box.onclick = ev => {
+    const s = ev.target.closest('[data-wsel]');
+    if (s) $$('input[data-w]:not(:disabled)', box).forEach(c => { c.checked = s.dataset.wsel === 'all'; });
+  };
+  $('#cb-words-add').addEventListener('click', ev => {
+    const picked = $$('input[data-w]:checked', box).map(c => words[+c.dataset.w]);
+    if (!picked.length) return toast('Tick some words first', 'error');
+    busy(ev.currentTarget, 'Adding...', async () => {
+      const r = await api(`/chapters/${box.dataset.chapter}/words/cards`, { method: 'POST', body: { words: picked } });
+      toast(`${r.added} card${r.added === 1 ? '' : 's'} added`);
+      box.classList.add('hidden');
+      await loadCardList(r.added);
+      refreshNav();
+    });
+  });
+}
+
 // ---------- Anki ----------
 $('#anki-download').addEventListener('click', () => {
   window.location.href = '/api/anki/export?' + queryString(scopeParams($('#anki-scope').value));

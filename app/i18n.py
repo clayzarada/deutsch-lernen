@@ -477,8 +477,12 @@ def _compile():
 # The Verbs course keeps its Turkish in its own file.
 from .i18n_verbs import EXACT as _VERBS_EXACT, PATTERNS as _VERBS_PATTERNS  # noqa: E402
 
+from .i18n_words import EXACT as _WORDS_EXACT, PATTERNS as _WORDS_PATTERNS  # noqa: E402
+
 EXACT.update(_VERBS_EXACT)
+EXACT.update(_WORDS_EXACT)
 PATTERNS.extend(_VERBS_PATTERNS)
+PATTERNS.extend(_WORDS_PATTERNS)
 _PATTERNS = _compile()
 _SENTENCE = re.compile(r"(?<=[.!?])\s+")
 
@@ -517,7 +521,7 @@ def tr(s):
 # ---------------------------------------------------------------------------------------------------------------
 # Applying it to responses. Only the listed text fields are translated; answers, keys and choices never are.
 # ---------------------------------------------------------------------------------------------------------------
-TEXT_FIELDS = {"why", "cue", "label", "title", "blurb", "text", "note", "group", "front", "back", "extra", "next_step"}
+TEXT_FIELDS = {"why", "cue", "label", "title", "blurb", "text", "note", "group", "front", "back", "extra", "next_step", "instr"}
 
 
 def _walk(o):

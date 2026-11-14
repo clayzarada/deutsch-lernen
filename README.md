@@ -80,6 +80,21 @@ Everything stays on this computer, in the `data` folder: `study.db` holds your p
 
 AI features use your Claude API key and are billed per use. Generating a practice set or a set of cards for one chapter costs a few cents on the default model. You can pick a cheaper model in Settings.
 
+## Free practice without AI
+A built-in German dictionary (from Wiktionary, about 78,000 words, works offline) powers practice that costs nothing:
+- **Reader look-ups**: select a word for its gender, plural, forms and meanings instantly. "Explain it in this sentence"
+  asks the AI only when you want it.
+- **Practice > Gap-fills from the book**: real sentences from a chapter with an article, adjective ending or verb form
+  to fill in, marked against what the book printed.
+- **Flashcards > Words from the chapter**: the chapter's vocabulary in order, with gender, plural and an example
+  sentence from the book, turned into cards in one click.
+- **Declensions > Free practice > Nouns**: der/die/das and plurals for the 8,500 most common nouns, most common first.
+- **Declensions > Free practice > Numbers**: numbers, clock times, dates, prices and years, read and written, with an
+  optional listening mode that uses the computer's own German voice.
+
+The dictionary is rebuilt with `python tools/make_dictionary.py <kaikki German .jsonl.gz> <de_50k.txt>`
+(sources and license in `static/vendor/dict/SOURCES.txt`).
+
 ## Costs and backups
 Settings shows an estimate of what the AI features cost this month, by feature, and lets you set a monthly budget that pauses Claude features once it's reached. The app also backs up your data once a day (the last 14 are kept in `data/backups`); Settings lists them and can restore one. "Save backup file" puts everything (progress, cards, answers, books and audio, but never your API keys) into one .zip to keep or move to another computer; "Load backup file" brings it back.
 

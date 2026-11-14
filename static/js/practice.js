@@ -8,7 +8,24 @@ const TYPE_LABEL = {
 
 registerView('practice', loadPractice);
 
+// ---------- tabs: AI practice sets / gap-fills from the book ----------
+let ptab = store.get('practiceTab') === 'gaps' ? 'gaps' : 'sets';
+function showPtab() {
+  $$('#p-tabs button').forEach(b => b.classList.toggle('active', b.dataset.ptab === ptab));
+  $('#ptab-sets').classList.toggle('hidden', ptab !== 'sets');
+  $('#ptab-gaps').classList.toggle('hidden', ptab !== 'gaps');
+}
+$('#p-tabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-ptab]');
+  if (!b) return;
+  ptab = b.dataset.ptab;
+  store.set('practiceTab', ptab);
+  loadPractice();
+});
+
 async function loadPractice() {
+  showPtab();
+  if (ptab === 'gaps') return loadGaps();
   await loadBooks();
   $('#p-chapter').innerHTML = chapterOptions(S.practiceChapter) || '<option value="">Import a book first</option>';
   $('#p-generate').disabled = !S.books.length;
@@ -157,6 +174,99 @@ function renderSet(s, drafts = {}) {
     if (inp.value.trim()) check({ [inp.dataset.ans]: inp.value }, inp.closest('.ex'));
     else (all[i + 1] || $('[data-check]', pset)).focus();
   }));
+}
+
+// ---------- gap-fills from the book (offline dictionary, no AI) ----------
+const G = { kind: store.get('gapKind') || 'mixed', sheet: null, checked: false };
+const gnorm = s => (s || '').trim().toLowerCase().replace(/[.,!?;:]+$/, '');
+
+async function loadGaps() {
+  await loadBooks();
+  const keep = $('#g-chapter').value || store.get('gapChapter') || '';
+  $('#g-chapter').innerHTML = chapterOptions(keep) || '<option value="">Import a book first</option>';
+  $$('#g-kinds [data-kind]').forEach(b => b.classList.toggle('on', b.dataset.kind === G.kind));
+  if (!G.sheet) {
+    $('#g-sheet').innerHTML = emptyState('practice', 'Practice with your own book',
+      'Pick a chapter and press New sheet. You get real sentences from it with an article, an adjective ending or a verb form to fill in. Marked instantly, as often as you like.');
+  }
+}
+
+$('#g-kinds').addEventListener('click', e => {
+  const b = e.target.closest('[data-kind]');
+  if (!b) return;
+  G.kind = b.dataset.kind;
+  store.set('gapKind', G.kind);
+  $$('#g-kinds [data-kind]').forEach(x => x.classList.toggle('on', x === b));
+  if ($('#g-chapter').value) newSheet();
+});
+$('#g-chapter').addEventListener('change', () => { store.set('gapChapter', $('#g-chapter').value); newSheet(); });
+$('#g-new').addEventListener('click', () => newSheet());
+
+async function newSheet() {
+  const id = +$('#g-chapter').value;
+  if (!id) return toast('Pick a chapter first', 'error');
+  $('#g-sheet').innerHTML = loading('Finding sentences...');
+  try {
+    const r = await api(`/chapters/${id}/gapfill?kind=${G.kind}&n=10`);
+    Object.assign(G, { sheet: r, checked: false });
+    renderSheet();
+  } catch (err) { $('#g-sheet').innerHTML = ''; toast(err.message, 'error'); }
+}
+
+const KIND_NAME = { articles: 'Article', adjectives: 'Adjective ending', verbs: 'Verb form' };
+function renderSheet() {
+  const r = G.sheet;
+  if (!r.items.length) {
+    $('#g-sheet').innerHTML = emptyState('practice', 'No sentences for this',
+      Object.values(r.available).some(Boolean) ? 'This chapter has none of this kind. Try Mixed or another kind.'
+        : 'This chapter has no German sentences the app can use, for example when it is mostly English explanations or pictures.');
+    return;
+  }
+  $('#g-sheet').innerHTML = `<div class="g-head"><h2>Fill in the gaps</h2><span class="muted small" id="g-score"></span></div>
+    <ol class="g-list">${r.items.map((it, i) => {
+      const prefix = it.gap.replace('___', '');
+      return `<li class="g-item" data-i="${i}"><span class="chip">${KIND_NAME[it.kind]}</span>
+        <p>${esc(it.before)}<span class="g-gap">${esc(prefix)}<input data-i="${i}" autocomplete="off" spellcheck="false" size="${Math.max(3, it.solution.length - prefix.length + 1)}"></span>${esc(it.after)}
+        ${it.cue ? `<small class="g-cue">(${esc(it.cue)})</small>` : ''}</p><p class="g-fb small"></p></li>`;
+    }).join('')}</ol>
+    <div class="row"><button id="g-check" data-icon="check"><span>Check</span></button><button class="ghost" id="g-again" data-icon="play"><span>New sheet</span></button></div>`;
+  fillIconsIn($('#g-sheet'));
+  const inputs = $$('input[data-i]', $('#g-sheet'));
+  inputs[0]?.focus();
+  inputs.forEach((inp, i) => inp.addEventListener('keydown', ev => {
+    if (ev.key !== 'Enter') return;
+    ev.preventDefault();
+    if (G.checked) return newSheet();
+    if (inputs[i + 1]) inputs[i + 1].focus(); else checkSheet();
+  }));
+  $('#g-check').addEventListener('click', checkSheet);
+  $('#g-again').addEventListener('click', () => newSheet());
+}
+
+function fillIconsIn(box) {
+  $$('[data-icon]', box).forEach(b => { if (!b.querySelector('svg')) b.insertAdjacentHTML('afterbegin', icon(b.dataset.icon)); });
+}
+
+function checkSheet() {
+  if (G.checked) return;
+  G.checked = true;
+  let right = 0;
+  G.sheet.items.forEach((it, i) => {
+    const li = $(`.g-item[data-i="${i}"]`, $('#g-sheet'));
+    const inp = $('input', li);
+    const given = gnorm(inp.value);
+    const prefix = it.gap.replace('___', '').toLowerCase();
+    const ok = !!given && it.answers.some(a => gnorm(a) === given || gnorm(a) === prefix + given);
+    if (ok) right++;
+    inp.readOnly = true;
+    li.classList.add(ok ? 'right' : 'wrong');
+    $('.g-fb', li).innerHTML = ok ? `${icon('check')} ${esc(it.solution)}` : `${icon('x')} The book says: <b>${esc(it.solution)}</b>`;
+    api('/gapfill/record', { method: 'POST', body: { kind: it.kind, correct: ok } }).catch(() => {});
+  });
+  $('#g-score').textContent = `${right}/${G.sheet.items.length} right`;
+  $('#g-check').disabled = true;
+  $('#g-again').focus();
+  api('/activity', { method: 'POST', body: { kind: 'practice', seconds: 30 } }).catch(() => {});
 }
 
 // Practice time counts toward today's study minutes.
