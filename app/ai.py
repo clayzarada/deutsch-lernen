@@ -48,11 +48,29 @@ def _enum(values):
     return {"type": "string", "enum": list(values)}
 
 
-def _client():
+def _client(feature=None):
+    """Your own key when one is saved; otherwise Deutsch lernen Plus through our server (same API, our key)."""
     key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    if not key:
-        raise AIError("No Claude API key yet. Add one under Settings.")
-    return anthropic.Anthropic(api_key=key)
+    if key:
+        return anthropic.Anthropic(api_key=key)
+    from . import account
+    t = account.token() if account.plus_active() else None
+    if not t:
+        raise AIError("AI features need Deutsch lernen Plus or your own Claude API key. Both are under Settings.")
+    return anthropic.Anthropic(api_key="plus", base_url=account.AI_BASE_URL, max_retries=1,
+                               default_headers={"Authorization": f"Bearer {t}", "x-dl-feature": feature or ""})
+
+
+def using_plus():
+    return not os.environ.get("ANTHROPIC_API_KEY", "").strip()
+
+
+def _plus_msg(e):
+    """The server's own sentence from a Plus error (it answers in Anthropic's error shape)."""
+    try:
+        return e.body["error"]["message"]
+    except Exception:
+        return str(getattr(e, "message", e))
 
 
 def _learner(s):
@@ -94,7 +112,8 @@ def call(system, content, schema=None, effort=None, web=False, history=None, max
     kwargs = {"model": model, "max_tokens": max_tokens, "system": system, "output_config": output_config}
     if web and s.get("web_search") == "1":
         kwargs["tools"] = [_web_search_tool(model)]
-    client = _client()
+    client = _client(feature)
+    plus = using_plus()
     try:
         for _ in range(6):
             if model in FALLBACK_MODELS:
@@ -110,14 +129,18 @@ def call(system, content, schema=None, effort=None, web=False, history=None, max
             if resp.stop_reason != "pause_turn":
                 break
             messages = messages + [{"role": "assistant", "content": resp.content}]
-    except anthropic.AuthenticationError:
-        raise AIError("The API key was rejected. Check it under Settings.")
+    except anthropic.AuthenticationError as e:
+        raise AIError(_plus_msg(e) if plus else "The API key was rejected. Check it under Settings.")
     except anthropic.PermissionDeniedError as e:
+        if plus:
+            from . import account
+            account.forget_status()
+            raise AIError(_plus_msg(e))
         raise AIError(f"Permission denied by the API: {e.message}")
     except anthropic.NotFoundError:
         raise AIError(f"Model '{model}' wasn't found. Pick another model under Settings.")
-    except anthropic.RateLimitError:
-        raise AIError("Rate limited by the API. Wait a minute and try again.")
+    except anthropic.RateLimitError as e:
+        raise AIError(_plus_msg(e) if plus else "Rate limited by the API. Wait a minute and try again.")
     except anthropic.BadRequestError as e:
         raise AIError(f"The API rejected the request: {e.message}")
     except anthropic.APIStatusError as e:

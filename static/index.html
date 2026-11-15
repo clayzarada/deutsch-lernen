@@ -365,8 +365,12 @@
   <section id="view-settings" class="view hidden">
     <header class="page-head"><div><p class="eyebrow">Preferences</p><h1>Settings</h1></div></header>
     <form id="settings-form" class="settings">
+      <div class="panel" id="account-panel">
+        <h2>Account &amp; Plus</h2>
+        <div id="account-box"><p class="muted small">Loading…</p></div>
+      </div>
       <div class="panel">
-        <h2>Claude API</h2>
+        <h2>Claude API <span class="muted small">(optional with Plus)</span></h2>
         <label><span>API key <span id="key-state"></span></span>
           <input id="s-key" type="password" autocomplete="off" placeholder="Paste your key from console.anthropic.com"></label>
         <p class="muted small">Stored only on this computer, in the <code>.env</code> file in the app folder.</p>

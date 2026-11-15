@@ -7,11 +7,11 @@ import uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import (ai, anki, ankiimport, backup, lessons, course, db, decl, dictionary, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
+from . import (account, ai, anki, ankiimport, backup, lessons, course, db, decl, dictionary, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
                update, usage, verbs, wordorder, wordtrain, writing)
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
@@ -126,7 +126,8 @@ def get_settings():
                                                or db.q1("SELECT 1 AS x FROM answers LIMIT 1")):
         db.set_setting("onboarded", "1")
     return {**db.get_settings(), "voices": tts.VOICES, "version": VERSION, "build_name": BUILD_NAME, "credits": {"author": AUTHOR, "owner": OWNER, "copyright": COPYRIGHT, "website": WEBSITE},
-            "has_key": bool(os.environ.get("ANTHROPIC_API_KEY", "").strip()),
+            "has_key": bool(os.environ.get("ANTHROPIC_API_KEY", "").strip()) or account.plus_active(),
+            "own_key": bool(os.environ.get("ANTHROPIC_API_KEY", "").strip()),
             "has_gemini_key": bool(os.environ.get("GEMINI_API_KEY", "").strip())}
 
 
@@ -140,6 +141,64 @@ def put_settings(body: dict):
         if k in db.DEFAULT_SETTINGS:
             db.set_setting(k, v)
     return get_settings()
+
+
+# ---------- Account (Plus) ----------
+
+@app.get("/api/account")
+def account_status(refresh: bool = False):
+    return account.status(force=refresh)
+
+
+@app.post("/api/account/code")
+def account_code(body: dict, request: Request):
+    # always 127.0.0.1 (the address allowed on the account server), on whatever port this app runs
+    port = request.url.port or 8777
+    return account.send_code(body.get("email"), f"http://127.0.0.1:{port}/auth/callback")
+
+
+@app.post("/api/account/session")
+def account_session(body: dict):
+    return account.set_session(body.get("access_token"), body.get("refresh_token"), body.get("expires_at"))
+
+
+@app.get("/auth/callback")
+def account_callback():
+    """Where the emailed sign-in link lands: the tokens are in the URL fragment, so a little script passes them on."""
+    return Response(AUTH_CALLBACK_PAGE, media_type="text/html")
+
+
+AUTH_CALLBACK_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Deutsch lernen: signing in</title>
+<style>body{font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:90vh;margin:0;background:#faf8f5;color:#222}
+main{max-width:420px;text-align:center;padding:24px}h1{font-size:22px}</style></head><body><main><h1 id="t">Signing you in…</h1><p id="m"></p></main>
+<script>
+(async () => {
+  const p = new URLSearchParams(location.hash.slice(1) || location.search.slice(1));
+  const t = document.getElementById('t'), m = document.getElementById('m');
+  if (p.get('error')) { t.textContent = 'That link didn’t work'; m.textContent = (p.get('error_description') || p.get('error')) + ' Request a new one in Settings.'; return; }
+  const r = await fetch('/api/account/session', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ access_token: p.get('access_token'), refresh_token: p.get('refresh_token'), expires_at: p.get('expires_at') }) });
+  if (!r.ok) { t.textContent = 'Sign-in failed'; m.textContent = ((await r.json().catch(() => ({}))).detail || '') + ''; return; }
+  history.replaceState(null, '', '/auth/callback');
+  t.textContent = 'You’re signed in'; m.textContent = 'Taking you back to the app…';
+  setTimeout(() => location.replace('/#settings'), 1200);
+})();
+</script></body></html>"""
+
+
+@app.post("/api/account/verify")
+def account_verify(body: dict):
+    return account.verify(body.get("email"), body.get("code"))
+
+
+@app.post("/api/account/signout")
+def account_signout():
+    return account.sign_out()
+
+
+@app.post("/api/account/delete")
+def account_delete():
+    return account.delete_account()
 
 
 # ---------- Books & chapters ----------

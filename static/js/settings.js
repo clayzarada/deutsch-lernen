@@ -48,11 +48,12 @@ function loadSettings() {
   for (const [k, id] of Object.entries(FIELDS)) $('#' + id).value = s[k] ?? '';
   $('#s-web').checked = s.web_search === '1';
   $('#s-key').value = '';
-  $('#s-key').placeholder = s.has_key ? 'Saved. Paste a new key to replace it.' : 'Paste your key from console.anthropic.com';
-  $('#key-state').innerHTML = keyPill(s.has_key);
+  $('#s-key').placeholder = s.own_key ? 'Saved. Paste a new key to replace it.' : 'Paste your key from console.anthropic.com';
+  $('#key-state').innerHTML = keyPill(s.own_key);
   $('#s-gkey').value = '';
   $('#s-gkey').placeholder = s.has_gemini_key ? 'Saved. Paste a new key to replace it.' : 'Paste your key from aistudio.google.com/apikey';
   $('#gkey-state').innerHTML = keyPill(s.has_gemini_key);
+  loadAccount().catch(() => {});
   loadUsage().catch(() => {});
   loadBackups().catch(() => {});
   $('#about-version').textContent = s.version ? `${s.version}${s.build_name ? ` “${s.build_name}”` : ''}` : '';
@@ -60,6 +61,73 @@ function loadSettings() {
     $('#about-author').textContent = s.credits.author;
     $('#about-copyright').textContent = s.credits.copyright;
   }
+}
+
+// ---------- account (Plus) ----------
+const ACC = { email: '', codeSent: false };
+
+async function loadAccount(refresh) {
+  renderAccount(await api('/account' + (refresh ? '?refresh=true' : '')));
+}
+
+function renderAccount(a) {
+  const box = $('#account-box');
+  if (!a.signed_in) {
+    box.innerHTML = `
+      <p class="small">Sign in to use <b>Plus</b>: AI features without an API key of your own. Free features never need an account.</p>
+      <div class="acct-row"><input id="acct-email" type="email" placeholder="you@example.com" value="${esc(ACC.email)}" autocomplete="email">
+        <button type="button" class="ghost" id="acct-send">${ACC.codeSent ? 'Send again' : 'Email me a sign-in link'}</button></div>
+      ${ACC.codeSent ? `<div class="acct-row"><input id="acct-code" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code" maxlength="10">
+        <button type="button" id="acct-verify">Sign in</button></div>
+        <p class="muted small">We emailed ${esc(ACC.email)}. Click the link in the email on this computer, or type the code if the email has one. It may take a minute; check spam too.</p>` : ''}`;
+    return;
+  }
+  const plus = a.plus;
+  const pct = a.used_pct || 0;
+  box.innerHTML = `
+    <p>Signed in as <b>${esc(a.email || '')}</b> · ${plus ? `<span class="pill ok">${icon('check')}Plus</span>` : '<span class="pill">Free</span>'}</p>
+    ${plus ? `<div class="meter"><div class="meter-bar ${pct >= 90 ? 'bad' : pct >= 70 ? 'mid' : ''}"><span style="width:${pct}%"></span></div><span>${pct}% of this month's AI allowance used</span></div>
+      <p class="muted small">${S.settings.own_key ? 'Your own API key is saved, so the app uses it instead of Plus. Use “Remove API key” at the bottom of Settings to switch to Plus.' : 'AI features run through Plus. No API key needed.'}</p>`
+      : `<p class="muted small">This account doesn't have Plus. <a href="https://deutschlernenapp.com/#pricing" target="_blank" rel="noopener">See plans</a></p>`}
+    ${a.offline ? '<p class="muted small">Offline: showing the last known status.</p>' : ''}
+    <div class="btnrow"><button type="button" class="ghost small" id="acct-refresh">Refresh</button>
+      <button type="button" class="ghost small" id="acct-out">Sign out</button>
+      <button type="button" class="ghost small danger-hover" id="acct-delete">Delete account</button></div>`;
+}
+
+$('#account-box').addEventListener('click', async e => {
+  const id = e.target.closest('button')?.id;
+  if (!id) return;
+  try {
+    if (id === 'acct-send') {
+      ACC.email = $('#acct-email').value.trim();
+      await api('/account/code', { method: 'POST', body: { email: ACC.email } });
+      ACC.codeSent = true;
+      renderAccount({ signed_in: false });
+      $('#acct-code')?.focus();
+      toast('Email sent');
+    } else if (id === 'acct-verify') {
+      const a = await api('/account/verify', { method: 'POST', body: { email: ACC.email, code: $('#acct-code').value } });
+      ACC.codeSent = false;
+      await refreshAfterAccount(a);
+      toast('Signed in');
+    } else if (id === 'acct-refresh') {
+      await refreshAfterAccount(await api('/account?refresh=true'));
+    } else if (id === 'acct-out') {
+      await refreshAfterAccount(await api('/account/signout', { method: 'POST' }));
+      toast('Signed out');
+    } else if (id === 'acct-delete') {
+      if (!await confirmDialog('Delete your account?', 'This removes your sign-in, Plus status and usage records from our server. Cancel any subscription first. Your study data on this computer is not touched.', { ok: 'Delete account', danger: true })) return;
+      await refreshAfterAccount(await api('/account/delete', { method: 'POST' }));
+      toast('Account deleted');
+    }
+  } catch (err) { toast(err.message, 'error'); }
+});
+
+async function refreshAfterAccount(a) {
+  S.settings = await api('/settings');
+  renderAccount(a);
+  updateNavStatus();
 }
 
 const money = v => v < 0.01 && v > 0 ? '< $0.01' : '$' + v.toFixed(2);

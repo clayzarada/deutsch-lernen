@@ -1330,3 +1330,9 @@ h1 { font-weight: 680; }
 .w-option { justify-content: flex-start; width: 100%; }
 .w-card { margin: auto; }
 .word-card b .art-der { color: var(--der); } .word-card b .art-die { color: var(--die); } .word-card b .art-das { color: var(--das); }
+
+/* account & plus */
+.acct-row{display:flex;gap:8px;margin-top:10px}
+.acct-row input{flex:1;min-width:0}
+#account-box .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#account-box .meter{margin-top:10px}
