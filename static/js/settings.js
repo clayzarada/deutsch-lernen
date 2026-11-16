@@ -77,7 +77,7 @@ function renderAccount(a) {
       <p class="small">Sign in to use <b>Plus</b>: AI features without an API key of your own. Free features never need an account.</p>
       <div class="acct-row"><input id="acct-email" type="email" placeholder="you@example.com" value="${esc(ACC.email)}" autocomplete="email">
         <button type="button" class="ghost" id="acct-send">${ACC.codeSent ? 'Send again' : 'Email me a sign-in link'}</button></div>
-      ${ACC.codeSent ? `<div class="acct-row"><input id="acct-code" inputmode="numeric" autocomplete="one-time-code" placeholder="6-digit code" maxlength="10">
+      ${ACC.codeSent ? `<div class="acct-row"><input id="acct-code" inputmode="numeric" autocomplete="one-time-code" placeholder="Code from the email" maxlength="12">
         <button type="button" id="acct-verify">Sign in</button></div>
         <p class="muted small">We emailed ${esc(ACC.email)}. Click the link in the email on this computer, or type the code if the email has one. It may take a minute; check spam too.</p>` : ''}`;
     return;
