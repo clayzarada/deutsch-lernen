@@ -196,6 +196,16 @@ def account_signout():
     return account.sign_out()
 
 
+@app.post("/api/account/checkout")
+def account_checkout(body: dict):
+    return account.checkout_link(body.get("plan"))
+
+
+@app.post("/api/account/portal")
+def account_portal():
+    return account.portal_link()
+
+
 @app.post("/api/account/delete")
 def account_delete():
     return account.delete_account()

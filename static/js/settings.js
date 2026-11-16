@@ -88,9 +88,12 @@ function renderAccount(a) {
     <p>Signed in as <b>${esc(a.email || '')}</b> · ${plus ? `<span class="pill ok">${icon('check')}Plus</span>` : '<span class="pill">Free</span>'}</p>
     ${plus ? `<div class="meter"><div class="meter-bar ${pct >= 90 ? 'bad' : pct >= 70 ? 'mid' : ''}"><span style="width:${pct}%"></span></div><span>${pct}% of this month's AI allowance used</span></div>
       <p class="muted small">${S.settings.own_key ? 'Your own API key is saved, so the app uses it instead of Plus. Use “Remove API key” at the bottom of Settings to switch to Plus.' : 'AI features run through Plus. No API key needed.'}</p>`
-      : `<p class="muted small">This account doesn't have Plus. <a href="https://deutschlernenapp.com/#pricing" target="_blank" rel="noopener">See plans</a></p>`}
+      : `<p class="small" style="margin-top:8px">Get <b>Plus</b> for AI features with no API key of your own. Cancel any time.</p>
+        <div class="btnrow"><button type="button" id="acct-buy-yearly">Upgrade: $79 / year</button>
+          <button type="button" class="ghost" id="acct-buy-monthly">$9.99 / month</button></div>
+        <p class="muted small">Checkout opens in your browser. When you're done, come back and press Refresh.</p>`}
     ${a.offline ? '<p class="muted small">Offline: showing the last known status.</p>' : ''}
-    <div class="btnrow"><button type="button" class="ghost small" id="acct-refresh">Refresh</button>
+    <div class="btnrow">${plus ? '<button type="button" class="ghost small" id="acct-manage">Manage subscription</button>' : ''}<button type="button" class="ghost small" id="acct-refresh">Refresh</button>
       <button type="button" class="ghost small" id="acct-out">Sign out</button>
       <button type="button" class="ghost small danger-hover" id="acct-delete">Delete account</button></div>`;
 }
@@ -111,6 +114,13 @@ $('#account-box').addEventListener('click', async e => {
       ACC.codeSent = false;
       await refreshAfterAccount(a);
       toast('Signed in');
+    } else if (id === 'acct-buy-yearly' || id === 'acct-buy-monthly') {
+      const { url } = await api('/account/checkout', { method: 'POST', body: { plan: id.endsWith('yearly') ? 'yearly' : 'monthly' } });
+      window.open(url, '_blank', 'noopener');
+      watchForPlus();
+    } else if (id === 'acct-manage') {
+      const { url } = await api('/account/portal', { method: 'POST' });
+      window.open(url, '_blank', 'noopener');
     } else if (id === 'acct-refresh') {
       await refreshAfterAccount(await api('/account?refresh=true'));
     } else if (id === 'acct-out') {
@@ -123,6 +133,20 @@ $('#account-box').addEventListener('click', async e => {
     }
   } catch (err) { toast(err.message, 'error'); }
 });
+
+// After opening checkout, check every 10 seconds for up to 10 minutes so Plus shows up without pressing Refresh.
+let plusWatch = null;
+function watchForPlus() {
+  clearInterval(plusWatch);
+  let tries = 0;
+  plusWatch = setInterval(async () => {
+    if (++tries > 60) return clearInterval(plusWatch);
+    try {
+      const a = await api('/account?refresh=true');
+      if (a.plus) { clearInterval(plusWatch); await refreshAfterAccount(a); toast('Plus is active. Thank you!'); }
+    } catch { /* offline: try again next time */ }
+  }, 10000);
+}
 
 async function refreshAfterAccount(a) {
   S.settings = await api('/settings');

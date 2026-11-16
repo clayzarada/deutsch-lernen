@@ -36,6 +36,8 @@ def server(monkeypatch):
             return FakeResp(200, {"access_token": "AT2", "refresh_token": "RT2", "expires_in": 3600, "user": {}})
         if url.endswith("/auth/v1/logout") or url.endswith("/rpc/delete_my_account"):
             return FakeResp(204, {})
+        if url.endswith("/paddle/portal"):
+            return FakeResp(200, {"url": "https://sandbox-customer-portal.paddle.com/x"})
         raise AssertionError(url)
 
     def get(url, headers=None, timeout=None):
@@ -128,3 +130,24 @@ def test_sign_in_by_emailed_link(client, server):
     assert bad.status_code == 400
     a = client.post("/api/account/session", json={"access_token": "LINK", "refresh_token": "R", "expires_at": "9999999999"}).json()
     assert a["signed_in"] and account._load()["email"] == "link@b.de"
+
+
+def _jwt(sub):
+    import base64, json as _j
+    enc = lambda d: base64.urlsafe_b64encode(_j.dumps(d).encode()).decode().rstrip("=")
+    return f"{enc({'alg': 'none'})}.{enc({'sub': sub})}.sig"
+
+
+def test_checkout_link_carries_the_account_and_portal_opens(client, server):
+    import urllib.parse
+    uid = "0b6c2f4e-1111-4222-8333-944455556666"
+    account._save({"access_token": _jwt(uid), "refresh_token": "R", "expires_at": int(time.time()) + 3600, "email": "a@b.de"})
+    url = client.post("/api/account/checkout", json={"plan": "monthly"}).json()["url"]
+    q = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
+    assert url.startswith(account.CHECKOUT_URL) and q["uid"] == [uid] and q["plan"] == ["monthly"] and q["email"] == ["a@b.de"]
+    assert "plan=yearly" in client.post("/api/account/checkout", json={"plan": "weird"}).json()["url"]
+    assert client.post("/api/account/portal").json()["url"].startswith("https://sandbox-customer-portal")
+
+
+def test_checkout_needs_sign_in(client, server):
+    assert client.post("/api/account/checkout", json={"plan": "monthly"}).status_code == 400

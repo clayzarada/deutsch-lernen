@@ -4,8 +4,10 @@ so a Plus user needs no API key of their own.
 
 The project URL and publishable key below are public by design (they identify the project; the database's
 row-level security decides what each signed-in user may read)."""
+import base64
 import json
 import os
+import urllib.parse
 import threading
 import time
 
@@ -16,6 +18,8 @@ from . import db
 SUPABASE_URL = os.environ.get("DL_SUPABASE_URL", "https://zarusstgbgyvongoterq.supabase.co").rstrip("/")
 PUBLISHABLE_KEY = os.environ.get("DL_SUPABASE_KEY", "sb_publishable_xPcjPWnIT6H0QuWmZ6PL8w_l-i949nV")
 AI_BASE_URL = SUPABASE_URL + "/functions/v1/ai"
+PADDLE_URL = SUPABASE_URL + "/functions/v1/paddle"
+CHECKOUT_URL = os.environ.get("DL_CHECKOUT_URL", "https://deutschlernenapp.com/checkout/")
 SESSION_FILE = db.DATA / "account.json"
 STATUS_TTL = 600  # seconds between plan checks
 
@@ -153,6 +157,44 @@ def token():
         new["email"] = new["email"] or sess.get("email")
         _save(new)
         return new["access_token"]
+
+
+def user_id():
+    """The account's id, read from the signed-in session (the token's "sub")."""
+    sess = _load()
+    try:
+        payload = sess["access_token"].split(".")[1]
+        return json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))["sub"]
+    except Exception:
+        return None
+
+
+def checkout_link(plan):
+    """The website checkout page for this account; the purchase is tied to the account by its id."""
+    uid = user_id()
+    if not uid:
+        raise AccountError("Sign in first.")
+    plan = plan if plan in ("monthly", "yearly") else "yearly"
+    return {"url": CHECKOUT_URL + "?" + urllib.parse.urlencode({"plan": plan, "uid": uid, "email": (_load() or {}).get("email") or ""})}
+
+
+def portal_link():
+    """A link to Paddle's page for changing or cancelling the subscription."""
+    t = token()
+    if not t:
+        raise AccountError("You're not signed in.")
+    try:
+        r = httpx.post(f"{PADDLE_URL}/portal", headers=_headers(t), json={}, timeout=20)
+    except httpx.HTTPError:
+        raise AccountError("Couldn't reach the account server. Check your internet connection.")
+    j = {}
+    try:
+        j = r.json()
+    except ValueError:
+        pass
+    if r.status_code >= 400 or not j.get("url"):
+        raise AccountError(j.get("error") or "Couldn't open subscription settings. Try again later.")
+    return {"url": j["url"]}
 
 
 def delete_account():
