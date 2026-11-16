@@ -129,6 +129,7 @@ def get_settings():
     return {**db.get_settings(), "voices": tts.VOICES, "version": VERSION, "build_name": BUILD_NAME, "credits": {"author": AUTHOR, "owner": OWNER, "copyright": COPYRIGHT, "website": WEBSITE},
             "has_key": bool(os.environ.get("ANTHROPIC_API_KEY", "").strip()) or account.plus_active(),
             "own_key": bool(os.environ.get("ANTHROPIC_API_KEY", "").strip()),
+            "plus_mode": not os.environ.get("ANTHROPIC_API_KEY", "").strip() and account.plus_active(),
             "has_gemini_key": bool(os.environ.get("GEMINI_API_KEY", "").strip())}
 
 

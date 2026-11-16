@@ -151,3 +151,21 @@ def test_checkout_link_carries_the_account_and_portal_opens(client, server):
 
 def test_checkout_needs_sign_in(client, server):
     assert client.post("/api/account/checkout", json={"plan": "monthly"}).status_code == 400
+
+
+def test_plus_picks_sonnet_and_haiku_whatever_the_settings(client, server):
+    from app import db
+    db.set_setting("model", "claude-opus-5-5")
+    db.set_setting("quick_model", "")
+    account.verify("a@b.de", "123456")
+    assert ai.model_for("generate_exercises") == "claude-sonnet-5-5"
+    assert ai.model_for("generate_cards") == ai.model_for("lookup") == "claude-haiku-5-5"
+    assert client.get("/api/settings").json()["plus_mode"] is True
+    os.environ["ANTHROPIC_API_KEY"] = "sk-ant-test"
+    try:  # with an own key, the learner's own choice applies again
+        assert ai.model_for("generate_exercises") == "claude-opus-5-5"
+        assert client.get("/api/settings").json()["plus_mode"] is False
+    finally:
+        os.environ.pop("ANTHROPIC_API_KEY")
+        db.set_setting("model", "claude-sonnet-5-5")
+        db.set_setting("quick_model", "claude-haiku-5-5")

@@ -23,10 +23,16 @@ class AIError(Exception):
 # everything else (writing exercises and cards, marking essays, listening scripts, the coach, reading scanned pages)
 # uses the main model.
 QUICK_FEATURES = {"lookup", "explain", "grade_answers", "classify_mistakes", "recover_questions", "writing_task",
-                  "decl_reading", "verb_reading", "make_plan", "check_page_text", "confirm_mistakes"}  # check_page (scans) stays main
+                  "decl_reading", "verb_reading", "make_plan", "check_page_text", "confirm_mistakes",
+                  "generate_cards", "drill_mistakes", "convert_import"}  # check_page (scans) stays main
+
+# Plus (AI through our server) always uses these, whatever the model settings say; the server enforces it too.
+PLUS_MAIN, PLUS_QUICK = "claude-sonnet-5-5", "claude-haiku-5-5"
 
 
 def model_for(feature, s=None):
+    if using_plus():
+        return PLUS_QUICK if feature in QUICK_FEATURES else PLUS_MAIN
     s = s or db.get_settings()
     if feature in QUICK_FEATURES and s.get("quick_model"):
         return s["quick_model"]

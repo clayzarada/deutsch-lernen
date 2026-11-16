@@ -374,19 +374,20 @@
         <label><span>API key <span id="key-state"></span></span>
           <input id="s-key" type="password" autocomplete="off" placeholder="Paste your key from console.anthropic.com"></label>
         <p class="muted small">Stored only on this computer, in the <code>.env</code> file in the app folder.</p>
-        <div class="two">
+        <p class="muted small" id="plus-models" hidden>With Plus, the app picks the models for you: Claude Sonnet for practice sets, marking essays, the coach and scanned pages, and the faster Haiku for everything else.</p>
+        <div class="two" id="model-choice">
           <label>Model<select id="s-model">
-            <option value="claude-opus-5-5">Opus 5.5 · best quality</option>
-            <option value="claude-sonnet-5-5">Sonnet 5.5 · about half the cost</option>
+            <option value="claude-sonnet-5-5">Sonnet 5.5 · recommended</option>
+            <option value="claude-opus-5-5">Opus 5.5 · best quality, about twice the cost</option>
             <option value="claude-haiku-5-5">Haiku 5.5 · cheapest</option>
           </select></label>
           <label>Thinking effort<select id="s-effort"><option value="low">Low · fastest</option><option value="medium">Medium</option><option value="high">High · most careful</option></select></label>
         </div>
-        <label>Model for quick tasks<select id="s-quick-model">
+        <label id="quick-choice">Model for quick tasks<select id="s-quick-model">
           <option value="claude-haiku-5-5">Haiku 5.5 · much cheaper (recommended)</option>
           <option value="">Same as the model above</option>
         </select></label>
-        <p class="muted small">Quick tasks: word look-ups, explanations, marking typed answers, linking mistakes, daily plans and short readings. Writing exercises, flashcards, essays, the coach and checking scanned pages always use the model above.</p>
+        <p class="muted small" id="quick-note">Quick tasks: word look-ups, explanations, marking typed answers, flashcards, mistake drills, imports, linking mistakes, daily plans and short readings. Practice sets, essays, listening scripts, the coach and checking scanned pages always use the model above.</p>
         <label class="check"><input id="s-web" type="checkbox"> Let the coach search the web for real videos and articles</label>
       </div>
       <div class="panel">

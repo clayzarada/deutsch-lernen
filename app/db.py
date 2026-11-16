@@ -85,7 +85,7 @@ DEFAULT_SETTINGS = {
     "daily_minutes": "45",
     "goal": "",
     "exam_date": "",
-    "model": "claude-opus-5-5",
+    "model": "claude-sonnet-5-5",
     "effort": "medium",
     "quick_model": "claude-haiku-5-5",  # small, frequent jobs (look-ups, marking); "" = use "model" for everything
     "web_search": "1",

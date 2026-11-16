@@ -1341,3 +1341,5 @@ h1 { font-weight: 680; }
 .cloud-box h3{font-size:15px;margin:0 0 8px}
 .cloud-list{margin-top:10px;display:grid;gap:6px}
 .cloud-list .backup-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+
+[hidden]{display:none !important}

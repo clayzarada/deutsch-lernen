@@ -24,7 +24,8 @@ const PRICES: Record<string, [number, number, number]> = {
   "claude-sonnet-5-5": [2.0, 10.0, 0.1],
   "claude-haiku-5-5": [0.1, 0.5, 0.01],
 };
-const ALLOWED = Object.keys(PRICES);
+// Plus runs on Sonnet (main tasks) and Haiku (quick tasks). Anything else, Opus included, is switched to Sonnet.
+const ALLOWED = ["claude-sonnet-5-5", "claude-haiku-5-5"];
 const FALLBACK_MODEL = "claude-sonnet-5-5";
 const WEB_SEARCH_PER_1000 = 10.0;
 const MAX_TOKENS = 16000;
@@ -40,7 +41,7 @@ function fail(status: number, type: string, message: string) {
 }
 
 function price(model: string) {
-  for (const name of ALLOWED) if (model?.startsWith(name)) return PRICES[name];
+  for (const name of Object.keys(PRICES)) if (model?.startsWith(name)) return PRICES[name];
   return PRICES["claude-opus-5-5"];
 }
 
