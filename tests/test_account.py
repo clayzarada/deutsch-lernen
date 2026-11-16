@@ -65,7 +65,7 @@ def server(monkeypatch):
 
 def test_sign_in_with_code_and_plan(client, server):
     calls, state = server
-    assert client.get("/api/account").json() == {"signed_in": False, "plus": False}
+    assert client.get("/api/account").json() == {"signed_in": False, "plus": False, "sales_open": False}
     assert client.post("/api/account/code", json={"email": " A@B.de "}).json() == {"sent": True, "email": "a@b.de"}
     bad = client.post("/api/account/verify", json={"email": "a@b.de", "code": "000000"})
     assert bad.status_code == 400 and "didn't work" in bad.json()["detail"]
@@ -175,3 +175,23 @@ def test_plus_picks_sonnet_and_haiku_whatever_the_settings(client, server):
         os.environ.pop("ANTHROPIC_API_KEY")
         db.set_setting("model", "claude-sonnet-5-5")
         db.set_setting("quick_model", "claude-haiku-5-5")
+
+
+def test_sales_switch_comes_from_the_website(monkeypatch):
+    seen = []
+
+    class J:
+        def __init__(self, v): self.v = v
+        def json(self): return {"sales_open": self.v}
+
+    monkeypatch.setattr(httpx, "get", lambda url, timeout=None: seen.append(url) or J(True))
+    account._sales.update(at=0, open=False)
+    assert account.sales_open() is True and seen == [account.PLUS_INFO_URL]
+    assert account.sales_open() is True and len(seen) == 1  # cached
+
+    def offline(url, timeout=None):
+        raise httpx.ConnectError("offline")
+    monkeypatch.setattr(httpx, "get", offline)
+    account._sales["at"] = 0
+    assert account.sales_open() is True  # keeps the last known answer
+    account._sales.update(at=0, open=False)

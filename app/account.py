@@ -20,6 +20,9 @@ PUBLISHABLE_KEY = os.environ.get("DL_SUPABASE_KEY", "sb_publishable_xPcjPWnIT6H0
 AI_BASE_URL = SUPABASE_URL + "/functions/v1/ai"
 PADDLE_URL = SUPABASE_URL + "/functions/v1/paddle"
 CHECKOUT_URL = os.environ.get("DL_CHECKOUT_URL", "https://deutschlernenapp.com/checkout/")
+# Whether Plus can be bought yet. A file on the website, so sales open for everyone without an app update.
+PLUS_INFO_URL = os.environ.get("DL_PLUS_INFO_URL", "https://deutschlernenapp.com/plus.json")
+_sales = {"at": 0, "open": False}
 SESSION_FILE = db.DATA / "account.json"
 STATUS_TTL = 600  # seconds between plan checks
 
@@ -229,8 +232,24 @@ def delete_account():
 
 # ---------- plan ----------
 
+def sales_open():
+    """True once Plus is on sale (checked at most every few minutes; False when offline)."""
+    if time.time() - _sales["at"] < STATUS_TTL:
+        return _sales["open"]
+    try:
+        _sales["open"] = bool(httpx.get(PLUS_INFO_URL, timeout=8).json().get("sales_open"))
+    except Exception:
+        pass  # offline or unreachable: keep the last known answer
+    _sales["at"] = time.time()
+    return _sales["open"]
+
+
 def status(force=False):
-    """{signed_in, email, plus, used_usd, cap_usd, used_pct}. Cached for a few minutes; never raises."""
+    """{signed_in, email, plus, used_usd, cap_usd, used_pct, sales_open}. Cached; never raises."""
+    return {**_account_status(force), "sales_open": sales_open()}
+
+
+def _account_status(force=False):
     sess = _load()
     if not sess:
         return {"signed_in": False, "plus": False}

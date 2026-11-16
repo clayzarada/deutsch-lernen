@@ -146,6 +146,7 @@ function renderAccount(a) {
     <p>Signed in as <b>${esc(a.email || '')}</b> · ${plus ? `<span class="pill ok">${icon('check')}Plus</span>` : '<span class="pill">Free</span>'}</p>
     ${plus ? `<div class="meter"><div class="meter-bar ${pct >= 90 ? 'bad' : pct >= 70 ? 'mid' : ''}"><span style="width:${pct}%"></span></div><span>${pct}% of this month's AI allowance used</span></div>
       <p class="muted small">${S.settings.own_key ? 'Your own API key is saved, so the app uses it instead of Plus. Use “Remove API key” at the bottom of Settings to switch to Plus.' : 'AI features run through Plus. No API key needed.'}</p>`
+      : !a.sales_open ? `<p class="small" style="margin-top:8px"><b>Plus is coming soon:</b> AI features with no API key of your own, plus cloud backup. You'll be able to upgrade right here.</p>`
       : `<p class="small" style="margin-top:8px">Get <b>Plus</b> for AI features with no API key of your own. Cancel any time.</p>
         <div class="btnrow"><button type="button" id="acct-buy-yearly">Upgrade: $79 / year</button>
           <button type="button" class="ghost" id="acct-buy-monthly">$9.99 / month</button></div>
