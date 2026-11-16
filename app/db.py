@@ -96,6 +96,8 @@ DEFAULT_SETTINGS = {
     "voice_b": "Puck",
     "monthly_budget": "",
     "onboarded": "",   # "1" once the welcome flow is finished (or skipped)
+    "cloud_backup": "",       # "1" = Plus: back up the study data to the cloud once a day
+    "cloud_backup_last": "",  # when the last cloud backup was made (ISO time)
     "use_course": "",  # "1" = the built-in beginner course is part of Home and quick plans
 }
 

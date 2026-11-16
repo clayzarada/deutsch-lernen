@@ -1336,3 +1336,8 @@ h1 { font-weight: 680; }
 .acct-row input{flex:1;min-width:0}
 #account-box .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 #account-box .meter{margin-top:10px}
+
+.cloud-box{margin-top:16px;padding-top:14px;border-top:1px solid var(--line, #e5e1da)}
+.cloud-box h3{font-size:15px;margin:0 0 8px}
+.cloud-list{margin-top:10px;display:grid;gap:6px}
+.cloud-list .backup-row{display:flex;justify-content:space-between;align-items:center;gap:10px}

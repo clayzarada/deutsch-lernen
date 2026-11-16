@@ -201,6 +201,12 @@ def delete_account():
     t = token()
     if not t:
         raise AccountError("You're not signed in.")
+    from . import cloud
+    try:
+        cloud.delete_all()  # backups first: the server can't remove them once the account is gone
+    except Exception as e:
+        raise AccountError(f"Couldn't remove your cloud backups, so the account wasn't deleted: {e}")
+    t = token()
     r = httpx.post(f"{SUPABASE_URL}/rest/v1/rpc/delete_my_account", headers=_headers(t), json={}, timeout=20)
     if r.status_code >= 400:
         raise AccountError(f"Couldn't delete the account: {_msg(r)}")

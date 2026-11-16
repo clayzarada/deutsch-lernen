@@ -70,6 +70,59 @@ async function loadAccount(refresh) {
   renderAccount(await api('/account' + (refresh ? '?refresh=true' : '')));
 }
 
+// ---------- cloud backup (Plus) ----------
+const when = iso => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+const kb = n => n == null ? '' : n < 1048576 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1048576).toFixed(1)} MB`;
+
+async function loadCloud() {
+  const box = $('#cloud-box');
+  if (!box) return;
+  try { renderCloud(await api('/cloud?full=true')); }
+  catch (err) { box.innerHTML = `<h3>Cloud backup</h3><p class="muted small">${esc(err.message)}</p>`; }
+}
+
+function renderCloud(c) {
+  const box = $('#cloud-box');
+  if (!box) return;
+  const list = c.backups || [];
+  box.innerHTML = `
+    <h3>Cloud backup</h3>
+    <label class="check"><input type="checkbox" id="cloud-on" ${c.enabled ? 'checked' : ''}> Back up my study data to the cloud every day</label>
+    <p class="muted small">Your progress, flashcards, answers and notes, kept safe on our server and restorable on any computer where you sign in. Book files (PDFs) stay on this computer. The newest ${c.keep} backups are kept.</p>
+    <div class="btnrow"><button type="button" class="ghost small" id="cloud-now">Back up now</button></div>
+    ${list.length ? `<div class="cloud-list">${list.map(b => `<div class="backup-row"><span><b>${esc(when(b.created))}</b> <span class="muted small">${kb(b.size)}</span></span>
+        <button type="button" class="ghost small" data-cloud-restore="${esc(b.name)}">Restore</button></div>`).join('')}</div>`
+      : '<p class="muted small">No cloud backups yet.</p>'}`;
+}
+
+$('#account-box').addEventListener('change', async e => {
+  if (e.target.id !== 'cloud-on') return;
+  try {
+    await api('/cloud', { method: 'PUT', body: { enabled: e.target.checked } });
+    toast(e.target.checked ? 'Daily cloud backup is on' : 'Daily cloud backup is off');
+    if (e.target.checked) setTimeout(loadCloud, 4000);  // the first backup runs in the background
+  } catch (err) { toast(err.message, 'error'); e.target.checked = !e.target.checked; }
+});
+
+$('#account-box').addEventListener('click', async e => {
+  if (e.target.closest('#cloud-now')) {
+    const b = e.target.closest('#cloud-now');
+    b.disabled = true; b.textContent = 'Backing up…';
+    try { renderCloud(await api('/cloud/backup', { method: 'POST' })); toast('Backed up to the cloud'); }
+    catch (err) { toast(err.message, 'error'); b.disabled = false; b.textContent = 'Back up now'; }
+    return;
+  }
+  const r = e.target.closest('[data-cloud-restore]');
+  if (!r) return;
+  const at = r.closest('.backup-row').querySelector('b').textContent;
+  if (!await confirmDialog(`Restore the cloud backup from ${at}?`, 'Your study data on this computer (answers, cards, progress) is replaced by the backup. What you have now is backed up on this computer first, so you can switch back under Backups.', { ok: 'Restore', danger: true })) return;
+  try {
+    await api('/cloud/restore', { method: 'POST', body: { name: r.dataset.cloudRestore } });
+    toast('Cloud backup restored. Reloading...');
+    setTimeout(() => location.reload(), 900);
+  } catch (err) { toast(err.message, 'error'); }
+});
+
 function renderAccount(a) {
   const box = $('#account-box');
   if (!a.signed_in) {
@@ -92,10 +145,12 @@ function renderAccount(a) {
         <div class="btnrow"><button type="button" id="acct-buy-yearly">Upgrade: $79 / year</button>
           <button type="button" class="ghost" id="acct-buy-monthly">$9.99 / month</button></div>
         <p class="muted small">Checkout opens in your browser. When you're done, come back and press Refresh.</p>`}
+    ${plus ? '<div id="cloud-box" class="cloud-box"><p class="muted small">Loading cloud backup…</p></div>' : ''}
     ${a.offline ? '<p class="muted small">Offline: showing the last known status.</p>' : ''}
     <div class="btnrow">${plus ? '<button type="button" class="ghost small" id="acct-manage">Manage subscription</button>' : ''}<button type="button" class="ghost small" id="acct-refresh">Refresh</button>
       <button type="button" class="ghost small" id="acct-out">Sign out</button>
       <button type="button" class="ghost small danger-hover" id="acct-delete">Delete account</button></div>`;
+  if (plus) loadCloud();
 }
 
 $('#account-box').addEventListener('click', async e => {
@@ -136,7 +191,7 @@ $('#account-box').addEventListener('click', async e => {
       await refreshAfterAccount(await api('/account/signout', { method: 'POST' }));
       toast('Signed out');
     } else if (id === 'acct-delete') {
-      if (!await confirmDialog('Delete your account?', 'This removes your sign-in, Plus status and usage records from our server. Cancel any subscription first. Your study data on this computer is not touched.', { ok: 'Delete account', danger: true })) return;
+      if (!await confirmDialog('Delete your account?', 'This removes your sign-in, Plus status, usage records and cloud backups from our server. Cancel any subscription first. Your study data on this computer is not touched.', { ok: 'Delete account', danger: true })) return;
       await refreshAfterAccount(await api('/account/delete', { method: 'POST' }));
       toast('Account deleted');
     }

@@ -11,7 +11,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import (account, ai, anki, ankiimport, backup, lessons, course, db, decl, dictionary, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
+from . import (account, ai, cloud, anki, ankiimport, backup, lessons, course, db, decl, dictionary, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
                update, usage, verbs, wordorder, wordtrain, writing)
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
@@ -30,6 +30,7 @@ try:
     backup.daily()
 except Exception as _e:  # a failed backup must never stop the app from starting
     print('daily backup failed:', _e)
+cloud.auto()  # in the background; only does anything for Plus accounts with cloud backup on
 
 app = FastAPI(title="German Study")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
@@ -204,6 +205,33 @@ def account_checkout(body: dict):
 @app.post("/api/account/portal")
 def account_portal():
     return account.portal_link()
+
+
+@app.get("/api/cloud")
+def cloud_status(full: bool = False):
+    out = cloud.status()
+    if full:
+        out["backups"] = cloud.listing()
+    return out
+
+
+@app.post("/api/cloud/backup")
+def cloud_backup():
+    made = cloud.make()
+    return {**made, **cloud.status(), "backups": cloud.listing()}
+
+
+@app.post("/api/cloud/restore")
+def cloud_restore(body: dict):
+    return cloud.restore(body.get("name"))
+
+
+@app.put("/api/cloud")
+def cloud_set(body: dict):
+    db.set_setting("cloud_backup", "1" if body.get("enabled") else "")
+    if body.get("enabled") and cloud.due():
+        cloud.auto()
+    return cloud.status()
 
 
 @app.post("/api/account/delete")
