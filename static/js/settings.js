@@ -196,7 +196,7 @@ $('#account-box').addEventListener('click', async e => {
       await refreshAfterAccount(await api('/account/signout', { method: 'POST' }));
       toast('Signed out');
     } else if (id === 'acct-delete') {
-      if (!await confirmDialog('Delete your account?', 'This removes your sign-in, Plus status, usage records and cloud backups from our server. Cancel any subscription first. Your study data on this computer is not touched.', { ok: 'Delete account', danger: true })) return;
+      if (!await confirmDialog('Delete your account?', 'This cancels any Plus subscription right away and removes your sign-in, Plus status, usage records and cloud backups from our server. Your study data on this computer is not touched.', { ok: 'Delete account', danger: true })) return;
       await refreshAfterAccount(await api('/account/delete', { method: 'POST' }));
       toast('Account deleted');
     }

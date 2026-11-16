@@ -201,9 +201,20 @@ def delete_account():
     t = token()
     if not t:
         raise AccountError("You're not signed in.")
+    # Stop any subscription first, so nobody is charged for an account that no longer exists.
+    try:
+        r = httpx.post(f"{PADDLE_URL}/cancel", headers=_headers(t), json={}, timeout=30)
+    except httpx.HTTPError:
+        raise AccountError("Couldn't reach the account server, so the account wasn't deleted. Check your internet connection.")
+    if r.status_code >= 400:
+        try:
+            msg = r.json().get("error")
+        except ValueError:
+            msg = None
+        raise AccountError(msg or "Couldn't cancel your subscription, so the account wasn't deleted. Try again later.")
     from . import cloud
     try:
-        cloud.delete_all()  # backups first: the server can't remove them once the account is gone
+        cloud.delete_all()  # backups next: the server can't remove them once the account is gone
     except Exception as e:
         raise AccountError(f"Couldn't remove your cloud backups, so the account wasn't deleted: {e}")
     t = token()

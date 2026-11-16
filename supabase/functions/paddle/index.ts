@@ -2,6 +2,9 @@
 //
 //   POST .../paddle/webhook   Paddle's notifications (signed). Turns Plus on or off for the account.
 //   POST .../paddle/portal    Signed-in user: returns a link to Paddle's "manage subscription" page.
+//   POST .../paddle/cancel    Signed-in user: cancels their subscription now (used just before deleting an account).
+//
+// A refund (an approved adjustment) ends Plus and cancels the subscription, as the refund policy says.
 //
 // Secrets (Supabase dashboard -> Edge Functions -> Secrets):
 //   PADDLE_WEBHOOK_SECRET   from Paddle -> Developer tools -> Notifications (the destination's secret key)
@@ -85,6 +88,48 @@ async function onSubscription(sub: Record<string, any>) {
   if (error) console.error("profile update failed", error);
 }
 
+async function cancelSubscription(subscriptionId: string) {
+  const r = await fetch(`${apiBase()}/subscriptions/${subscriptionId}/cancel`, {
+    method: "POST",
+    headers: { "authorization": `Bearer ${env("PADDLE_API_KEY")}`, "content-type": "application/json" },
+    body: JSON.stringify({ effective_from: "immediately" }),
+  });
+  if (r.ok) return true;
+  const j = await r.json().catch(() => ({}));
+  // Already canceled counts as done.
+  if (JSON.stringify(j).includes("subscription_locked") || JSON.stringify(j).includes("canceled")) return true;
+  console.error("cancel failed", r.status, JSON.stringify(j).slice(0, 300));
+  return false;
+}
+
+async function onAdjustment(adj: Record<string, any>) {
+  if (adj.action !== "refund" || adj.status !== "approved" || !adj.subscription_id) return;
+  const { data } = await admin.from("profiles").select("user_id")
+    .or(`paddle_subscription_id.eq.${adj.subscription_id},paddle_customer_id.eq.${adj.customer_id}`).limit(1).maybeSingle();
+  if (!data?.user_id) {
+    console.error("refund for an unknown subscription", adj.subscription_id);
+    return;
+  }
+  await admin.from("profiles").update({ plan: "free", plus_until: new Date().toISOString(), updated_at: new Date().toISOString() })
+    .eq("user_id", data.user_id);
+  await cancelSubscription(adj.subscription_id);
+}
+
+async function signedInUser(req: Request) {
+  const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const { data } = token ? await admin.auth.getUser(token) : { data: null };
+  return data?.user ?? null;
+}
+
+async function cancelForUser(req: Request) {
+  const user = await signedInUser(req);
+  if (!user) return json({ error: "Sign in again." }, 401);
+  const { data: profile } = await admin.from("profiles").select("paddle_subscription_id").eq("user_id", user.id).maybeSingle();
+  if (!profile?.paddle_subscription_id) return json({ canceled: false, reason: "no subscription" });
+  const ok = await cancelSubscription(profile.paddle_subscription_id);
+  return ok ? json({ canceled: true }) : json({ error: "Couldn't cancel the subscription. Try again, or cancel it from Manage subscription." }, 502);
+}
+
 async function portal(req: Request) {
   const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   const { data } = token ? await admin.auth.getUser(token) : { data: null };
@@ -108,6 +153,7 @@ async function portal(req: Request) {
 Deno.serve(async (req) => {
   const path = new URL(req.url).pathname;
   if (req.method === "POST" && path.endsWith("/portal")) return portal(req);
+  if (req.method === "POST" && path.endsWith("/cancel")) return cancelForUser(req);
   if (req.method === "POST" && path.endsWith("/webhook")) {
     const raw = await req.text();
     if (!(await verified(req, raw))) {
@@ -116,6 +162,7 @@ Deno.serve(async (req) => {
     }
     const event = JSON.parse(raw);
     if (String(event.event_type).startsWith("subscription.")) await onSubscription(event.data);
+    else if (String(event.event_type).startsWith("adjustment.")) await onAdjustment(event.data);
     return json({ ok: true });
   }
   return json({ error: "not found" }, 404);

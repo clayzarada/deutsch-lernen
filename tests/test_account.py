@@ -36,6 +36,10 @@ def server(monkeypatch):
             return FakeResp(200, {"access_token": "AT2", "refresh_token": "RT2", "expires_in": 3600, "user": {}})
         if url.endswith("/auth/v1/logout") or url.endswith("/rpc/delete_my_account"):
             return FakeResp(204, {})
+        if url.endswith("/paddle/cancel"):
+            state.setdefault("cancels", 0)
+            state["cancels"] += 1
+            return FakeResp(200, {"canceled": True})
         if url.endswith("/paddle/portal"):
             return FakeResp(200, {"url": "https://sandbox-customer-portal.paddle.com/x"})
         raise AssertionError(url)
@@ -114,8 +118,10 @@ def test_free_account_gets_no_ai(server):
 
 
 def test_delete_account(client, server):
+    calls, state = server
     account.verify("a@b.de", "123456")
     assert client.post("/api/account/delete").json()["signed_in"] is False
+    assert state["cancels"] == 1  # the subscription is canceled before the account goes
     assert not account.SESSION_FILE.exists()
 
 
