@@ -110,10 +110,19 @@ $('#account-box').addEventListener('click', async e => {
       $('#acct-code')?.focus();
       toast('Email sent');
     } else if (id === 'acct-verify') {
-      const a = await api('/account/verify', { method: 'POST', body: { email: ACC.email, code: $('#acct-code').value } });
-      ACC.codeSent = false;
-      await refreshAfterAccount(a);
-      toast('Signed in');
+      if (ACC.verifying) return;  // a double click would send the code twice; the second try always fails
+      ACC.verifying = true;
+      try {
+        const a = await api('/account/verify', { method: 'POST', body: { email: ACC.email, code: $('#acct-code').value } });
+        ACC.codeSent = false;
+        await refreshAfterAccount(a);
+        toast('Signed in');
+      } catch (err) {
+        const a = await api('/account').catch(() => ({}));
+        if (!a.signed_in) throw err;  // a real failure; if we're signed in anyway, say nothing
+        ACC.codeSent = false;
+        await refreshAfterAccount(a);
+      } finally { ACC.verifying = false; }
     } else if (id === 'acct-buy-yearly' || id === 'acct-buy-monthly') {
       const { url } = await api('/account/checkout', { method: 'POST', body: { plan: id.endsWith('yearly') ? 'yearly' : 'monthly' } });
       window.open(url, '_blank', 'noopener');
@@ -147,6 +156,13 @@ function watchForPlus() {
     } catch { /* offline: try again next time */ }
   }, 10000);
 }
+
+// Enter in the code box signs in (instead of submitting the whole Settings form).
+$('#account-box').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || !e.target.matches('#acct-code, #acct-email')) return;
+  e.preventDefault();
+  $(e.target.id === 'acct-code' ? '#acct-verify' : '#acct-send')?.click();
+});
 
 async function refreshAfterAccount(a) {
   S.settings = await api('/settings');
