@@ -50,7 +50,7 @@ rm -rf "dist/$APP_NAME.app"
 pyinstaller --noconfirm --clean --log-level WARN --windowed \
   --name "$APP_NAME" --icon build/icon.icns --osx-bundle-identifier local.deutsch-lernen \
   --add-data "static:static" --add-data "version.json:." \
-  --hidden-import app.main --collect-submodules app \
+  --hidden-import app.main --collect-submodules app --collect-submodules httpx --hidden-import anthropic \
   --collect-submodules uvicorn --collect-all webview --collect-data genanki \
   launch_mac.py
 [ -d "dist/$APP_NAME.app" ] || fail "The build didn't produce an app. Scroll up for the error."

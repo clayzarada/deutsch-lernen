@@ -3,6 +3,7 @@ uvicorn
 python-multipart
 python-dotenv
 anthropic
+httpx
 pymupdf
 genanki
 psutil

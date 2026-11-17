@@ -104,7 +104,7 @@ def main():
         "--name", "Deutsch lernen", "--icon", "static/icon.ico", "--version-file", info,
         "--add-data", "static;static", "--add-data", "version.json;.",
         "--hidden-import", "app.main", "--collect-submodules", "app",
-        "--collect-submodules", "uvicorn", "--collect-data", "genanki",
+        "--collect-submodules", "uvicorn", "--collect-submodules", "httpx", "--hidden-import", "anthropic", "--collect-data", "genanki",
         "--exclude-module", "webview", "--exclude-module", "clr", "--exclude-module", "pythonnet",
         "launch_windows.py")
     exe = DIST / "Deutsch lernen.exe"
