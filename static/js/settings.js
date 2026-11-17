@@ -1,5 +1,5 @@
 // Resources and Settings pages.
-import { $, S, api, esc, icon, toast, registerView, confirmDialog, emptyState, updateNavStatus, playClip } from './core.js';
+import { $, S, api, esc, icon, toast, registerView, confirmDialog, emptyState, updateNavStatus, playClip, setNavLayout } from './core.js';
 import { setLanguage } from './i18n.js';
 
 // ---------- resources ----------
@@ -32,7 +32,7 @@ $('#res-list').addEventListener('click', async e => {
 
 // ---------- settings ----------
 const FIELDS = {
-  ui_language: 's-ui-lang', model: 's-model', quick_model: 's-quick-model', effort: 's-effort', level: 's-level', native_language: 's-native', daily_minutes: 's-minutes',
+  ui_language: 's-ui-lang', nav_layout: 's-nav', model: 's-model', quick_model: 's-quick-model', effort: 's-effort', level: 's-level', native_language: 's-native', daily_minutes: 's-minutes',
   goal: 's-goal', exam_date: 's-exam', new_cards_per_day: 's-newcards', monthly_budget: 's-budget', tts_model: 's-tts-model', voice_a: 's-voice-a', voice_b: 's-voice-b',
 };
 
@@ -309,6 +309,7 @@ async function saveSettings(quiet = false) {
   }
   S.settings = await api('/settings', { method: 'PUT', body });
   if (langChanged) { setLanguage(S.settings.ui_language); return; }  // reloads the page in the new language
+  setNavLayout(S.settings.nav_layout);
   loadSettings();
   updateNavStatus();
   if (!quiet) toast('Settings saved');

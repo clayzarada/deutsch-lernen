@@ -82,6 +82,7 @@ DEFAULT_SETTINGS = {
     "level": "A2",
     "native_language": "English",
     "ui_language": "en",
+    "nav_layout": "side",  # "side" = pages listed under each section in the sidebar; "top" = tabs across the top
     "daily_minutes": "45",
     "goal": "",
     "exam_date": "",

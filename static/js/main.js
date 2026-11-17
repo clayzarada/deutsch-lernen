@@ -1,6 +1,6 @@
 // Entry point: loads every page module, wires up navigation and starts the app.
 import { syncLanguage } from './i18n.js';  // first, so text is translated as soon as it appears
-import { $$, S, api, store, toast, show, showSection, hasView, fillIcons, loadBooks, refreshNav } from './core.js';
+import { $$, S, api, store, toast, show, showSection, hasView, fillIcons, loadBooks, refreshNav, setNavLayout } from './core.js';
 import './today.js';
 import './library.js';
 import './reader.js';
@@ -40,6 +40,8 @@ document.addEventListener('click', e => {
     return;
   }
   refreshNav();
+  setNavLayout(S.settings.nav_layout);
+  matchMedia('(max-width: 860px)').addEventListener('change', () => setNavLayout(S.settings.nav_layout));
   const start = store.get('view');
   show(hasView(start) && S.settings.onboarded ? start : 'today');
   if (!S.settings.onboarded) startWelcome();

@@ -1343,3 +1343,13 @@ h1 { font-weight: 680; }
 .cloud-list .backup-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 
 [hidden]{display:none !important}
+
+/* sidebar layout: each section's pages listed under it */
+.nav-sub { display: none; flex-direction: column; gap: 2px; margin: 0 0 6px 18px; padding-left: 10px; border-left: 1px solid var(--line); }
+body[data-nav="side"] .nav-sub { display: flex; }
+#nav .nav-sub a { padding: 6px 10px; font-size: 14px; color: var(--muted); }
+#nav .nav-sub a .icon { width: 16px; height: 16px; }
+#nav .nav-sub a:hover { color: var(--text); }
+#nav .nav-sub a.active { color: var(--accent); background: var(--accent-soft); }
+#nav .nav-sub a.active::before { display: none; }
+@media (max-width: 860px) { body[data-nav="side"] .nav-sub { display: none; } }

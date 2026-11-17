@@ -210,15 +210,37 @@ export function showSection(section) {
   show(SECTIONS[section].some(v => v[0] === last) ? last : SECTIONS[section][0][0]);
 }
 
+/** Pages listed under their section in the sidebar ("side", the default) or as tabs across the top ("top").
+ *  Narrow windows always use the top tabs, because the sidebar turns into a row there. */
+export function setNavLayout(layout) {
+  document.body.dataset.nav = layout === 'top' ? 'top' : 'side';
+  if (!$('.nav-sub')) {
+    for (const [section, pages] of Object.entries(SECTIONS)) {
+      if (pages.length < 2) continue;
+      const a = $(`#nav a[data-section="${section}"]`);
+      if (!a) continue;
+      const sub = document.createElement('div');
+      sub.className = 'nav-sub';
+      sub.dataset.for = section;
+      sub.innerHTML = pages.map(([v, label, ic]) => `<a data-go="${v}">${icon(ic)}<span>${label}</span></a>`).join('');
+      a.after(sub);
+    }
+  }
+  if (S.view) show(S.view, { load: false });
+}
+const sideNav = () => document.body.dataset.nav !== 'top' && !matchMedia('(max-width: 860px)').matches;
+
 export function show(view, { load = true } = {}) {
   S.view = view;
   const section = sectionOf(view), pages = SECTIONS[section];
   store.set('sec-' + section, view);
   const tabs = $('#section-tabs');
-  tabs.classList.toggle('hidden', pages.length < 2);
-  tabs.innerHTML = pages.length < 2 ? '' : pages.map(([v, label, ic]) =>
+  const useTabs = pages.length > 1 && !sideNav();
+  tabs.classList.toggle('hidden', !useTabs);
+  tabs.innerHTML = !useTabs ? '' : pages.map(([v, label, ic]) =>
     `<button data-go="${v}" class="${v === view ? 'active' : ''}">${icon(ic)}<span>${label}</span></button>`).join('');
   $$('#nav a[data-section]').forEach(a => a.classList.toggle('active', a.dataset.section === section));
+  $$('.nav-sub a').forEach(a => a.classList.toggle('active', a.dataset.go === view));
   // A section can serve several views (data-views="decl verbs": both grammar courses share one page).
   $$('.view').forEach(v => v.classList.toggle('hidden', !(v.id === 'view-' + view || (v.dataset.views || '').split(' ').includes(view))));
   store.set('view', view);

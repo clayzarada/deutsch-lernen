@@ -1003,4 +1003,7 @@ export default {
   'Any PDF, read and practice inside the app': 'Herhangi bir PDF; uygulamanın içinde okuyun ve çalışın',
   'A session built from your progress, weak spots and flashcards.': 'İlerlemenizden, zayıf noktalarınızdan ve kartlarınızdan oluşturulan bir çalışma.',
   'With Plus, the app picks the models for you: Claude Sonnet for practice sets, marking essays, the coach and scanned pages, and the faster Haiku for everything else.': 'Plus ile modelleri uygulama seçer: alıştırma setleri, kompozisyon değerlendirme, koç ve taranmış sayfalar için Claude Sonnet, diğer her şey için daha hızlı Haiku.',
+  'Navigation layout': 'Gezinme düzeni',
+  'Pages listed under each section in the sidebar': 'Sayfalar kenar çubuğunda her bölümün altında',
+  'Pages as tabs across the top': 'Sayfalar üstte sekmeler olarak',
 };
