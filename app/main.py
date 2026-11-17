@@ -11,7 +11,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import (account, ai, cloud, anki, ankiimport, backup, lessons, course, db, decl, dictionary, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
+from . import (account, ai, cloud, surveys, anki, ankiimport, backup, lessons, course, db, decl, dictionary, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
                update, usage, verbs, wordorder, wordtrain, writing)
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
@@ -31,6 +31,7 @@ try:
 except Exception as _e:  # a failed backup must never stop the app from starting
     print('daily backup failed:', _e)
 cloud.auto()  # in the background; only does anything for Plus accounts with cloud backup on
+surveys.start_background()  # weekly usage summary (if allowed) and the list of open questions
 
 app = FastAPI(title="German Study")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
@@ -206,6 +207,16 @@ def account_checkout(body: dict):
 @app.post("/api/account/portal")
 def account_portal():
     return account.portal_link()
+
+
+@app.get("/api/surveys")
+def survey_list():
+    return surveys.pending()
+
+
+@app.post("/api/surveys/{survey_id}")
+def survey_answer(survey_id: str, body: dict):
+    return surveys.answer(survey_id, body.get("answer"), body.get("comment"), bool(body.get("skipped")))
 
 
 @app.get("/api/cloud")

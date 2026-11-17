@@ -40,9 +40,10 @@ document.addEventListener('click', e => {
     return;
   }
   refreshNav();
-  setNavLayout(S.settings.nav_layout);
+  setNavLayout(new URLSearchParams(location.search).get('nav') || S.settings.nav_layout);
   matchMedia('(max-width: 860px)').addEventListener('change', () => setNavLayout(S.settings.nav_layout));
   const start = store.get('view');
   show(hasView(start) && S.settings.onboarded ? start : 'today');
   if (!S.settings.onboarded) startWelcome();
 })();
+import('./survey.js');

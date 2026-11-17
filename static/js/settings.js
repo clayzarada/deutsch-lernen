@@ -47,6 +47,7 @@ function loadSettings() {
   $('#s-voice-b').innerHTML = voices;
   for (const [k, id] of Object.entries(FIELDS)) $('#' + id).value = s[k] ?? '';
   $('#s-web').checked = s.web_search === '1';
+  $('#s-share').checked = s.share_usage !== '0';
   $('#s-key').value = '';
   $('#s-key').placeholder = s.own_key ? 'Saved. Paste a new key to replace it.' : 'Paste your key from console.anthropic.com';
   $('#key-state').innerHTML = keyPill(s.own_key);
@@ -296,7 +297,7 @@ $('#s-voice-test').addEventListener('click', async e => {
 });
 
 async function saveSettings(quiet = false) {
-  const body = { web_search: $('#s-web').checked ? '1' : '0' };
+  const body = { web_search: $('#s-web').checked ? '1' : '0', share_usage: $('#s-share').checked ? '1' : '0' };
   for (const [k, id] of Object.entries(FIELDS)) body[k] = $('#' + id).value;
   if ($('#s-key').value.trim()) body.api_key = $('#s-key').value.trim();
   if ($('#s-gkey').value.trim()) body.gemini_key = $('#s-gkey').value.trim();

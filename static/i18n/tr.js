@@ -1006,4 +1006,11 @@ export default {
   'Navigation layout': 'Gezinme düzeni',
   'Pages listed under each section in the sidebar': 'Sayfalar kenar çubuğunda her bölümün altında',
   'Pages as tabs across the top': 'Sayfalar üstte sekmeler olarak',
+  'Quick question': 'Kısa bir soru',
+  'Share weekly usage numbers to help improve the app': 'Uygulamanın gelişmesine yardım için haftalık kullanım sayılarını paylaş',
+  "Days studied, minutes, cards reviewed, exercises answered and lessons finished, once a week. Never your answers, notes or books. Linked to your account only if you're signed in.": 'Çalışılan günler, dakikalar, tekrar edilen kartlar, cevaplanan alıştırmalar ve bitirilen dersler; haftada bir. Cevaplarınız, notlarınız veya kitaplarınız asla gönderilmez. Yalnızca oturum açtıysanız hesabınıza bağlanır.',
+  'Anything else? (optional)': 'Eklemek istediğiniz bir şey var mı? (isteğe bağlı)',
+  'Thanks for answering!': 'Cevabınız için teşekkürler!',
+
+  'Click an option to see it in the app behind this box.': 'Uygulamada bu kutunun arkasında görmek için bir seçeneğe tıklayın.',
 };

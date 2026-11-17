@@ -28,6 +28,7 @@
   <div class="nav-foot">
     <div class="row nav-tools"><div id="nav-streak" class="streak grow"></div>
       <button id="theme-toggle" class="icon-btn" title="Switch day / night mode"></button></div>
+    <a id="nav-survey" class="nav-survey hidden" data-icon="star"><span>Quick question</span><b class="badge">!</b></a>
     <a data-section="settings" data-icon="settings"><span>Settings</span></a>
     <a id="nav-ai" class="ai-status" data-go="settings"></a>
     <p id="nav-version" class="nav-version" title="App version"></p>
@@ -411,6 +412,10 @@
         <div class="two">
           <label>App language<select id="s-ui-lang"><option value="en">English</option><option value="tr">Türkçe</option></select></label>
           <label>Navigation layout<select id="s-nav"><option value="side">Pages listed under each section in the sidebar</option><option value="top">Pages as tabs across the top</option></select></label>
+        </div>
+        <label class="check"><input id="s-share" type="checkbox"> Share weekly usage numbers to help improve the app</label>
+        <p class="muted small">Days studied, minutes, cards reviewed, exercises answered and lessons finished, once a week. Never your answers, notes or books. Linked to your account only if you're signed in.</p>
+        <div class="two">
           <label>Level<select id="s-level"><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select></label>
           <label>Native language<input id="s-native"></label>
           <label>Usual minutes per day<input id="s-minutes" type="number" min="10" max="300"></label>
