@@ -2362,7 +2362,6 @@ export default {
   'You wrote: {}': 'Yazdığınız: {1}',
   'Also right:': 'Bu da doğru:',
   "Your verbs are in the right place, so this doesn't count against the rule. The other parts usually go in the order shown above.": 'Fiilleriniz doğru yerde, bu yüzden bu cevap kuralın aleyhine sayılmaz. Diğer öğeler genellikle yukarıda gösterilen sırayla gelir.',
-};
 
   // ---------- 3.0: the course from A1 to B1 (course.js, Home and the quick plan) ----------
   "Course · {}": "Kurs · {1}",
