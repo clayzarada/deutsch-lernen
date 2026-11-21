@@ -2427,4 +2427,6 @@ export default {
   'Run the welcome setup again': 'Karşılama kurulumunu yeniden çalıştır',
   'No plan yet today. Set your time, then press “Quick plan (free)” for an instant one, or “Plan my day” to have AI build it.': 'Bugün için henüz plan yok. Sürenizi girin; anında bir plan için “Hızlı plan (ücretsiz)” düğmesine, yapay zekânın hazırlaması için “Günümü planla” düğmesine basın.',
   'needs a few more reviews': 'birkaç tekrar daha gerekiyor',
+  'Upgrade: €79 / year': 'Yükselt: 79 € / yıl',
+  '€9.99 / month': '9,99 € / ay',
 };

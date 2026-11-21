@@ -42,6 +42,9 @@ What the code does, in short:
 4. First price: **$9.99 USD, Recurring, Monthly**. Under **Include tax in price** leave **No** (tax is added on top at
    checkout, as the website already says).
 5. Save, then on the product page add a second price with **+**: **$79.00 USD, Recurring, Yearly**, tax not included.
+5a. Euro countries pay **€9.99 / €79 with VAT included**: on each price, **Edit → Add a price by currency → EUR**, enter
+   9.99 (or 79.00) and set **Include tax in price: Yes** for the euro amount (EU prices shown to consumers must include
+   VAT). The price ids stay the same; the website (`prices.js`) and the app show euros to visitors in euro countries.
 6. Copy each price's id (`price_...`). You need them in step 5.
 
 ## 3. Customer portal (Manage subscription)
@@ -64,8 +67,8 @@ shows them.
 **Developers → Webhooks → Add endpoint**:
 
 1. Endpoint URL: `https://zarusstgbgyvongoterq.supabase.co/functions/v1/stripe`
-2. API version: **2026-04-22.dahlia** (or newer; the code reads both the old and new invoice shapes, and fetches
-   the subscription itself with that version).
+2. API version: a **dahlia** release (the sandbox offered 2026-08-26.dahlia, the latest in that family; the code
+   pins 2026-04-22.dahlia for its own calls and reads both invoice shapes).
 3. Events to send:
    - `checkout.session.completed`
    - `customer.subscription.created`
@@ -101,13 +104,15 @@ Sessions**, **Customer portal** and **Subscriptions**.
 
 1. Supabase → **SQL editor**: run `supabase/migrations/0005_stripe.sql` (safe to run again). Do this **before**
    deploying the functions: the new code writes the new columns.
-2. Deploy the functions (Supabase CLI, from the app folder, signed in to the project):
+2. Deploy the functions. In the dashboard editor a function is one file, so the shared helper has to be pasted
+   into it (the sandbox setup on 2026-11-21 did that); with the Supabase CLI, from the app folder:
    ```
    supabase functions deploy billing
    supabase functions deploy stripe --no-verify-jwt
    supabase functions deploy paddle --no-verify-jwt
    ```
-   - `billing` keeps **Verify JWT on**: only signed-in users call it.
+   - `billing`: turn **Verify JWT with legacy secret off**. The app's sign-in tokens aren't signed with the legacy
+     secret, so leaving it on rejects every Upgrade click; the function checks the sign-in itself (like `ai`).
    - `stripe` must have **Verify JWT off**: Stripe can't sign in; the function checks Stripe's signature instead.
      Check it in the dashboard under Edge Functions → stripe → Details.
    - `paddle` is redeployed because it now leaves alone a Plus that Stripe granted (it stays JWT-off as before).

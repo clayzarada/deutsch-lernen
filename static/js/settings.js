@@ -71,6 +71,18 @@ function loadSettings() {
 }
 
 // ---------- account (Plus) ----------
+// Euro countries pay €9.99 / €79 with VAT included, everyone else $9.99 / $79 (Stripe picks the currency at checkout
+// from where the buyer is; the time zone is a good enough guess for the button label).
+const EURO_ZONES = ['Amsterdam', 'Andorra', 'Athens', 'Berlin', 'Bratislava', 'Brussels', 'Busingen', 'Dublin', 'Helsinki',
+  'Ljubljana', 'Lisbon', 'Luxembourg', 'Madrid', 'Malta', 'Mariehamn', 'Monaco', 'Nicosia', 'Paris', 'Podgorica', 'Riga',
+  'Rome', 'San_Marino', 'Tallinn', 'Vaduz', 'Vatican', 'Vienna', 'Vilnius', 'Zagreb', 'Famagusta'];
+const EURO = (() => {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    return ['Atlantic/Canary', 'Atlantic/Madeira', 'Atlantic/Azores', 'Africa/Ceuta'].includes(tz)
+      || (tz.startsWith('Europe/') && EURO_ZONES.includes(tz.slice(7)));
+  } catch { return false; }
+})();
 const ACC = { email: '', codeSent: false };
 
 async function loadAccount(refresh) {
@@ -150,8 +162,8 @@ function renderAccount(a) {
       <p class="muted small">${S.settings.own_key ? 'Your own API key is saved, so the app uses it instead of Plus. Use “Remove API key” at the bottom of Settings to switch to Plus.' : 'AI features run through Plus. No API key needed.'}</p>`
       : !a.sales_open ? `<p class="small" style="margin-top:8px"><b>Plus is coming soon:</b> AI features with no API key of your own, plus cloud backup. You'll be able to upgrade right here.</p>`
       : `<p class="small" style="margin-top:8px">Get Plus for AI features with no API key of your own. Cancel any time.</p>
-        <div class="btnrow"><button type="button" id="acct-buy-yearly">Upgrade: $79 / year</button>
-          <button type="button" class="ghost" id="acct-buy-monthly">$9.99 / month</button></div>
+        <div class="btnrow"><button type="button" id="acct-buy-yearly">${EURO ? 'Upgrade: €79 / year' : 'Upgrade: $79 / year'}</button>
+          <button type="button" class="ghost" id="acct-buy-monthly">${EURO ? '€9.99 / month' : '$9.99 / month'}</button></div>
         <p class="muted small">Checkout opens in your browser. When you're done, come back and press Refresh.</p>`}
     ${plus ? '<div id="cloud-box" class="cloud-box"><p class="muted small">Loading cloud backup…</p></div>' : ''}
     ${a.offline ? '<p class="muted small">Offline: showing the last known status.</p>' : ''}
