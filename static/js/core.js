@@ -215,7 +215,7 @@ export function registerView(name, load) { views[name] = load; }
 export const SECTIONS = {
   home: [['today', 'Today', 'today'], ['progress', 'Progress', 'progress'], ['coach', 'Coach', 'coach']],
   learn: [['course', 'Course', 'book'], ['decl', 'Declensions', 'rocket'], ['verbs', 'Verbs', 'spear'], ['grammar', 'Grammar', 'page'], ['reading', 'Reading room', 'reader']],
-  practice: [['practice', 'Exercises', 'practice'], ['writing', 'Writing', 'edit'], ['listening', 'Listening', 'headphones'], ['mistakes', 'Mistakes', 'mistake']],
+  practice: [['practice', 'Exercises', 'practice'], ['writing', 'Writing', 'edit'], ['listening', 'Listening', 'headphones'], ['mistakes', 'Mistake Book', 'mistake']],
   cards: [['cards', 'Flashcards', 'cards']],
   library: [['library', 'Books', 'library'], ['reader', 'Reader', 'reader'], ['resources', 'Resources', 'resources']],
   settings: [['settings', 'Settings', 'settings']],

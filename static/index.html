@@ -27,7 +27,7 @@
   <div class="brand"><span class="flag"><i></i><i></i><i></i></span>Deutsch <em>lernen</em></div>
   <a data-section="home" data-icon="today"><span>Home</span></a>
   <a data-section="learn" data-icon="rocket"><span>Learn</span></a>
-  <a data-section="practice" data-icon="practice"><span>Practice</span></a>
+  <a data-section="practice" data-icon="practice"><span data-tr="Pratik">Practice</span></a>
   <a data-section="cards" data-icon="cards"><span>Flashcards</span><b class="badge hidden"></b></a>
   <a data-section="library" data-icon="library"><span>Library</span></a>
   <div class="nav-foot">
@@ -97,7 +97,7 @@
   <!-- LIBRARY -->
   <section id="view-library" class="view hidden">
     <header class="page-head">
-      <div><p class="eyebrow">Your textbooks</p><h1>Library</h1></div>
+      <div><p class="eyebrow">Your textbooks</p><h1>Books</h1></div>
       <label class="button" data-icon="upload"><span>Import document</span><input id="pdf-input" type="file" accept=".pdf,.html,.htm,.md,.txt" multiple hidden></label>
     </header>
     <div id="book-list" class="book-grid"></div>
@@ -171,7 +171,7 @@
 
   <!-- PRACTICE -->
   <section id="view-practice" class="view hidden">
-    <header class="page-head"><div><p class="eyebrow">Exercises from your textbook</p><h1>Practice</h1></div>
+    <header class="page-head"><div><p class="eyebrow">From your textbook</p><h1>Exercises</h1></div>
       <div class="tabs" id="p-tabs"><button data-ptab="sets">AI practice sets</button><button data-ptab="gaps">Gap-fills from the book</button></div></header>
     <div id="ptab-gaps" class="split hidden">
       <div class="side-col">
@@ -460,7 +460,7 @@
         <p class="muted small">The weekly goal is the number of days you mean to study. Rest days are normal: missing a day never resets anything. The app never sends reminders.</p>
         <label>Goal<input id="s-goal" placeholder="e.g. pass Goethe B1, move to Berlin, read novels"></label>
         <label>Exam or deadline (optional)<input id="s-exam" type="date"></label>
-        <label class="check"><input type="checkbox" id="s-course"> Include the built-in beginner course on Home and in quick plans</label>
+        <label class="check"><input type="checkbox" id="s-course"> Include the course (A1 to B1) on Home and in quick plans</label>
         <button type="button" id="s-welcome" class="ghost small">Run the welcome setup again</button>
       </div>
       <div class="panel">
