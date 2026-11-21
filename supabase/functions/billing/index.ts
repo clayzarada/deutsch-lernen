@@ -66,7 +66,13 @@ async function checkout(req: Request, user: { id: string; email?: string }) {
   // A returning buyer keeps one Stripe customer (one payment history, one portal); a new one gets the email prefilled.
   if (profile.stripe_customer_id) session.customer = profile.stripe_customer_id;
   else if (user.email) session.customer_email = user.email;
-  const r = await stripe("POST", "/checkout/sessions", session);
+  let r = await stripe("POST", "/checkout/sessions", session);
+  if (!r.ok && session.customer && r.data?.error?.code === "resource_missing") {
+    // A customer from the test sandbox doesn't exist with live keys (or was deleted): start a fresh one.
+    delete session.customer;
+    if (user.email) session.customer_email = user.email;
+    r = await stripe("POST", "/checkout/sessions", session);
+  }
   if (!r.ok || !r.data.url) {
     console.error("checkout session failed", r.status, JSON.stringify(r.data).slice(0, 500));
     return json({ error: "Couldn't open checkout. Try again later." }, 502);
