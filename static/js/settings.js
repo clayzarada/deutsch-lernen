@@ -51,6 +51,7 @@ function loadSettings() {
   $('#s-key').value = '';
   $('#s-key').placeholder = s.own_key ? 'Saved. Paste a new key to replace it.' : 'Paste your key from console.anthropic.com';
   $('#key-state').innerHTML = keyPill(s.own_key);
+  $('#s-remove-key').hidden = !s.own_key;
   // Plus picks the models; the choice only applies to your own API key.
   $('#plus-models').hidden = !s.plus_mode;
   $('#model-choice').hidden = !!s.plus_mode;

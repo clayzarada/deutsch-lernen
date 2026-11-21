@@ -36,14 +36,23 @@ document.addEventListener('click', e => {
     syncLanguage(S.settings.ui_language);
     await loadBooks();
   } catch (err) {
-    toast('Could not reach the app server. Is the start.bat window still open? ' + err.message, 'error');
+    toast('Could not reach the app. Close Deutsch lernen and open it again. ' + err.message, 'error');
     return;
   }
   refreshNav();
   setNavLayout(new URLSearchParams(location.search).get('nav') || S.settings.nav_layout);
+  // Sidebar links have no address, so give them a tab stop and a label (labels also show as tooltips when the sidebar is icons only).
+  document.querySelectorAll('#nav a:not([href])').forEach(a => {
+    a.tabIndex = 0; a.setAttribute('role', 'button');
+    const label = a.querySelector('span')?.textContent.trim();
+    if (label && !a.title) { a.title = label; a.setAttribute('aria-label', label); }
+  });
   matchMedia('(max-width: 860px)').addEventListener('change', () => setNavLayout(S.settings.nav_layout));
   const start = store.get('view');
   show(hasView(start) && S.settings.onboarded ? start : 'today');
   if (!S.settings.onboarded) startWelcome();
 })();
 import('./survey.js');
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('a[role=button]')) { e.preventDefault(); e.target.click(); }
+});

@@ -1369,3 +1369,31 @@ body[data-nav="side"] .nav-sub { display: flex; }
 .survey-rating { display: flex; gap: 8px; }
 .survey textarea { width: 100%; min-height: 70px; margin-top: 14px; }
 .survey .btnrow { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+/* ============ review fixes ============ */
+/* readable text colors (WCAG AA) in the light theme */
+:root { --mid: #b45309; --das: #15803d; --gold-text: #8a5a00; }
+.tip, .goal-line .label, .res-icon { color: var(--gold-text, var(--gold)); }
+:root[data-theme="dark"] { --gold-text: var(--gold); }
+/* dark theme: white text on the red buttons needs a deeper red */
+:root[data-theme="dark"] { --accent-solid: #c42a31; --accent-solid-hover: #d6353c; }
+button, .button { background: var(--accent-solid, var(--accent)); }
+button:hover, .button:hover { background: var(--accent-solid-hover, var(--accent-hover)); }
+input::placeholder, textarea::placeholder { opacity: 1; }
+.nav-version { opacity: 1; }
+:root[data-theme="dark"] .toast { background: #2e2b28; border: 1px solid var(--line-strong); }
+/* sidebar: highlight only the page you're on, not its section too */
+body[data-nav="side"] #nav a[data-section].active { background: transparent; color: var(--text); font-weight: 650; }
+body[data-nav="side"] #nav a[data-section].active::before { display: none; }
+/* keep Settings and the AI status reachable on short screens */
+#nav .nav-foot { position: sticky; bottom: 0; background: var(--surface); padding-top: 6px; }
+#nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* survey options: no red fill on hover, labels left-aligned */
+.survey-opt { justify-content: flex-start; }
+.survey-opt:hover { background: var(--surface-2); border-color: var(--line-strong); color: var(--text); }
+.survey-opt.on, .survey-opt.on:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
+/* Home's quick-start cards never leave a gap */
+.home-next { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+@media (max-width: 1100px) { .home-next { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .view, .toast, .typing i { animation: none !important; } }
+

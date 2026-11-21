@@ -218,7 +218,7 @@
   <section id="view-cards" class="view hidden">
     <header class="page-head">
       <div><p class="eyebrow">Spaced repetition</p><h1>Flashcards</h1></div>
-      <div class="tabs"><button data-tab="review">Review</button><button data-tab="browse">Browse &amp; create</button><button data-tab="library">Library</button><button data-tab="anki">Anki</button></div>
+      <div class="tabs"><button data-tab="review">Review</button><button data-tab="browse">Browse &amp; create</button><button data-tab="library">Ready-made decks</button><button data-tab="anki">Anki</button></div>
     </header>
     <div id="tab-review" class="tab">
       <div class="review-bar">
@@ -227,7 +227,7 @@
       </div>
       <div id="review-box"></div>
       <p class="muted small center keys" id="rv-keys">
-        <kbd>Space</kbd> show answer &nbsp; <kbd>1</kbd> Again &nbsp; <kbd>2</kbd> Hard &nbsp; <kbd>3</kbd> Good &nbsp; <kbd>4</kbd> Easy</p>
+        <kbd>Enter</kbd> show answer &nbsp; <kbd>1</kbd> Again &nbsp; <kbd>2</kbd> Hard &nbsp; <kbd>3</kbd> Good &nbsp; <kbd>4</kbd> Easy</p>
       <div id="rv-stats"></div>
     </div>
     <div id="tab-browse" class="tab hidden">
@@ -503,7 +503,7 @@
   </div>
 </dialog>
 <div id="welcome" class="welcome hidden"></div>
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 <script type="module" src="/static/js/main.js"></script>
 </body>
 </html>

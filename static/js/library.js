@@ -9,7 +9,7 @@ async function loadLibrary() {
   await loadBooks();
   const list = $('#book-list');
   if (!S.books.length) {
-    list.innerHTML = emptyState('library', 'No books yet', 'Press <b>Import PDF</b> or drag a PDF here to add your first textbook.');
+    list.innerHTML = emptyState('library', 'No books yet', 'Press <b>Import document</b> or drag a PDF here to add your first textbook.');
     return;
   }
   list.innerHTML = S.books.map(b => {

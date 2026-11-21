@@ -80,10 +80,25 @@ const ICONS = {
   moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
 };
 
-// ---------- pronunciation: Gemini reads a short German text aloud ----------
+// ---------- pronunciation: Gemini reads a short German text aloud; without a key, the computer's own voice ----------
+export function sayLocally(text) {
+  if (!window.speechSynthesis) return false;
+  const u = new SpeechSynthesisUtterance(String(text).replace(/…|\.\.\./g, ' '));
+  u.lang = 'de-DE';
+  const vs = speechSynthesis.getVoices();
+  const v = vs.find(x => x.lang === 'de-DE') || vs.find(x => x.lang?.startsWith('de'));
+  if (v) u.voice = v;
+  u.rate = 0.9;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+  return true;
+}
 let clip;
 export async function playClip(text, btn) {
-  if (!S.settings?.has_gemini_key) return toast('Add a Google Gemini API key in Settings to hear pronunciation', 'error');
+  if (!S.settings?.has_gemini_key) {
+    if (!sayLocally(text)) toast('Add a free Google Gemini key in Settings to hear pronunciation', 'error');
+    return;
+  }
   clip?.pause();
   btn?.classList.add('playing');
   try {

@@ -20,7 +20,7 @@ registerView('today', loadToday);
 async function loadToday() {
   const hour = new Date().getHours();
   $('#today-greeting').textContent = hour < 4 ? 'Gute Nacht!' : hour < 11 ? 'Guten Morgen!' : hour < 18 ? 'Guten Tag!' : 'Guten Abend!';
-  if (!$('#plan-minutes').value) $('#plan-minutes').value = S.settings.daily_minutes;
+  if (!$('#plan-minutes').dataset.touched) $('#plan-minutes').value = S.settings.daily_minutes;
   const [st, plan] = await Promise.all([api('/stats'), api('/plan/today')]);
   // The study day (it runs until 4am), not the calendar date.
   $('#today-date').textContent = new Date(st.today.date + 'T12:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
@@ -179,7 +179,7 @@ function renderHero() {
   const card = (go, ic, t, sub) => `<button class="next-card" data-next="${go}">${icon(ic)}<span><b>${esc(t)}</b><small>${esc(sub)}</small></span></button>`;
   const waiting = c.due + c.new_available;
   $('#home-next').innerHTML =
-    card('cards', 'cards', waiting ? `${waiting} cards waiting` : 'Flashcards', waiting ? `About ${Math.max(1, Math.round(waiting / 4))} min` : (c.total ? 'Nothing due right now' : 'Add a pack from the Library tab'))
+    card('cards', 'cards', waiting ? `${waiting} cards waiting` : 'Flashcards', waiting ? `About ${Math.max(1, Math.round(waiting / 4))} min` : (c.total ? 'Nothing due right now' : 'Add a ready-made deck'))
     + (st.course && !st.course.finished
       ? card('lesson', 'book', `Lesson ${st.course.next.n}: ${st.course.next.title}`, `Course · ${st.course.done} of ${st.course.total} lessons done`)
       : card('decl', 'rocket', j.finished ? 'Declensions' : j.title, j.finished ? 'Course finished · free practice' : `Declensions · step ${Math.min(j.steps_done + 1, j.steps_total)} of ${j.steps_total}`))
@@ -217,7 +217,9 @@ $('#home-next').addEventListener('click', e => {
 function renderPlan(plan) {
   S.plan = plan;
   renderHero();
-  $('#plan-form button[type=submit] span').textContent = plan ? 'New plan' : 'Plan my day';
+  $('#plan-form button[type=submit] span').textContent = plan ? 'New plan' : (S.settings.has_key ? 'Plan my day' : 'Plan with AI');
+  $('#plan-form button[type=submit]').classList.toggle('ghost', !S.settings.has_key);
+  $('#plan-quick').classList.toggle('ghost', !!S.settings.has_key);
   if (!plan) {
     $('#plan-meta').textContent = 'A session built from your progress, weak spots and flashcards.';
     $('#plan').innerHTML = `<div class="plan-empty">${icon('sparkles')}<p>No plan yet today. Set your time and press <b>Plan my day</b>, or <b>Quick plan</b> for an instant one without AI.</p></div>`;
@@ -290,3 +292,4 @@ $('#plan-form').addEventListener('submit', e => {
     } catch (err) { renderPlan(S.plan); throw err; }
   });
 });
+$('#plan-minutes').addEventListener('input', e => { e.target.dataset.touched = '1'; });
