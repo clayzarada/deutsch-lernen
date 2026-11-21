@@ -879,7 +879,7 @@ function genderRulesPanel() {
       <span class="art ${r.article}">${r.article}</span><span class="grow">${esc(r.label)}</span>
       ${r.mastered ? `<span title="Mastered">${icon('check')}</span>` : r.answered ? `<small>${r.recent_right}/${r.recent}</small>` : ''}</button>`).join('')}
     ${g.by_heart.answered ? `<p class="muted small">No rule, learned by heart: ${g.by_heart.right}/${g.by_heart.answered} right</p>` : ''}
-    <button type="button" class="link-btn" data-gtopic="gender-rules">${icon('page')}<span>All the rules in the Grammar handbook</span></button>
+    <button type="button" class="link-btn" data-gtopic="gender-rules">${icon('page')}<span>All the rules on the Grammar page</span></button>
   </div>`;
 }
 function progressRow(label, solid, total, extra = '') {

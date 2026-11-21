@@ -10,6 +10,9 @@
 .rr-card-top { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .rr-card-top .pill { margin-left: 0; }
 .rr-level { background: var(--accent-soft); color: var(--accent); }
+/* same level colors as the Grammar page */
+.rr-level.lv-A1 { background: var(--ok-soft); color: var(--ok); }
+.rr-level.lv-A2 { background: var(--gold-soft); color: var(--gold-text, var(--gold)); }
 .rr-ai { background: var(--gold-soft); color: var(--gold); }
 .rr-done { display: inline-flex; align-items: center; gap: 2px; color: var(--ok); font-size: 12px; font-weight: 600; }
 .rr-done .icon { width: 16px; height: 16px; }
@@ -42,8 +45,7 @@
 /* reader */
 .rr-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
 .rr-head h1 { font-size: 24px; }
-.rr-ai-label { display: flex; align-items: center; gap: 6px; color: var(--gold); margin-top: 4px; }
-.rr-ai-label .icon { width: 15px; height: 15px; }
+.rr-ai-label { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; color: var(--muted); margin-top: 4px; }
 .rr-tools { padding: 10px 14px; margin-bottom: 12px; }
 .rr-inline { flex-direction: row; align-items: center; gap: 6px; margin: 0; font-weight: 500; color: var(--muted); }
 .rr-inline select { width: auto; padding: 5px 8px; }
@@ -91,6 +93,7 @@
 @media (min-width: 1101px) { .rr-word-close { display: none; } }
 @media (max-width: 860px) {
   .rr-split { grid-template-columns: 1fr; }
+  .rr-split > .main-col { order: -1; }  /* on a phone the texts come first, the explanation after */
   .rr-page { padding: 18px; }
   .rr-text { font-size: 17px; }
 }

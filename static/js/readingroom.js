@@ -10,11 +10,21 @@ const SWEET = [90, 98];  // the "sweet spot": enough known words to read with ea
 const SPEEDS = [0.6, 0.8, 1, 1.2];
 const R = { data: null, filter: store.get('rr-filter') || 'all', text: null, sents: [], st: new Map(), word: null, seconds: 0 };
 
-registerView('reading', () => (R.text ? null : loadLibrary()));
+// Home's "good next read" card opens a text directly (S.readingOpen).
+registerView('reading', () => {
+  const want = S.readingOpen;
+  S.readingOpen = null;
+  if (want) return openText(want);
+  return R.text ? null : loadLibrary();
+});
+
+// The page heading belongs to the library; an open text has its own title and a back button.
+const pageHead = on => $('#view-reading > .page-head')?.classList.toggle('hidden', !on);
 
 // ---------- library ----------
 async function loadLibrary() {
   R.text = null;
+  pageHead(true);
   stopSpeech();
   $('#rr-box').innerHTML = loading('Opening the reading room...');
   R.data = await api('/readingroom');
@@ -29,7 +39,7 @@ function cardHtml(t) {
   const own = t.source !== 'library';
   return `<article class="rr-card ${isSweet(t) ? 'sweet' : ''}" data-open="${esc(t.key)}">
     <div class="rr-card-top">
-      ${t.level ? `<span class="chip rr-level">${esc(t.level)}</span>` : ''}
+      ${t.level ? `<span class="chip rr-level lv-${esc(t.level)}">${esc(t.level)}</span>` : ''}
       ${t.genre ? `<span class="chip">${esc(t.genre)}</span>` : ''}${t.topic && !own ? `<span class="chip">${esc(t.topic)}</span>` : ''}
       ${t.source === 'ai' ? aiTag() : own ? '<span class="chip">Your text</span>' : ''}
       ${isSweet(t) ? `<span class="pill ok">${icon('target')}Good next read</span>` : ''}
@@ -185,11 +195,12 @@ async function openText(key) {
   R.st = new Map();
   for (const p of r.tokens) if (p.lemma) R.st.set(p.lemma, p.s);
   R.sents = [];
+  pageHead(false);
   renderReader(r.tokens);
   // Record the visit (new words become "seen") without changing the shading you see now, so the words that
   // were new when you opened the text stay highlighted while you read it.
   api('/known/text', { method: 'POST', body: { text: t.text, saw: true } }).catch(() => {});
-  window.scrollTo?.(0, 0);
+  $('main').scrollTop = 0;  // the page scrolls inside <main>, not the window
 }
 
 // Splits the tokens into paragraphs of sentences so the read-aloud can follow along.
@@ -268,7 +279,7 @@ function renderReader(tokens) {
       <div class="grow rr-head-title">
         <p class="eyebrow">${[t.level, t.genre].filter(Boolean).map(x => `<span>${esc(x)}</span>`).join(' · ')}</p>
         <h1 data-no-i18n>${esc(t.title)}</h1>
-        ${t.source === 'ai' ? `<p class="small rr-ai-label">${icon('sparkles')}<span>AI-written. It may contain mistakes, so trust the dictionary over the story if they disagree.</span></p>` : ''}
+        ${t.source === 'ai' ? `<p class="small rr-ai-label">${aiTag()}<span>It may contain mistakes, so trust the dictionary over the story if they disagree.</span></p>` : ''}
       </div>
     </div>
     <div class="rr-tools panel" id="rr-tools"></div>

@@ -11,6 +11,7 @@ registerView('course', loadCourse);
 async function loadCourse() {
   if (S.courseLesson) { const id = S.courseLesson; S.courseLesson = null; return openLesson(id); }
   if (C.lesson || C.test) return C.test ? renderTest() : renderLesson();
+  if (!C.overview) $('#course-box').innerHTML = loading('Opening the course...');
   C.overview = await api('/lessons');
   renderList();
 }

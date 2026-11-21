@@ -2,6 +2,7 @@
 // and no textbook needed. Settings has a button to run it again.
 import { $, S, api, esc, icon, toast, show, refreshNav } from './core.js';
 import { openCourseLesson } from './course.js';
+import { lang, setLanguage } from './i18n.js';
 
 const LEVELS = [
   ['new', 'A1', "I'm new to German", 'Start from the very first words.'],
@@ -36,8 +37,10 @@ const option = (group, value, title, text, on) =>
 function render() {
   const steps = [
     () => `<div class="w-hero"><span class="flag big"><i></i><i></i><i></i></span><h1>Willkommen!</h1>
-        <p>Deutsch lernen helps you learn German a little every day: lessons, flashcards, grammar drills and your own textbook, in one place.</p>
-        <p class="muted">Four quick questions set it up for you. It takes under a minute.</p></div>`,
+        <p>Deutsch lernen helps you learn German a little every day: a course from A1 to B1, flashcards, grammar explained and drilled, short texts to read, and your own textbook, in one place.</p>
+        <p class="muted">Four quick questions set it up for you. It takes under a minute.</p>
+        <div class="w-lang" role="group" aria-label="App language" data-no-i18n>${[['en', 'English'], ['tr', 'Türkçe']].map(([v, l]) =>
+          `<button type="button" class="chip-btn ${lang === v ? 'on' : ''}" data-w-lang="${v}" aria-pressed="${lang === v}">${l}</button>`).join('')}</div></div>`,
     () => `<h2>How much German do you know?</h2><div class="w-options">${LEVELS.map(([v, , t, d]) => option('level', v, t, d, W.level === v)).join('')}</div>`,
     () => `<h2>How would you like to learn?</h2><div class="w-options">${WAYS.map(([v, t, d]) => option('way', v, t, d, W.way === v)).join('')}</div>`,
     () => `<h2>Pick a daily goal</h2><p class="muted">A small goal you keep beats a big one you skip. You can change it any time.</p>
@@ -74,7 +77,14 @@ async function finish(skip) {
   show('course');
 }
 
-$('#welcome').addEventListener('click', e => {
+$('#welcome').addEventListener('click', async e => {
+  // The app language can be picked right away; the page reloads in it and the welcome starts again.
+  const l = e.target.closest('[data-w-lang]')?.dataset.wLang;
+  if (l) {
+    if (l === lang) return;
+    try { S.settings = await api('/settings', { method: 'PUT', body: { ui_language: l } }); } catch (err) { return toast(err.message, 'error'); }
+    return setLanguage(l);
+  }
   const o = e.target.closest('[data-w]');
   if (o) {
     const v = o.dataset.value;

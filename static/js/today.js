@@ -4,9 +4,10 @@ import { openReader } from './reader.js';
 import { kittySvg, hopliteKittySvg } from './declensions.js';
 import { aiTag } from './aitag.js';
 
+// Labels match the page names in the sidebar.
 const KIND = {
-  reader: { label: 'Textbook', icon: 'reader' }, practice: { label: 'Practice', icon: 'practice' },
-  flashcards: { label: 'Flashcards', icon: 'cards' }, mistakes: { label: 'Mistakes', icon: 'mistake' },
+  reader: { label: 'Textbook', icon: 'reader' }, practice: { label: 'Exercises', icon: 'practice' },
+  flashcards: { label: 'Flashcards', icon: 'cards' }, mistakes: { label: 'Mistake Book', icon: 'mistake' },
   declensions: { label: 'Declensions', icon: 'rocket' }, verbs: { label: 'Verbs', icon: 'spear' },
   course: { label: 'Course', icon: 'book' },
   video: { label: 'Video', icon: 'play' },
@@ -27,6 +28,8 @@ async function loadToday() {
   $('#today-date').textContent = new Date(st.today.date + 'T12:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
   updateNavStatus(st);
   S.homeStats = st;
+  // A good next read from the reading room, if there is one. Not awaited: Home draws without it.
+  api('/readingroom').then(d => { S.homeRead = nextRead(d.texts); renderHero(); }).catch(() => {});
   renderSetup(plan);
   renderTiles(st);
   renderWeek(st.week);
@@ -36,18 +39,29 @@ async function loadToday() {
   renderPlan(plan);
 }
 
+// A brand-new learner: nothing studied yet, no plan and no book. Home then says plainly what to do first.
+const isNew = plan => !plan && !S.books.length && !S.homeStats?.calendar?.some(d => d.active) && !S.homeStats?.course?.done;
+
+// The reading room's best next text: one where you know 90-98% of the words, else the easiest unfinished one
+// at your level once you know most of its words.
+function nextRead(texts) {
+  const open = texts.filter(t => !t.finished && t.source === 'library');
+  const sweet = open.filter(t => t.known_pct >= 90 && t.known_pct <= 98).sort((a, b) => b.known_pct - a.known_pct)[0];
+  return sweet || open.filter(t => t.level === S.settings.level && t.known_pct >= 75).sort((a, b) => b.known_pct - a.known_pct)[0] || null;
+}
+
 function renderSetup(plan) {
+  if (!isNew(plan)) { $('#setup').innerHTML = ''; return; }
   const steps = [
-    { done: S.settings.has_key, title: 'Turn on AI features (optional)', text: 'Practice sets, marking, AI flashcards and the coach need a Claude API key. The dictionary, drills, flashcard packs and quick plans work without one.', go: 'settings', btn: 'Open Settings' },
-    { done: S.books.length > 0, title: 'Import a textbook', text: 'Any PDF. Chapters are detected from its bookmarks.', go: 'library', btn: 'Go to Library' },
-    { done: !!plan, title: 'Plan your first day', text: 'Use the form below.' },
+    { title: 'Try the course', text: 'Lessons from A1 to B1, about 10 minutes each: new words, a short dialogue, one grammar point and a quiz.', go: 'course', btn: 'Open the course' },
+    { title: 'Read a short text', text: 'The reading room has short texts for every level. Click any word to look it up.', go: 'reading', btn: 'Open the reading room' },
+    { title: 'Bring your own textbook (optional)', text: 'Import any PDF, then read it and do its exercises inside the app.', go: 'library', btn: 'Go to Library' },
   ];
-  // Only for a brand-new copy: once there's a book, cards or a plan, Home's own cards say what to do next.
-  if ((steps[0].done && steps[1].done) || S.books.length || S.homeStats?.cards.total || plan) { $('#setup').innerHTML = ''; return; }
-  $('#setup').innerHTML = `<div class="panel setup"><h2>Get started</h2><ol>${steps.map(s => `
-    <li class="${s.done ? 'done' : ''}"><span class="step-mark">${s.done ? icon('check') : ''}</span>
+  $('#setup').innerHTML = `<div class="panel setup"><h2>Get started</h2>
+    <p class="muted small">Press Start above for a ready-made session, or pick a first step here.</p><ol>${steps.map((s, i) => `
+    <li><span class="step-mark">${i + 1}</span>
       <div><b>${s.title}</b><p class="muted small">${s.text}</p></div>
-      ${!s.done && s.go ? `<button class="ghost small" data-go="${s.go}">${s.btn}</button>` : ''}</li>`).join('')}</ol></div>`;
+      <button class="ghost small" data-go="${s.go}">${s.btn}</button></li>`).join('')}</ol></div>`;
 }
 
 function renderTiles(st) {
@@ -154,14 +168,15 @@ function renderHero() {
   const goal = +S.settings.daily_minutes || 30, done = st.today.minutes;
   const R = 26, C = 2 * Math.PI * R, part = Math.min(1, done / goal);
   const ring = `<svg class="goal-ring ${part >= 1 ? 'met' : ''}" viewBox="0 0 64 64" role="img" aria-label="${done} of ${goal} minutes">
-    <circle cx="32" cy="32" r="${R}" class="track"/><circle cx="32" cy="32" r="${R}" class="fill" stroke-dasharray="${(C * part).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 32 32)"/>
+    <circle cx="32" cy="32" r="${R}" class="track"/>${part > 0 ? `<circle cx="32" cy="32" r="${R}" class="fill" stroke-dasharray="${(C * part).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 32 32)"/>` : ''}
     <text x="32" y="37" text-anchor="middle">${done}</text></svg>`;
   const idx = plan ? plan.blocks.findIndex(b => b.status === 'active') : -1;
   const next = plan ? (idx >= 0 ? idx : plan.blocks.findIndex(b => b.status === 'todo')) : -1;
   let eyebrow = `Today · ${done} of ${goal} minutes`, title, text, btn;
   if (!plan) {
     title = 'Start today\'s session';
-    text = 'A plan is put together from your flashcards, mistakes, book and courses.';
+    text = isNew(plan) ? 'Press Start and a short session is put together for you. Nothing to set up first.'
+      : 'A plan is put together from your flashcards, mistakes, book and courses.';
     btn = `<button id="hero-go" data-hero="plan">${icon('play')}<span>Start</span></button>`;
   } else if (next < 0) {
     title = 'Alles erledigt!';
@@ -184,8 +199,13 @@ function renderHero() {
     + (st.course && !st.course.finished
       ? card('lesson', 'book', `${st.course.next.level} · Lesson ${st.course.next.ln}: ${st.course.next.title}`, `Course · ${st.course.done} of ${st.course.total} lessons done`)
       : card('decl', 'rocket', j.finished ? 'Declensions' : j.title, j.finished ? 'Course finished · free practice' : `Declensions · step ${Math.min(j.steps_done + 1, j.steps_total)} of ${j.steps_total}`))
-    + (bk ? card('book', 'reader', bk.title, `Read on from page ${bk.page}`) : card('library', 'library', 'Add a textbook', 'Any PDF, read and practice inside the app'));
+    + (bk ? card('book', 'reader', bk.title, `Read on from page ${bk.page}`) : card('library', 'library', 'Add a textbook', 'Any PDF, read and practice inside the app'))
+    + (S.homeRead ? readCard(S.homeRead) : '');
 }
+
+// The title is German, so it is never translated.
+const readCard = t => `<button class="next-card" data-next="read">${icon('reader')}<span><b data-no-i18n lang="de">${esc(t.title)}</b>
+  <small>${esc(`Reading room · ${t.level} · you know ${t.known_pct}% of the words`)}</small></span></button>`;
 
 $('#home-hero').addEventListener('click', async e => {
   const b = e.target.closest('[data-hero]');
@@ -210,6 +230,7 @@ $('#home-next').addEventListener('click', e => {
   if (!n) return;
   if (n === 'book') return openReader(S.homeStats.book.id, S.homeStats.book.page);
   if (n === 'lesson') { S.courseLesson = S.homeStats.course.next.id; return show('course'); }
+  if (n === 'read') { S.readingOpen = S.homeRead.key; return show('reading'); }
   if (n === 'cards') S.cardTab = 'review';
   if (n === 'decl') S.declTab = 'journey';
   show(n);
