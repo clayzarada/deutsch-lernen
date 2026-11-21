@@ -178,7 +178,7 @@ TOPICS = [
       "Türkçede -lık, -cı, -lı gibi ekler kelimenin türünü değiştirir ama cinsiyet belirtmez. Almancada ise bazı son ekler "
       "cinsiyeti neredeyse kesin olarak gösterir. Güzel bir köprü: Türkçedeki -lık/-lik eki Almancada çoğu zaman "
       "-heit, -keit veya -ung karşılığıdır ve bunların hepsi die'dir: özgürlük = die Freiheit, olasılık = die "
-      "Möglichkeit, gazete (yayın) = die Zeitung. Türkçedeki ünlü uyumunda olduğu gibi, burada da kelimenin sonuna "
+      "Möglichkeit, hazırlık = die Vorbereitung. Türkçedeki ünlü uyumunda olduğu gibi, burada da kelimenin sonuna "
       "bakarak doğru biçimi seçersiniz.",
       {"view": DECL, "sub": "nouns", "mode": "gender"},
       keys="Endung Genusregel -ung -heit -keit -schaft -ion -tät -chen -lein -ismus -ling -ment -um",
@@ -659,7 +659,8 @@ TOPICS = [
         "legen bir şeyi bir yere koymaktır: Akkusativ.")],
       "Bu konu Türkçe konuşanlar için aslında kolaydır, çünkü Türkçe aynı ayrımı hâl ekleriyle yapar: 'mutfağa gidiyorum' "
       "(-e, yönelme) = Ich gehe in die Küche (Akkusativ); 'mutfaktayım' (-de, bulunma) = Ich bin in der Küche (Dativ). "
-      "Kural: Türkçede -e diyorsanız Akkusativ, -de diyorsanız Dativ. Fiil çiftleri de Türkçedeki gibi ayrılır: koymak / "
+      "Kural (bu dokuz edat için): Türkçede -e diyorsanız Akkusativ, -de diyorsanız Dativ. Bir istisnaya dikkat: "
+      "ankommen ('varmak') Türkçede -e alsa da Dativ ister: Wir kommen im Hotel an (otele varıyoruz). Fiil çiftleri de Türkçedeki gibi ayrılır: koymak / "
       "durmak (stellen / stehen), yatırmak / yatmak (legen / liegen), oturtmak / oturmak (setzen / sitzen).",
       drill(DECL, ["trig"]), keys="Wechselpräpositionen an auf hinter in neben über unter vor zwischen wo wohin im ins am ans stellen stehen legen liegen",
       skills=["trig:w:"], match=r"two-way|wechselpr|wo.{0,4}wohin|\bwohin\b"),
@@ -902,9 +903,9 @@ TOPICS = [
            ["hoch", "höher", "am höchsten"], ["nah", "näher", "am nächsten"], ["gut", "besser", "am besten"],
            ["viel", "mehr", "am meisten"], ["gern", "lieber", "am liebsten"]]),
        RULE("Many short adjectives with a, o, u take an umlaut: *alt → älter, groß → größer, jung → jünger*. After -t, -d, "
-            "-s, -ß, -z the superlative adds an -e-: *am ältesten, am heißesten*.",
+            "-s, -ß, -z the superlative adds an -e-: *am ältesten, am heißesten* (exception: *am größten*).",
             "a, o, u içeren birçok kısa sıfat Umlaut alır: *alt → älter, groß → größer, jung → jünger*. -t, -d, -s, -ß, "
-            "-z'den sonra üstünlükte -e- eklenir: *am ältesten, am heißesten*.")],
+            "-z'den sonra üstünlükte -e- eklenir: *am ältesten, am heißesten* (istisna: *am größten*).")],
       [("Mein Bruder ist älter als ich.", "My brother is older than me.", "Abim benden büyük."),
        ("Berlin ist größer als München.", "Berlin is bigger than Munich.", "Berlin Münih'ten büyük."),
        ("Anna ist so groß wie ihre Mutter.", "Anna is as tall as her mother.", "Anna annesi kadar uzun."),
@@ -1320,7 +1321,7 @@ TOPICS = [
       [("Ich kann zu kommen.", "Ich kann kommen.", "No zu after modal verbs.", "Modal fiillerden sonra zu gelmez."),
        ("zu anrufen", "anzurufen", "With separable verbs zu goes between the prefix and the verb.",
         "Ayrılabilen fiillerde zu, ön ek ile fiilin arasına girer."),
-       ("Ich gehe zur Bank für Geld abholen.", "Ich gehe zur Bank, um Geld abzuholen.", "'in order to' + verb is um ... zu, not für.",
+       ("Ich gehe zur Bank für Geld abheben.", "Ich gehe zur Bank, um Geld abzuheben.", "'in order to' + verb is um ... zu, not für.",
         "'-mek için' + fiil um ... zu ile söylenir, für ile değil.")],
       "zu + mastar, Türkçedeki -mek/-mak ile kurulan yapılara benzer: Ich habe Lust zu schwimmen = canım yüzmek istiyor. "
       "Türkçedeki '-mek için' yapısının karşılığı um ... zu'dur: um Deutsch zu lernen = Almanca öğrenmek için. Özneler "

@@ -155,7 +155,9 @@ Tamam, iki kilo alayım.""",
 - **-n / -en**: die Banane → die Banane**n**, die Tomate → die Tomate**n**
 - **-e** (çoğu zaman umlaut ile): das Brot → die Brot**e**, der Apfel → die **Ä**pfel
 - **-er**: das Ei → die Ei**er**, das Kind → die Kind**er**
-- **-s**: das Kilo → die Kilo**s**
+- **-s**: das Auto → die Auto**s**, das Handy → die Handy**s**
+
+Sayıdan sonra ölçü birimleri tekil kalır: zwei **Kilo**, neun **Euro**.
 
 Çoğulda artikel her zaman **die**'dir: die Äpfel, die Eier.
 
@@ -266,7 +268,7 @@ O zaman şimdi yemeğe gidelim!""",
 
 Düzenli fiiller **ge- ... -t** ile yapılır: machen → **gemacht**, lernen → **gelernt**. Sık kullanılan birçok fiil düzensizdir ve **-en** ile biter: essen → **gegessen**, trinken → **getrunken**.
 
-Hareket veya değişim bildiren fiiller **sein** kullanır: Ich **bin** nach Berlin **gefahren**. Sie **ist** nach Hause **gegangen**. Wir **sind** zu Hause **geblieben**.""",
+Hareket veya değişim bildiren fiiller **sein** kullanır; **bleiben** (kalmak) de öyle: Ich **bin** nach Berlin **gefahren**. Sie **ist** nach Hause **gegangen**. Wir **sind** zu Hause **geblieben**.""",
                     "Almanca öğrendim.; Pizza yedik.; Viyana'ya gitti.; Evde mi kaldın?"),
     },
     "beruf": {
@@ -415,14 +417,14 @@ Masanın üstünde değil mi?
 Hayır. Anahtarım da yok!
 Anahtar duvarda asılı, kapının yanında.
 Ah, teşekkürler. Ya telefon?
-Kanepenin altına bir bak. Ya da raftaki lambanın arkasına.
+Belki kanepenin altındadır. Ya da raftaki lambanın arkasında.
 İşte orada, kanepeyle rafın arasında!""",
         "grammar": ('Nerede? Dativ alan edatlar', """Bir şeyin **nerede** olduğunu söylemek için **in, an, auf, unter, neben, vor, hinter, zwischen** edatları **Dativ** ile kullanılır. Artikeller değişir:
 
 - der → **dem**: auf **dem** Tisch, unter **dem** Stuhl
 - das → **dem**: neben **dem** Sofa, **im** (= in dem) Regal
 - die → **der**: an **der** Wand, hinter **der** Tür
-- çoğul die → **den** ve isim -n alır: zwischen **den** Büchern
+- çoğul die → **den** ve isim -n alır (zaten -n veya -s ile bitmiyorsa): zwischen **den** Büchern
 
 Kısaltmalar: in dem → **im**, an dem → **am**.
 

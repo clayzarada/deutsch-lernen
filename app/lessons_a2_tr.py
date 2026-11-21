@@ -40,7 +40,7 @@ Güzeldi ama bugünkünden çok farklıydı. Çok paramız yoktu.
 O zamanlar nerede oturuyordun?
 Küçük bir köyde. Büyük bir bahçemiz ve bir köpeğimiz vardı.
 Çok oyuncağın var mıydı?
-Hayır, sadece bir bebeğim vardı. Ama çok dışarıdaydım ve çok mutluydum.
+Hayır, sadece bir bebeğim vardı. Ama çoğu zaman dışarıdaydım ve çok mutluydum.
 Okul zor muydu?
 Hayır, ama öğretmenimiz çok sertti!""",
         "grammar": ("war ve hatte: sein ve haben'ın Präteritum'u", """**sein** ve **haben** için Almanlar genellikle Perfekt değil **Präteritum** (di'li geçmiş) kullanır. "Ich war", "ich bin gewesen"den daha kısa ve daha yaygındır.
@@ -65,7 +65,7 @@ Benim üniversiteye gitmem gerekiyordu ama istemedim. Annemle babam hiç mutlu d
         "grammar": ('Geçmişte modal fiiller: konnte, musste, wollte', """Modal fiiller de sein ve haben gibi geçmiş için **Präteritum** kullanır. Mastarın umlautunu kaldırın, **-en**'i atın ve **-te** ekleyin:
 
 - können → ich **konnte**, müssen → ich **musste**, dürfen → ich **durfte**
-- wollen → ich **wollte**, sollen → ich **sollte**, mögen → ich **mochte**
+- wollen → ich **wollte**, sollen → ich **sollte**, mögen → ich **mochte** (g → ch)
 
 Ekler: ich konnte, du konnte**st**, er/sie konnte, wir konnte**n**, ihr konnte**t**, sie/Sie konnte**n**.
 
@@ -130,7 +130,7 @@ yüzlü, nazik""",
         "dialogue": """Merhaba! Buraya yeni mi geldiniz?
 Evet, bir hafta önce taşındım. Üçüncü katta oturuyorum.
 Ben on yıldır burada oturuyorum, asansörün karşısında. Nerelisiniz?
-Leipzig'liyim. Şimdi istasyonun yakınındaki bir şirkette çalışıyorum.
+Leipzigliyim. Şimdi istasyonun yakınındaki bir şirkette çalışıyorum.
 Bu çevre çok sakin. Kapıcı da çok güler yüzlü.
 Ne güzel. Şimdi bisikletle işe gidiyorum. Görüşmek üzere!
 Pazar günü bana kahveye gelsenize! O zaman tanışırız.""",
@@ -178,7 +178,7 @@ Akkusativ'de yalnızca der kelimeleri değişir: der → **den**, ein → **eine
         "words": """taşınma; kutu, sandık; mobilya; halı; ayna; bodrum; koridor, hol; buzdolabı; koymak (dik); koymak (yatırarak);
 asmak; taşımak; (kutudan) çıkarmak, açmak; ağır, zor; hafif, kolay; üstünde, üzerine""",
         "dialogue": """Kanepeyi nereye koyayım?
-Duvara dayayıver, pencerenin yanına.
+Duvara daya, pencerenin yanına.
 Ya halı? Nereye serilsin?
 Kanepenin önüne ser. Aynayı da koridora asalım.
 Kitap kutuları çok ağır! Bunları nereye koyalım?
@@ -262,7 +262,7 @@ Kısa sıfatların çoğu umlaut alır: groß → gr**ö**ßer → am gr**ö**ß
 
 Düzensizler: gut → **besser** → am **besten**; viel → **mehr** → am **meisten**; gern → **lieber** → am **liebsten**; hoch → **höher** → am **höchsten**.
 
--t, -d, -s, -ß ve -z'den sonra -sten'den önce -e- eklenir: am ält**e**sten, am heiß**e**sten.""",
+-t, -d, -s, -ß ve -z'den sonra -sten'den önce -e- eklenir: am ält**e**sten, am heiß**e**sten. İstisna: am **größten**.""",
                     "Erkek kardeşim benden büyük.; Berlin Hamburg'dan büyük.; Çayı kahveye tercih ederim.; En sıcak temmuzda olur."),
         "hints": 'old=yaşlı',
     },
@@ -291,6 +291,7 @@ Zamir fiilin hemen arkasına gelir: Ich **ziehe mich** an. Sorularda ve zaman ke
 
 Perfekt'te dönüşlü fiiller **haben** alır: Ich **habe mich** beeilt.""",
                     'Her sabah duş alırım.; Acele et!; Seviniyoruz.; Hızlıca giyindi.'),
+        "hints": 'his own=kendi',
     },
     "interessen": {
         "subtitle": 'Edatlı fiiller: warten auf, sich interessieren für',
@@ -440,8 +441,8 @@ Tabii. Buraya adresinizi yazıyorsunuz, aşağıda da imzanız gerekiyor.
         "grammar": ('Kibar ricalar: hätte, könnte, würde', """Kibarca rica etmek için Almanca **Konjunktiv II** (dilek-şart biçimleri) kullanır:
 
 - **hätte gern** (almak isterdim): Ich **hätte gern** einen Termin.
-- **könnte** (-ebilir miydi): **Könnten** Sie mir helfen?
-- **würde** + mastar (-er miydi): **Würden** Sie das bitte wiederholen?
+- **könnte** (-ebilirdi): **Könnten** Sie mir helfen?
+- **würde** + mastar (-erdi): **Würden** Sie das bitte wiederholen?
 
 Biçimler: ich hätte, du hättest, er/sie hätte, wir hätten, Sie hätten. ich könnte, du könntest, er/sie könnte, wir könnten, Sie könnten. ich würde, du würdest, er/sie würde, wir würden, Sie würden.
 
@@ -459,7 +460,7 @@ Tabii. 1995'te İzmir'de doğdum ve orada büyüdüm.
 Ne zamandan beri Almanya'da yaşıyorsunuz?
 Beş yıldır. Beş yıl önce üniversiteyi bitirdim ve sonra Stuttgart'a taşındım.
 Peki üniversiteden sonra ne yaptınız?
-Önce mart'tan ağustosa kadar staj yaptım. O zamandan beri bir şirkette mühendis olarak çalışıyorum.
+Önce marttan ağustosa kadar staj yaptım. O zamandan beri bir şirkette mühendis olarak çalışıyorum.
 Peki bizde ne zamandan itibaren başlayabilirsiniz?
 Bir ekimden itibaren.""",
         "grammar": ('Zaman: vor, seit, nach, ab, von ... bis', """Bu edatlar **Wann?** (ne zaman?) ve **Seit wann?** (ne zamandan beri?) sorularına cevap verir. Bir isimden önce geldiklerinde **Dativ** alırlar:
@@ -468,7 +469,7 @@ Bir ekimden itibaren.""",
 - **seit** (-den beri): **seit** 2020, **seit** einem Monat. Geçmişte başlamış ve hâlâ sürüyor, bu yüzden fiil **şimdiki zamandadır**!
 - **nach** (sonra): **nach** dem Studium, **nach** der Arbeit
 - **ab** (-den itibaren): **ab** Montag, **ab** dem ersten Mai
-- **von ... bis** (-den ... -e kadar): **von** März **bis** August, **von** neun **bis** fünf Uhr
+- **von ... bis** (-den ... -e kadar): **von** März **bis** August, **von** neun **bis** fünf Uhr (tek başına bis Akkusativ alır: **bis** nächsten Montag)
 - **in** (içinde, şu andan itibaren): **in** zwei Wochen
 
 Dikkat: hâlâ süren bir durum için "iki yıldır" **seit** zwei Jahren olur: Ich wohne **seit** zwei Jahren hier.

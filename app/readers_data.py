@@ -327,7 +327,7 @@ Zwei Tage später saß Thomas Brandt im Büro der Kommissarin. Die Münchner Pol
 „Sie sind am Sonntagabend mit einem großen, flachen Paket weggefahren. An Ihrer Jacke fehlt ein Knopf, und genau diesen Knopf haben wir im Museum gefunden.“
 Thomas Brandt lachte nervös. „Das Paket war ein Spiegel, ein Geschenk für meine Schwester in München. Sie ist gerade umgezogen. Und den Knopf habe ich schon letzte Woche verloren, als ich im dritten Saal eine Lampe repariert habe. Außerdem hatte ich für Montag und Dienstag Urlaub genommen. Frau Seidel wusste das. Sie hat den Urlaub selbst unterschrieben.“
 Die Kommissarin rief die Schwester an. Sie bestätigte alles und schickte sogar ein Foto von dem Spiegel, der jetzt in ihrem Flur hing.
-Anna Berger lehnte sich zurück. Frau Seidel hatte also gelogen, als sie sagte, dass Brandt sonst immer pünktlich sei. „Wer wusste von Ihren Geldproblemen?“, fragte sie.
+Anna Berger lehnte sich zurück. Frau Seidel hatte also gelogen: Sie hatte gewusst, dass Brandt nicht kommen würde, und trotzdem so getan, als wäre sie überrascht. „Wer wusste von Ihren Geldproblemen?“, fragte sie.
 Brandt überlegte. „Nur Frau Seidel. Ich habe es ihr erzählt, als ich um mehr Gehalt gebeten habe.“
 In diesem Moment wurde der Kommissarin vieles klar. Die Direktorin hatte ihr selbst von Brandts Geldproblemen erzählt. Sie hatte einen Schlüssel. Und am Sonntagabend hatte in ihrem Büro Licht gebrannt.
 Noch am selben Nachmittag ließ Anna Berger das Büro der Direktorin durchsuchen. Hinter einem Schrank fanden die Polizisten eine große Holzkiste. Darin lag, gut verpackt, „Der Sonnenuntergang am See“.
@@ -400,7 +400,7 @@ Meine Großmutter blieb zuerst mit ihrer kleinen Tochter, meiner Mutter, im Dorf
 Im Jahr 1971 kam sie dann auch nach Deutschland. Sie fand Arbeit in einer Fabrik in Ludwigshafen, in der Kabel produziert wurden. Die Arbeit war hart, und am Anfang verstand sie kein Wort Deutsch. „Wenn ich damals einen Deutschkurs hätte machen können, wäre vieles einfacher gewesen“, sagt sie. Aber Kurse gab es kaum, und nach zehn Stunden in der Fabrik war sie zu müde zum Lernen. Also lernte sie die Sprache von ihren Kolleginnen, beim Einkaufen und später von ihren Kindern.
 Eigentlich wollten meine Großeltern nur ein paar Jahre bleiben, Geld sparen und dann in die Türkei zurückkehren. Aber es kam anders. Meine Mutter ging in Deutschland zur Schule, zwei weitere Kinder wurden in Ludwigshafen geboren, und die Familie fand viele Freunde. Aus ein paar Jahren wurde ein ganzes Leben.
 Heute ist meine Großmutter fast achtzig Jahre alt. Sie wohnt immer noch in Ludwigshafen, in derselben Straße wie früher. Jeden Sommer fliegt sie für zwei Monate in ihr Dorf. „Ich habe zwei Heimaten“, sagt sie oft. „Wenn ich in der Türkei bin, vermisse ich Deutschland. Und wenn ich hier bin, vermisse ich die Türkei.“
-Ich finde ihre Geschichte sehr mutig. Ich weiß nicht, ob ich in ihrem Alter den Mut gehabt hätte, ganz allein in ein fremdes Land zu gehen.
+Ich finde ihre Geschichte sehr mutig. Ich weiß nicht, ob ich in ihrem Alter den Mut gehabt hätte, ohne ein Wort Deutsch in ein fremdes Land zu gehen.
 """),
     _t("b1-brot", "B1", "Magazine", "Food", "Das deutsche Brot",
        "Why Germans miss their bread abroad: rye and sourdough, regional rolls, 'Abendbrot', and the future of small bakeries.",
