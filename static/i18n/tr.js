@@ -2136,7 +2136,7 @@ export default {
   '80% · fewer reviews': '%80 · daha az tekrar',
   '90% · recommended': '%90 · önerilen',
   '95% · more reviews': '%95 · daha çok tekrar',
-  'How sure you want to be of remembering a card when it comes back. Higher means more reviews.': 'Bir kart yeniden karşınıza çıktığında onu ne kadar kesin hatırlamak istediğiniz. Daha yüksek değer, daha çok tekrar demektir.',
+  'Flashcard retention: how sure you want to be of remembering a card when it comes back. Higher means more reviews.': 'Kart hatırlama oranı: bir kart yeniden karşınıza çıktığında onu ne kadar kesin hatırlamak istediğiniz. Daha yüksek değer, daha çok tekrar demektir.',
   'Export all my data': 'Tüm verilerimi dışa aktar',
   'A .zip you can open anywhere: a copy of your study database, spreadsheets (CSV) of your flashcards, known words, writing, mistakes and study history, and your imported books and audio. Your API keys are never included.': 'Her yerde açabileceğiniz bir .zip dosyası: çalışma veritabanınızın bir kopyası; kartlarınızın, bildiğiniz kelimelerin, yazılarınızın, hatalarınızın ve çalışma geçmişinizin tabloları (CSV); içe aktardığınız kitaplar ve sesler. API anahtarlarınız asla dahil edilmez.',
   'Preparing your data. With many books this can take a moment...': 'Verileriniz hazırlanıyor. Çok sayıda kitap varsa bu biraz sürebilir...',
