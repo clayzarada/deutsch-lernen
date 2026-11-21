@@ -3,7 +3,7 @@ import datetime as dt
 import json
 
 from .i18n import localize
-from . import ai, course, db, decl, lessons, verbs, writing
+from . import ai, course, db, decl, lessons, readingroom, verbs, writing
 from .verbcourse import VERBS_COURSE
 
 PAGE_READ_SECONDS = 20  # time on a page before it counts as read
@@ -24,7 +24,7 @@ def day_stats(date):
     return {
         "date": date,
         "minutes": round((reading + rev["s"] + sum(act.values())) / 60),
-        "reading_minutes": round(reading / 60),
+        "reading_minutes": round((reading + act.get("reading", 0)) / 60),  # textbook pages + the reading room
         "practice_minutes": round(act.get("practice", 0) / 60),
         "listening_minutes": round(act.get("listening", 0) / 60),
         "pages_read": _pages_read("date=?", (date,)),
@@ -199,6 +199,7 @@ def build_context():
         "listening_library": db.q(
             "SELECT m.id AS media_id, m.title, m.source, c.title AS chapter, ROUND(m.seconds / 60.0, 1) AS minutes, "
             "m.listens FROM media m LEFT JOIN chapters c ON c.id = m.chapter_id ORDER BY m.id DESC LIMIT 40"),
+        "reading_room_finished": readingroom.coach_summary(),
         "recent_plans": recent_plans,
     }
 
