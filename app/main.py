@@ -893,7 +893,7 @@ def lesson_cards(lesson_id: str):
 @app.post("/api/welcome")
 def welcome(body: dict):
     """Finishes the welcome flow: saves the answers, adds the chosen starter packs."""
-    for k in ("level", "daily_minutes", "use_course"):
+    for k in ("level", "daily_minutes", "use_course", "share_usage"):
         if k in body:
             db.set_setting(k, body[k])
     added = sum(packs.add(p)["added"] for p in body.get("packs", []) if p in packs.BY_ID)

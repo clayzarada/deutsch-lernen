@@ -47,7 +47,7 @@ function loadSettings() {
   $('#s-voice-b').innerHTML = voices;
   for (const [k, id] of Object.entries(FIELDS)) $('#' + id).value = s[k] ?? '';
   $('#s-web').checked = s.web_search === '1';
-  $('#s-share').checked = s.share_usage !== '0';
+  $('#s-share').checked = s.share_usage === '1';
   $('#s-key').value = '';
   $('#s-key').placeholder = s.own_key ? 'Saved. Paste a new key to replace it.' : 'Paste your key from console.anthropic.com';
   $('#key-state').innerHTML = keyPill(s.own_key);

@@ -53,6 +53,7 @@ document.addEventListener('click', e => {
   if (!S.settings.onboarded) startWelcome();
 })();
 import('./survey.js');
+import('./needsai.js');
 document.addEventListener('keydown', e => {
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('a[role=button]')) { e.preventDefault(); e.target.click(); }
 });

@@ -22,10 +22,10 @@ const PACKS = [
   ['adjectives', 'Core adjectives', '88 cards'],
 ];
 
-const W = { step: 0, level: 'new', way: 'course', goal: 20, packs: new Set(['phrases']) };
+const W = { step: 0, level: 'new', way: 'course', goal: 20, packs: new Set(['phrases']), share: true };
 
 export function startWelcome() {
-  Object.assign(W, { step: 0, level: 'new', way: 'course', goal: 20, packs: new Set(['phrases']) });
+  Object.assign(W, { step: 0, level: 'new', way: 'course', goal: 20, packs: new Set(['phrases']), share: true });
   $('#welcome').classList.remove('hidden');
   render();
 }
@@ -43,7 +43,8 @@ function render() {
     () => `<h2>Pick a daily goal</h2><p class="muted">A small goal you keep beats a big one you skip. You can change it any time.</p>
         <div class="w-options two">${GOALS.map(([v, t, d]) => option('goal', v, t, d, W.goal === v)).join('')}</div>`,
     () => `<h2>Start with some flashcards?</h2><p class="muted">Pick any you like. New cards come in a few at a time, and there are more packs under Flashcards.</p>
-        <div class="w-options">${PACKS.map(([v, t, d]) => option('pack', v, t, d, W.packs.has(v))).join('')}</div>`,
+        <div class="w-options">${PACKS.map(([v, t, d]) => option('pack', v, t, d, W.packs.has(v))).join('')}</div>
+        <label class="check w-share"><input type="checkbox" id="w-share" ${W.share ? 'checked' : ''}> Help improve the app: share how much I study each week (numbers only, never my answers or notes). You can change this in Settings.</label>`,
   ];
   const last = W.step === steps.length - 1;
   $('#welcome').innerHTML = `<div class="w-card">
@@ -58,7 +59,8 @@ function render() {
 
 async function finish(skip) {
   const level = LEVELS.find(l => l[0] === W.level)[1];
-  const body = skip ? {} : { level, daily_minutes: W.goal, use_course: W.way === 'book' ? '0' : '1', packs: [...W.packs] };
+  const body = skip ? {} : { level, daily_minutes: W.goal, use_course: W.way === 'book' ? '0' : '1', packs: [...W.packs],
+    share_usage: document.getElementById('w-share')?.checked ?? W.share ? '1' : '0' };
   let r;
   try { r = await api('/welcome', { method: 'POST', body }); } catch (err) { return toast(err.message, 'error'); }
   S.settings = r.settings;
@@ -92,3 +94,5 @@ $('#welcome').addEventListener('click', e => {
   else if (a === 'skip') finish(true);
   else if (a === 'finish') finish(false);
 });
+
+document.addEventListener('change', e => { if (e.target.id === 'w-share') W.share = e.target.checked; });

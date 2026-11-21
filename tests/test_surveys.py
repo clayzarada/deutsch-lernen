@@ -60,6 +60,8 @@ def test_skip_sends_a_skip(client, server):
 
 
 def test_weekly_summary_once_and_can_be_turned_off(server):
+    db.set_setting("onboarded", "1")
+    assert surveys.send_weekly() is False  # nothing is sent until the learner said yes
     db.set_setting("share_usage", "1")
     assert surveys.send_weekly() is True
     row = server["usage"][-1]

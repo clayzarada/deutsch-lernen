@@ -135,8 +135,8 @@ def summary(week=None):
 def send_weekly():
     """Once a week (on the first start after a Monday), if sharing is on. Returns True when sent."""
     s = db.get_settings()
-    if s.get("share_usage") == "0":
-        return False
+    if s.get("share_usage") != "1" or s.get("onboarded") != "1":
+        return False  # only with the learner's yes
     week = _week_start()
     if s.get("usage_sent_week") == week.isoformat():
         return False
