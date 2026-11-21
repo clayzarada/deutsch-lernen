@@ -18,6 +18,7 @@ import './progress.js';
 import './settings.js';
 import './trust.js';
 import './course.js';
+import './readingroom.js';
 import { startWelcome } from './welcome.js';
 import './update.js';
 

@@ -12,7 +12,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import (account, ai, cloud, dataexport, surveys, anki, ankiimport, backup, lessons, course, db, decl, dictionary, known, levels, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
+from . import (account, ai, cloud, dataexport, surveys, anki, ankiimport, backup, lessons, course, db, decl, dictionary, known, levels, mistakelink, packs, pagecheck, pdfs, planner, readingroom, srs, textwork, tts,
                update, usage, verbs, wordorder, wordtrain, writing)
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
@@ -925,6 +925,9 @@ def known_text(body: dict):
         if p.get("lemma"):
             p["s"] = st.get(p["lemma"], known.NEW)
     return {"tokens": toks, "coverage": known.coverage(text)}
+
+
+app.include_router(readingroom.router)  # the reading room: graded texts, own texts, finished log
 
 
 @app.post("/api/lessons/{lesson_id}/cards")
