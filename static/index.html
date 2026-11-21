@@ -16,6 +16,7 @@
 </script>
 <link rel="stylesheet" href="/static/style.css">
 <link rel="stylesheet" href="/static/css/trust.css">
+<link rel="stylesheet" href="/static/css/progress.css">
 <script src="/static/vendor/pdf.min.js"></script>
 </head>
 <body>
@@ -61,6 +62,7 @@
         <div id="plan"></div>
       </div>
       <div class="side-stack">
+        <div id="today-progress"></div>
         <div id="today-journey"></div>
         <div class="panel"><h2>This week</h2><div id="week-chart" class="week-chart"></div></div>
         <div class="panel"><h2>Last 12 weeks</h2><div id="today-cal"></div></div>
@@ -69,6 +71,15 @@
     </div>
     <h2 class="section-title">Today in numbers</h2>
     <div id="stat-tiles" class="tiles"></div>
+  </section>
+
+  <!-- PROGRESS: honest measurement of what the learner can do -->
+  <section id="view-progress" class="view hidden">
+    <header class="page-head">
+      <div><p class="eyebrow">What you can really do, measured</p><h1>Progress</h1></div>
+    </header>
+    <div id="lv-check" class="hidden"></div>
+    <div id="lv-body"></div>
   </section>
 
   <!-- COURSE -->
@@ -423,7 +434,9 @@
           <label>New flashcards per day<input id="s-newcards" type="number" min="0" max="200"></label>
           <label>Flashcard retention<select id="s-retention"><option value="0.8">80% · fewer reviews</option><option value="0.85" data-tr="%85">85%</option><option value="0.9">90% · recommended</option><option value="0.95">95% · more reviews</option></select></label>
           <p class="muted small budget-note">How sure you want to be of remembering a card when it comes back. Higher means more reviews.</p>
+          <label>Weekly goal<select id="s-week-goal"><option value="3">3 days a week</option><option value="4">4 days a week</option><option value="5">5 days a week</option><option value="6">6 days a week</option><option value="7">7 days a week</option></select></label>
         </div>
+        <p class="muted small">The weekly goal is the number of days you mean to study. Rest days are normal: missing a day never resets anything. The app never sends reminders.</p>
         <label>Goal<input id="s-goal" placeholder="e.g. pass Goethe B1, move to Berlin, read novels"></label>
         <label>Exam or deadline (optional)<input id="s-exam" type="date"></label>
         <label class="check"><input type="checkbox" id="s-course"> Include the built-in beginner course on Home and in quick plans</label>

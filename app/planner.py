@@ -3,7 +3,7 @@ import datetime as dt
 import json
 
 from .i18n import localize
-from . import ai, course, db, decl, lessons, verbs, writing
+from . import ai, course, db, decl, lessons, levels, verbs, writing
 from .verbcourse import VERBS_COURSE
 
 PAGE_READ_SECONDS = 20  # time on a page before it counts as read
@@ -179,7 +179,8 @@ def build_context():
         "learner": {k: s[k] for k in ("level", "native_language", "daily_minutes", "goal", "exam_date")},
         "coach_notes": s["coach_notes"],
         "last_7_days": week(),
-        "streak_days": streak()["days"],
+        # A weekly goal, not a streak: rest days are normal, so the coach never counts days in a row.
+        "study_days_this_week": {k: levels.week_goal()[k] for k in ("days", "target")},
         "flashcards": card_counts(),
         "weak_topics": weak_topics(),
         "books": book_progress(),
