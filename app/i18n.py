@@ -483,6 +483,13 @@ EXACT.update(_VERBS_EXACT)
 EXACT.update(_WORDS_EXACT)
 PATTERNS.extend(_VERBS_PATTERNS)
 PATTERNS.extend(_WORDS_PATTERNS)
+
+# The B1 course lessons keep their Turkish in their own file. setdefault: a short word meaning there
+# ("form", "team") never replaces an existing UI translation.
+from .lessons_b1_tr import EXACT as _B1_EXACT  # noqa: E402
+
+for _k, _v in _B1_EXACT.items():
+    EXACT.setdefault(_k, _v)
 _PATTERNS = _compile()
 _SENTENCE = re.compile(r"(?<=[.!?])\s+")
 
