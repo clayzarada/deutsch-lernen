@@ -15,6 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/css/grammar.css">
 <script src="/static/vendor/pdf.min.js"></script>
 </head>
 <body>
@@ -202,6 +203,18 @@
         </div>
         <div id="dc-main"></div>
       </div>
+    </div>
+  </section>
+
+  <!-- GRAMMAR HANDBOOK -->
+  <section id="view-grammar" class="view hidden">
+    <header class="page-head">
+      <div><p class="eyebrow">Every rule explained, A1 to B1</p><h1>Grammar</h1></div>
+      <label class="gr-search"><input id="gr-q" type="search" aria-label="Search the grammar" autocomplete="off" spellcheck="false" placeholder="Search a topic or a German word (wegen, dessen)"></label>
+    </header>
+    <div class="split">
+      <div class="side-col"><div class="panel"><div id="gr-levels" class="gr-levels" role="group" aria-label="Level"></div><div id="gr-list"></div></div></div>
+      <div class="main-col" id="gr-topic"></div>
     </div>
   </section>
 

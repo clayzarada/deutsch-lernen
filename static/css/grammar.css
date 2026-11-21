@@ -1,0 +1,77 @@
+/* ============ Grammar handbook, gender rules, typed word order (static/js/grammar.js, declensions.js) ============ */
+#view-grammar .page-head { align-items: center; }
+.gr-search { flex: 1 1 320px; max-width: 460px; }
+.gr-search input { width: 100%; }
+.gr-levels { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.gr-item { display: flex; align-items: center; gap: 9px; width: 100%; text-align: left; background: transparent; color: var(--text);
+  border: 1px solid transparent; border-radius: var(--r-sm); padding: 6px 8px; font-weight: 500; font-size: 13.5px; white-space: normal; }
+.gr-item:hover { background: var(--surface-2); color: var(--text); }
+.gr-item.on { background: var(--accent-soft); border-color: var(--accent); }
+.gr-lv { flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px; font-variant-numeric: tabular-nums; }
+.gr-lv.lv-A1 { background: var(--ok-soft); color: var(--ok); }
+.gr-lv.lv-A2 { background: var(--gold-soft); color: var(--gold); }
+.gr-lv.lv-B1 { background: var(--accent-soft); color: var(--accent); }
+#gr-list { max-height: calc(100vh - 260px); overflow-y: auto; }
+
+.gr-topic { padding: 24px 32px 26px; font-size: 15.5px; line-height: 1.65; }
+.gr-topic h2 { font-size: 24px; margin: 6px 0 4px; letter-spacing: -.01em; }
+.gr-topic h3 { font-size: 17px; margin: 24px 0 6px; }
+.gr-topic p { margin: 9px 0; }
+.gr-meta { display: flex; gap: 8px; align-items: center; }
+.gr-summary { color: var(--muted); font-size: 16px; }
+.gr-try { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0 4px; }
+.gr-table-wrap { overflow-x: auto; margin: 12px 0; }
+.gr-table { border-collapse: collapse; font-size: 14.5px; min-width: 50%; }
+.gr-table caption { text-align: left; font-weight: 650; font-size: 13.5px; padding-bottom: 4px; }
+.gr-table th, .gr-table td { border: 1px solid var(--line); padding: 5px 10px; text-align: left; vertical-align: top; }
+.gr-table thead th { background: var(--surface-2); color: var(--muted); font-size: 12.5px; font-weight: 650; }
+.gr-table tbody th { font-weight: 600; white-space: nowrap; }
+.gr-mistakes { list-style: none; padding: 0; margin: 8px 0; display: flex; flex-direction: column; gap: 8px; }
+.gr-mistakes li { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 12px; }
+.gr-pair { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-weight: 550; }
+.gr-wrong { color: var(--bad); text-decoration: line-through; text-decoration-thickness: 1px; }
+.gr-right { color: var(--ok); }
+.gr-arrow { color: var(--muted); }
+.gr-mistakes small { display: block; color: var(--muted); font-size: 13.5px; margin-top: 2px; }
+.gr-tr { margin: 22px 0 6px; padding: 12px 16px; border-left: 4px solid var(--c-dat, #7c3aed); background: var(--surface-2); border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+.gr-tr h3 { margin: 0 0 4px; font-size: 15px; }
+.gr-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+.gr-nav button { max-width: 48%; }
+.gr-nav button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 860px) {
+  .gr-topic { padding: 18px 16px; }
+  #gr-list { max-height: 40vh; }
+  .gr-nav button { max-width: 100%; }
+}
+
+/* Mistake Book: "Explain this" */
+.mk-explain { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; }
+.mk-explain .icon { width: 13px; height: 13px; }
+.mk-explain small { color: var(--muted); }
+
+/* der/die/das drill: the rule behind the answer, and the rules panel */
+.gr-rulenote { margin: 8px auto 0; max-width: 640px; font-size: 14px; padding: 7px 12px; border-radius: var(--r-sm); background: var(--surface-2); border-left: 3px solid var(--line-strong); text-align: left; }
+.gr-rulenote.fits { border-left-color: var(--ok); }
+.gr-rulenote.exception { border-left-color: var(--mid); }
+.gr-rule { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; background: transparent; color: var(--text);
+  border: 1px solid transparent; border-radius: var(--r-sm); padding: 4px 7px; font-size: 13px; font-weight: 500; }
+.gr-rule:hover { background: var(--surface-2); color: var(--text); }
+.gr-rule.on { background: var(--accent-soft); border-color: var(--accent); }
+.gr-rule .art { flex-shrink: 0; width: 30px; font-weight: 700; font-size: 12px; }
+.gr-rule .art.der { color: var(--der); } .gr-rule .art.die { color: var(--die); } .gr-rule .art.das { color: var(--das); }
+.gr-rule small { color: var(--muted); font-variant-numeric: tabular-nums; }
+.gr-rule .icon { width: 14px; height: 14px; color: var(--ok); }
+.gr-rule-card { margin-top: 8px; padding: 8px 10px; background: var(--surface-2); border-radius: var(--r-sm); font-size: 13px; }
+.gr-rule-card p { margin: 3px 0; }
+
+/* Free drill: the table next to the question */
+.dc-peek { margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+
+/* Word order: typing the sentence */
+.wo-mode { display: flex; gap: 6px; margin-top: 4px; }
+.wo-start { text-align: center; margin: 6px 0 0; }
+.wo-typed { margin-top: 14px !important; width: min(640px, 100%) !important; }
+.wo-hint-tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 12px 0 0; }
+.wo-hint-tiles span { font-size: 15px; font-weight: 600; padding: 4px 10px; border-radius: var(--r-sm); background: var(--sunken); }
+.wo-diff { margin: 4px 0; }
+.wo-diff b { font-weight: 650; }
