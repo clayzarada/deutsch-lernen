@@ -16,6 +16,7 @@ import './theme.js';
 import './coach.js';
 import './settings.js';
 import './course.js';
+import './readingroom.js';
 import { startWelcome } from './welcome.js';
 import './update.js';
 

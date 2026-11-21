@@ -445,7 +445,7 @@ function cardContext() {
 
 // The offline dictionary answers instantly and for free; the AI is only asked when it knows nothing, for phrases,
 // or when you want the word explained in its sentence.
-function dictEntryHtml(e) {
+export function dictEntryHtml(e) {
   const head = [e.article, e.word].filter(Boolean).join(' ') + (e.plural && e.pos === 'noun' ? `, ${e.plural}` : '');
   const tone = e.article ? `g-${e.article}` : '';
   return `<div class="dict-entry">
