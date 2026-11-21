@@ -12,7 +12,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import (account, ai, cloud, surveys, anki, ankiimport, backup, lessons, course, db, decl, dictionary, known, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
+from . import (account, ai, cloud, dataexport, surveys, anki, ankiimport, backup, lessons, course, db, decl, dictionary, known, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
                update, usage, verbs, wordorder, wordtrain, writing)
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
@@ -750,7 +750,7 @@ def generate_cards(chapter_id: int, body: dict):
     db.exmany("INSERT INTO cards(book_id, chapter_id, type, front, back, extra, tags, created_at) "
               "VALUES(?,?,?,?,?,?,?,?)",
               [(c["book_id"], chapter_id, k["type"], k["front"], k["back"], k["extra"],
-                json.dumps(k["tags"], ensure_ascii=False), now) for k in cards])
+                json.dumps(k["tags"] + ["ai"], ensure_ascii=False), now) for k in cards])  # "ai": labeled AI-written
     return {"added": len(cards)}
 
 
@@ -772,12 +772,16 @@ def review_queue(chapter_id: int | None = None, book_id: int | None = None, extr
         limit = counts["new_available"] + max(0, min(extra_new, 200))
         new = db.q("SELECT * FROM cards WHERE due IS NULL" + scope + " ORDER BY id LIMIT ?", [*args, limit])
         cards = due + new
+    r = srs.retention()
     for c in cards:
-        c["previews"] = srs.preview(c)
+        c["previews"] = srs.preview(c, r)
     summary = db.q1("SELECT COUNT(*) AS total, COALESCE(SUM(due IS NULL), 0) AS new, "
                     "COALESCE(SUM(due > ?), 0) AS later, MIN(CASE WHEN due > ? THEN due END) AS next_due "
                     "FROM cards WHERE 1=1" + scope, [now, now, *args])
     return {"cards": cards, "counts": counts, "scope": summary, "ahead": ahead}
+
+
+SCHEDULE_COLS = ("ease", "interval", "reps", "lapses", "due", "stability", "difficulty")  # what a grade changes
 
 
 @app.post("/api/review/{card_id}")
@@ -787,9 +791,9 @@ def review_card(card_id: int, body: dict):
         raise HTTPException(404, "Card not found")
     grade = int(body["grade"])
     upd = srs.schedule(card, grade)
-    prev = {k: card[k] for k in ("ease", "interval", "reps", "lapses", "due")}
-    db.ex("UPDATE cards SET ease=?, interval=?, reps=?, lapses=?, due=? WHERE id=?",
-          (upd["ease"], upd["interval"], upd["reps"], upd["lapses"], upd["due"], card_id))
+    prev = {k: card[k] for k in SCHEDULE_COLS}
+    db.ex("UPDATE cards SET ease=?, interval=?, reps=?, lapses=?, due=?, stability=?, difficulty=? WHERE id=?",
+          (*(upd[k] for k in SCHEDULE_COLS), card_id))
     rid = db.ex("INSERT INTO reviews(card_id, grade, seconds, was_new, ts, date) VALUES(?,?,?,?,?,?)",
                 (card_id, grade, max(0, min(int(body.get("seconds", 0)), 180)), 1 if card["due"] is None else 0,
                  db.now(), db.today()))
@@ -804,8 +808,9 @@ def review_undo(body: dict):
     card_id, rid, prev = int(body["card_id"]), int(body["review_id"]), body["prev"]
     if not db.q1("SELECT id FROM reviews WHERE id=? AND card_id=?", (rid, card_id)):
         raise HTTPException(404, "That review can't be undone any more")
-    db.ex("UPDATE cards SET ease=?, interval=?, reps=?, lapses=?, due=? WHERE id=?",
-          (prev["ease"], prev["interval"], prev["reps"], prev["lapses"], prev["due"], card_id))
+    # stability/difficulty may be missing from an undo made by an older page; the card then re-derives them
+    db.ex("UPDATE cards SET ease=?, interval=?, reps=?, lapses=?, due=?, stability=?, difficulty=? WHERE id=?",
+          (*(prev.get(k) for k in SCHEDULE_COLS), card_id))
     db.ex("DELETE FROM reviews WHERE id=?", (rid,))
     card = db.q1("SELECT * FROM cards WHERE id=?", (card_id,))
     card["previews"] = srs.preview(card)
@@ -1244,12 +1249,15 @@ def import_material(chapter_id: int = Form(...), kind: str = Form(...), text: st
         raise HTTPException(400, "That's a lot of text. Import it in smaller pieces.")
 
     if kind == "cards":
-        cards = _parse_table(text) or ai.convert_import("cards", text, c["title"])
+        cards = _parse_table(text)
+        tags = ["gemini-notebook"]
+        if not cards:  # not a plain table: Claude tidies it into cards, so they're labeled AI-written
+            cards, tags = ai.convert_import("cards", text, c["title"]), ["gemini-notebook", "ai"]
         now = db.now()
         db.exmany("INSERT INTO cards(book_id, chapter_id, type, front, back, extra, tags, created_at) "
                   "VALUES(?,?,?,?,?,?,?,?)",
                   [(c["book_id"], chapter_id, k["type"], k["front"], k["back"], k["extra"],
-                    json.dumps(k["tags"] + ["gemini-notebook"], ensure_ascii=False), now) for k in cards])
+                    json.dumps(k["tags"] + tags, ensure_ascii=False), now) for k in cards])
         return {"kind": "cards", "added": len(cards)}
 
     items = ai.convert_import("exercises", text, c["title"])
@@ -1505,6 +1513,9 @@ def backups_export():
     backup.export_file(tmp)
     return FileResponse(tmp, media_type="application/zip", background=BackgroundTask(os.unlink, tmp),
                         filename=f"Deutsch-lernen-backup-{_dt.date.today():%Y-%m-%d}.zip")
+
+
+app.include_router(dataexport.router)  # GET /api/export/all: "Export all my data"
 
 
 @app.post("/api/backups/import")
