@@ -94,14 +94,17 @@ def test_level_test_scoring_and_progress(client):
     o = client.get("/api/lessons").json()
     assert o["levels"][0]["test"]["passed"] and o["levels"][0]["test"]["best"] == n
     assert o["next"] == "urlaub"
+    was = db.get_settings()["use_course"]
     client.put("/api/settings", json={"use_course": "1"})
     assert client.get("/api/stats").json()["course"]["next"]["id"] == "urlaub"
     blocks = client.post("/api/plan/quick", json={"minutes": 30}).json()["blocks"]
     assert blocks[0]["kind"] == "course" and blocks[0]["lesson_id"] == "urlaub" and blocks[0]["title"].startswith("A2 · Lesson 1:")
+    client.put("/api/settings", json={"use_course": was})
     assert client.get("/api/levels/C2/test").status_code == 404
     assert client.post("/api/levels/A1/test/complete", json={"results": []}).status_code == 400
     db.ex("DELETE FROM level_tests")
     assert client.get("/api/lessons").json()["next"] == "hallo"
+    db.ex("DELETE FROM answers WHERE source='lesson'")  # leave the shared test database as it was
 
 
 def test_level_progress_counts_and_new_lesson_cards(client):
@@ -119,6 +122,8 @@ def test_level_progress_counts_and_new_lesson_cards(client):
     tags = db.q1("SELECT tags FROM cards WHERE front='das Meer'")["tags"]
     assert "lesson:urlaub" in tags and "level:A2" in tags
     db.ex("DELETE FROM lesson_progress")
+    db.ex("DELETE FROM cards WHERE tags LIKE '%lesson:urlaub%'")
+    db.ex("DELETE FROM answers WHERE source='lesson'")
 
 
 def test_turkish_through_the_routes(client):

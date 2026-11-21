@@ -19,16 +19,16 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS level_tests(level TEXT PRIMARY KEY, best INTEGER, total INTEGER, tries INTEGER DEFAULT 0,
   passed_at TEXT, last_at TEXT);
 """
-_ready = False
 router = APIRouter()
 
 
 def _init():
-    global _ready
-    if not _ready:
-        with db.connect() as conn:
-            conn.executescript(SCHEMA)
-        _ready = True
+    # Every time (it's cheap): a restored backup may be a database from before level tests existed.
+    conn = db.connect()
+    try:
+        conn.executescript(SCHEMA)
+    finally:
+        conn.close()
 
 
 def results():
