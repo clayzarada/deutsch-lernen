@@ -65,7 +65,7 @@ function renderMode() {
     ? `<span class="pill-note">${icon('sparkles')}Practice mode: your answers here don't change when cards come back</span><button class="link-btn" id="rv-exit">Back to scheduled review</button>`
     : '';
   $('#rv-exit')?.addEventListener('click', () => { R.ahead = false; loadReview(); });
-  $('#rv-keys').innerHTML = '<kbd>Space</kbd> show answer &nbsp; <kbd>Alt</kbd>+<kbd>H</kbd> hint &nbsp; ' + (R.ahead
+  $('#rv-keys').innerHTML = '<kbd>Enter</kbd> show answer &nbsp; <kbd>Alt</kbd>+<kbd>H</kbd> hint &nbsp; ' + (R.ahead
     ? '<kbd>1</kbd> Again &nbsp; <kbd>2</kbd> Got it'
     : '<kbd>1</kbd> Again &nbsp; <kbd>2</kbd> Hard &nbsp; <kbd>3</kbd> Good &nbsp; <kbd>4</kbd> Easy');
   $('#rv-keys').classList.toggle('hidden', !R.queue.length);
