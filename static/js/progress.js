@@ -1,7 +1,7 @@
 // Progress page: honest measurement instead of streaks. Words known, an estimated level per skill with the reason
 // behind it, the weekly study goal, and the optional monthly level check (rule-based, no AI, works offline).
 // Every sentence is one text node, so the Turkish dictionary can translate it whole.
-import { $, S, api, esc, icon, toast, registerView, refreshNav, weekGoalText } from './core.js';
+import { $, S, api, esc, icon, toast, loading, registerView, refreshNav, weekGoalText } from './core.js';
 
 registerView('progress', loadProgress);
 
@@ -20,6 +20,7 @@ const L = i => (i == null ? null : data?.levels?.[i] || ['A1', 'A2', 'B1', 'B2',
 const fmtDate = d => new Date(d + 'T12:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
 async function loadProgress() {
+  if (!data) $('#lv-body').innerHTML = loading('Adding up your progress...');
   data = await api('/level');
   render();
 }
@@ -156,7 +157,7 @@ function weekDots(w) {
 }
 
 function weekPanel(w) {
-  return `<div class="panel"><h2>This week</h2>
+  return `<div class="panel"><h2>Weekly goal</h2>
     <p class="lv-week-text">${weekGoalText(w)}</p>
     ${weekDots(w)}
     <p class="muted small">${w.met ? 'Goal reached for this week. Anything more is a bonus.' : 'Rest days are part of learning. Missing a day never resets anything.'}</p>
