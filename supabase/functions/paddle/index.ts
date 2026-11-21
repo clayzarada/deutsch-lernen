@@ -82,7 +82,7 @@ async function onSubscription(sub: Record<string, any>) {
     console.error("subscription without a known account", sub.id);
     return;
   }
-  const { data: current } = await admin.from("profiles").select("paddle_subscription_id").eq("user_id", userId).maybeSingle();
+  const { data: current } = await admin.from("profiles").select("paddle_subscription_id, plus_source").eq("user_id", userId).maybeSingle();
   const stored = current?.paddle_subscription_id;
   if (stored && stored !== sub.id && (sub.status === "canceled" || sub.status === "paused")) {
     console.error("ignoring a late cancel for an older subscription", sub.id);
@@ -100,7 +100,9 @@ async function onSubscription(sub: Record<string, any>) {
   if ((status === "active" || status === "trialing" || status === "past_due") && ends) {
     update.plan = "plus";
     update.plus_until = addDays(ends, GRACE_DAYS);
-  } else if (status === "canceled" || status === "paused") {
+    update.plus_source = "paddle";
+  } else if ((status === "canceled" || status === "paused") && current?.plus_source !== "stripe") {
+    // Someone who moved to a Stripe subscription keeps that Plus when the old Paddle one ends.
     update.plan = "free";
     update.plus_until = new Date().toISOString();
   }
@@ -130,13 +132,15 @@ async function onAdjustment(adj: Record<string, any>) {
     console.error("refund for an unknown subscription", adj.subscription_id);
     return;
   }
-  const { data: cur } = await admin.from("profiles").select("paddle_subscription_id").eq("user_id", data.user_id).maybeSingle();
+  const { data: cur } = await admin.from("profiles").select("paddle_subscription_id, plus_source").eq("user_id", data.user_id).maybeSingle();
   if (cur?.paddle_subscription_id && cur.paddle_subscription_id !== adj.subscription_id) {
     console.error("refund for an older subscription; Plus left as it is", adj.subscription_id);
     return;
   }
-  await admin.from("profiles").update({ plan: "free", plus_until: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .eq("user_id", data.user_id);
+  if (cur?.plus_source !== "stripe") {
+    await admin.from("profiles").update({ plan: "free", plus_until: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("user_id", data.user_id);
+  }
   await cancelSubscription(adj.subscription_id);
 }
 

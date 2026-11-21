@@ -2120,5 +2120,13 @@ export default {
   "Couldn't save the cloud backup ({}). Try again later.": 'Bulut yedeği kaydedilemedi ({1}). Daha sonra tekrar deneyin.',
   "Couldn't download that cloud backup: cloud backup is part of Plus.": "Bu bulut yedeği indirilemedi: bulut yedekleme Plus'ın bir parçasıdır.",
   "Couldn't download that cloud backup ({}). Try again later.": 'Bu bulut yedeği indirilemedi ({1}). Daha sonra tekrar deneyin.',
+
+  // ---- Plus payments through Stripe: messages from the billing server ----
+  "Couldn't open checkout. Try again later.": 'Ödeme sayfası açılamadı. Daha sonra tekrar deneyin.',
+  "Checkout isn't available yet. Try again later.": 'Ödeme henüz kullanılamıyor. Daha sonra tekrar deneyin.',
+  'You already have Plus. Use Manage subscription to change or cancel it.': "Zaten Plus'a sahipsiniz. Değiştirmek veya iptal etmek için Aboneliği yönet'i kullanın.",
+  "There's no subscription on this account yet.": 'Bu hesapta henüz bir abonelik yok.',
+  "Couldn't cancel the subscription. Try again, or cancel it from Manage subscription.": "Abonelik iptal edilemedi. Tekrar deneyin ya da Aboneliği yönet'ten iptal edin.",
+  'Sign in again.': 'Tekrar giriş yapın.',
 };
 

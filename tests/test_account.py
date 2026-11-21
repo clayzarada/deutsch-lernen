@@ -41,7 +41,14 @@ def server(monkeypatch):
             state["cancels"] += 1
             return FakeResp(200, {"canceled": True})
         if url.endswith("/paddle/portal"):
+            if state.get("paddle_customer") is False:
+                return FakeResp(404, {"error": "There's no subscription on this account yet."})
             return FakeResp(200, {"url": "https://sandbox-customer-portal.paddle.com/x"})
+        if "/functions/v1/billing/" in url:  # Stripe; answers like an undeployed function unless a test sets it up
+            billing = state.get("billing")
+            if billing is None:
+                return FakeResp(404, {"msg": "Requested function was not found"})
+            return billing(url, json)
         raise AssertionError(url)
 
     def get(url, headers=None, timeout=None):
@@ -58,9 +65,11 @@ def server(monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     account._save(None)
     account.forget_status()
+    account._sales.update(at=time.time(), open=False, provider="paddle")
     yield calls, state
     account._save(None)
     account.forget_status()
+    account._sales.update(at=0, open=False, provider="paddle")
 
 
 def test_sign_in_with_code_and_plan(client, server):
@@ -122,6 +131,7 @@ def test_delete_account(client, server):
     account.verify("a@b.de", "123456")
     assert client.post("/api/account/delete").json()["signed_in"] is False
     assert state["cancels"] == 1  # the subscription is canceled before the account goes
+    assert any(c[1].endswith("/billing/cancel") for c in calls)  # Stripe asked too; not set up (404) is fine
     assert not account.SESSION_FILE.exists()
 
 
@@ -185,8 +195,9 @@ def test_sales_switch_comes_from_the_website(monkeypatch):
         def json(self): return {"sales_open": self.v}
 
     monkeypatch.setattr(httpx, "get", lambda url, timeout=None: seen.append(url) or J(True))
-    account._sales.update(at=0, open=False)
+    account._sales.update(at=0, open=False, provider="paddle")
     assert account.sales_open() is True and seen == [account.PLUS_INFO_URL]
+    assert account.provider() == "paddle"  # the file names no provider: Paddle, as before
     assert account.sales_open() is True and len(seen) == 1  # cached
 
     def offline(url, timeout=None):
