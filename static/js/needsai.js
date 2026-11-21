@@ -13,8 +13,8 @@ async function plusLine() {
   if (salesOpen === null) {
     try { salesOpen = !!(await api('/account')).sales_open; } catch { salesOpen = false; }
   }
-  return salesOpen ? 'Get <b>Plus</b> under Settings &rarr; Account &amp; Plus, or add your own Claude API key.'
-    : '<b>Plus</b> (coming soon) will include it with nothing to set up. Until then you can add your own Claude API key.';
+  return salesOpen ? 'Get Plus under Settings → Account &amp; Plus, or add your own Claude API key.'
+    : 'Plus (coming soon) will include it with nothing to set up. Until then you can add your own Claude API key.';
 }
 
 async function update(view) {
@@ -31,7 +31,7 @@ async function update(view) {
   const box = document.createElement('div');
   box.className = 'panel needs-ai';
   box.innerHTML = `<span class="needs-ai-icon">${icon('sparkles')}</span>
-    <div class="grow"><b>This needs AI</b><p class="small">${esc(PAGES[view])} ${await plusLine()}</p></div>
+    <div class="grow"><b>This needs AI</b><p class="small"><span>${esc(PAGES[view])}</span> <span>${await plusLine()}</span></p></div>
     <button type="button" class="ghost small" data-go="settings">Open Settings</button>`;
   section.querySelector('.page-head')?.after(box);
 }

@@ -134,7 +134,7 @@ function renderAccount(a) {
   const box = $('#account-box');
   if (!a.signed_in) {
     box.innerHTML = `
-      <p class="small">Sign in to use <b>Plus</b>: AI features without an API key of your own. Free features never need an account.</p>
+      <p class="small">Sign in to use Plus: AI features without an API key of your own. Free features never need an account.</p>
       <div class="acct-row"><input id="acct-email" type="email" placeholder="you@example.com" value="${esc(ACC.email)}" autocomplete="email">
         <button type="button" class="ghost" id="acct-send">${ACC.codeSent ? 'Send again' : 'Email me a sign-in link'}</button></div>
       ${ACC.codeSent ? `<div class="acct-row"><input id="acct-code" inputmode="numeric" autocomplete="one-time-code" placeholder="Code from the email" maxlength="12">
@@ -149,7 +149,7 @@ function renderAccount(a) {
     ${plus ? `<div class="meter"><div class="meter-bar ${pct >= 90 ? 'bad' : pct >= 70 ? 'mid' : ''}"><span style="width:${pct}%"></span></div><span>${pct}% of this month's AI allowance used</span></div>
       <p class="muted small">${S.settings.own_key ? 'Your own API key is saved, so the app uses it instead of Plus. Use “Remove API key” at the bottom of Settings to switch to Plus.' : 'AI features run through Plus. No API key needed.'}</p>`
       : !a.sales_open ? `<p class="small" style="margin-top:8px"><b>Plus is coming soon:</b> AI features with no API key of your own, plus cloud backup. You'll be able to upgrade right here.</p>`
-      : `<p class="small" style="margin-top:8px">Get <b>Plus</b> for AI features with no API key of your own. Cancel any time.</p>
+      : `<p class="small" style="margin-top:8px">Get Plus for AI features with no API key of your own. Cancel any time.</p>
         <div class="btnrow"><button type="button" id="acct-buy-yearly">Upgrade: $79 / year</button>
           <button type="button" class="ghost" id="acct-buy-monthly">$9.99 / month</button></div>
         <p class="muted small">Checkout opens in your browser. When you're done, come back and press Refresh.</p>`}
