@@ -89,6 +89,7 @@ DEFAULT_SETTINGS = {
     "surveys_done": "",       # ids of in-app questions already answered or skipped (JSON list)
     "usage_sent_week": "",    # the week the last usage summary was sent for
     "daily_minutes": "45",
+    "week_goal": "5",  # days a week the learner means to study (3-7); rest days never break anything
     "goal": "",
     "exam_date": "",
     "model": "claude-sonnet-5-5",

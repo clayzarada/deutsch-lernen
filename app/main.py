@@ -12,7 +12,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import (account, ai, cloud, surveys, anki, ankiimport, backup, lessons, course, db, decl, dictionary, known, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
+from . import (account, ai, cloud, surveys, anki, ankiimport, backup, lessons, course, db, decl, dictionary, known, levels, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
                update, usage, verbs, wordorder, wordtrain, writing)
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
@@ -886,6 +886,9 @@ def lesson_complete(lesson_id: str, body: dict):
     return out
 
 
+app.include_router(levels.router)  # honest progress: level estimates, weekly goal, monthly level check
+
+
 # ---------- known words (shared by the progress page and the reading room) ----------
 
 @app.get("/api/known")
@@ -1522,7 +1525,7 @@ def backups_import(file: UploadFile = File(...)):
 
 @app.get("/api/stats")
 def stats():
-    return {"today": planner.day_stats(db.today()), "week": planner.week(), "streak": planner.streak(),
+    return {"today": planner.day_stats(db.today()), "week": planner.week(), "streak": planner.streak(), "week_goal": levels.week_goal(),
             "cards": planner.card_counts(), "weak_topics": planner.weak_topics(),
             "calendar": planner.calendar(), "journey": localize(course.brief()), "verbs_journey": localize(VERBS_COURSE.brief()),
             "book": planner.current_book_brief(),
