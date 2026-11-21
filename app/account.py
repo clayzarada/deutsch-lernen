@@ -19,10 +19,12 @@ SUPABASE_URL = os.environ.get("DL_SUPABASE_URL", "https://zarusstgbgyvongoterq.s
 PUBLISHABLE_KEY = os.environ.get("DL_SUPABASE_KEY", "sb_publishable_xPcjPWnIT6H0QuWmZ6PL8w_l-i949nV")
 AI_BASE_URL = SUPABASE_URL + "/functions/v1/ai"
 PADDLE_URL = SUPABASE_URL + "/functions/v1/paddle"
+BILLING_URL = SUPABASE_URL + "/functions/v1/billing"  # Stripe
 CHECKOUT_URL = os.environ.get("DL_CHECKOUT_URL", "https://deutschlernenapp.com/checkout/")
-# Whether Plus can be bought yet. A file on the website, so sales open for everyone without an app update.
+# Whether Plus can be bought yet, and through whom ("provider": "stripe" or "paddle"). A file on the website, so
+# sales open, or move to another payment provider, for everyone without an app update.
 PLUS_INFO_URL = os.environ.get("DL_PLUS_INFO_URL", "https://deutschlernenapp.com/plus.json")
-_sales = {"at": 0, "open": False}
+_sales = {"at": 0, "open": False, "provider": "paddle"}
 SESSION_FILE = db.DATA / "account.json"
 STATUS_TTL = 600  # seconds between plan checks
 
@@ -189,49 +191,65 @@ def user_id():
         return None
 
 
+def _call(url, t, body=None, timeout=20):
+    """POST to one of our server functions: (status code, JSON answer)."""
+    try:
+        r = httpx.post(url, headers=_headers(t), json=body or {}, timeout=timeout)
+    except httpx.HTTPError:
+        raise AccountError("Couldn't reach the account server. Check your internet connection.")
+    try:
+        j = r.json()
+    except ValueError:
+        j = {}
+    return r.status_code, j if isinstance(j, dict) else {}
+
+
 def checkout_link(plan):
-    """The website checkout page for this account; the purchase is tied to the account by its id."""
+    """Where to buy Plus for this account. With Stripe, our server makes a Stripe Checkout page tied to the account;
+    with Paddle, it's the website's checkout page, which ties the purchase to the account by its id."""
     uid = user_id()
     if not uid:
         raise AccountError("Sign in first.")
     plan = plan if plan in ("monthly", "yearly") else "yearly"
+    if provider() == "stripe":
+        t = token()
+        if not t:
+            raise AccountError("Sign in first.")
+        code, j = _call(f"{BILLING_URL}/checkout", t, {"plan": plan})
+        if code >= 400 or not j.get("url"):
+            raise AccountError(j.get("error") or "Couldn't open checkout. Try again later.")
+        return {"url": j["url"]}
     return {"url": CHECKOUT_URL + "?" + urllib.parse.urlencode({"plan": plan, "uid": uid, "email": (_load() or {}).get("email") or ""})}
 
 
 def portal_link():
-    """A link to Paddle's page for changing or cancelling the subscription."""
+    """A link to the payment provider's page for changing or cancelling the subscription. Tries the current
+    provider first; someone who bought through the other one (before a switch) is sent there instead."""
     t = token()
     if not t:
         raise AccountError("You're not signed in.")
-    try:
-        r = httpx.post(f"{PADDLE_URL}/portal", headers=_headers(t), json={}, timeout=20)
-    except httpx.HTTPError:
-        raise AccountError("Couldn't reach the account server. Check your internet connection.")
-    j = {}
-    try:
-        j = r.json()
-    except ValueError:
-        pass
-    if r.status_code >= 400 or not j.get("url"):
-        raise AccountError(j.get("error") or "Couldn't open subscription settings. Try again later.")
-    return {"url": j["url"]}
+    urls = [BILLING_URL, PADDLE_URL] if provider() == "stripe" else [PADDLE_URL, BILLING_URL]
+    for i, url in enumerate(urls):
+        code, j = _call(f"{url}/portal", t)
+        if code < 400 and j.get("url"):
+            return {"url": j["url"]}
+        if code != 404 or i == len(urls) - 1:  # 404: no subscription with this provider (or it isn't set up)
+            raise AccountError(j.get("error") or "Couldn't open subscription settings. Try again later.")
 
 
 def delete_account():
     t = token()
     if not t:
         raise AccountError("You're not signed in.")
-    # Stop any subscription first, so nobody is charged for an account that no longer exists.
-    try:
-        r = httpx.post(f"{PADDLE_URL}/cancel", headers=_headers(t), json={}, timeout=30)
-    except httpx.HTTPError:
-        raise AccountError("Couldn't reach the account server, so the account wasn't deleted. Check your internet connection.")
-    if r.status_code >= 400:
+    # Stop any subscription first, so nobody is charged for an account that no longer exists. Both providers are
+    # asked, since someone may have bought before a switch; 404 means that provider isn't set up (nothing to cancel).
+    for url in (PADDLE_URL, BILLING_URL):
         try:
-            msg = r.json().get("error")
-        except ValueError:
-            msg = None
-        raise AccountError(msg or "Couldn't cancel your subscription, so the account wasn't deleted. Try again later.")
+            code, j = _call(f"{url}/cancel", t, timeout=30)
+        except AccountError:
+            raise AccountError("Couldn't reach the account server, so the account wasn't deleted. Check your internet connection.")
+        if code >= 400 and code != 404:
+            raise AccountError(j.get("error") or "Couldn't cancel your subscription, so the account wasn't deleted. Try again later.")
     from . import cloud
     try:
         if plus_active() or cloud.status()["last"]:
@@ -254,16 +272,27 @@ def delete_account():
 
 # ---------- plan ----------
 
+def _plus_info():
+    """The website's plus.json, checked at most every few minutes; the last known answer when offline."""
+    if time.time() - _sales["at"] >= STATUS_TTL:
+        try:
+            info = httpx.get(PLUS_INFO_URL, timeout=8).json()
+            _sales["open"] = bool(info.get("sales_open"))
+            _sales["provider"] = "stripe" if info.get("provider") == "stripe" else "paddle"
+        except Exception:
+            pass  # offline or unreachable: keep the last known answer
+        _sales["at"] = time.time()
+    return _sales
+
+
 def sales_open():
-    """True once Plus is on sale (checked at most every few minutes; False when offline)."""
-    if time.time() - _sales["at"] < STATUS_TTL:
-        return _sales["open"]
-    try:
-        _sales["open"] = bool(httpx.get(PLUS_INFO_URL, timeout=8).json().get("sales_open"))
-    except Exception:
-        pass  # offline or unreachable: keep the last known answer
-    _sales["at"] = time.time()
-    return _sales["open"]
+    """True once Plus is on sale (False when offline and never seen)."""
+    return _plus_info()["open"]
+
+
+def provider():
+    """"stripe" when plus.json says so; "paddle" otherwise (also when the file says nothing)."""
+    return _plus_info()["provider"]
 
 
 def status(force=False):
