@@ -60,7 +60,9 @@ def _save(sess):
     if sess is None:
         SESSION_FILE.unlink(missing_ok=True)
     else:
-        SESSION_FILE.write_text(json.dumps(sess), encoding="utf-8")
+        tmp = SESSION_FILE.with_suffix(".tmp")
+        tmp.write_text(json.dumps(sess), encoding="utf-8")
+        os.replace(tmp, SESSION_FILE)
 
 
 def _from_auth(j):
@@ -78,6 +80,8 @@ def send_code(email, redirect_to=None):
     if "@" not in email:
         raise AccountError("Enter a valid email address.")
     params = {"redirect_to": redirect_to} if redirect_to else None
+    # Remember who asked, so a link can only sign in the person who typed their email here (see set_session).
+    db.set_setting("signin_pending", json.dumps({"email": email, "at": time.time()}))
     try:
         r = httpx.post(f"{SUPABASE_URL}/auth/v1/otp", headers=_headers(), params=params,
                        json={"email": email, "create_user": True}, timeout=20)
@@ -107,6 +111,9 @@ def verify(email, code):
     return status(force=True)
 
 
+PENDING_SECONDS = 2 * 3600
+
+
 def set_session(access_token, refresh_token, expires_at=None):
     """Session from the emailed sign-in link (the callback page passes the tokens on)."""
     if not access_token or not refresh_token:
@@ -117,6 +124,14 @@ def set_session(access_token, refresh_token, expires_at=None):
         raise AccountError("Couldn't reach the account server. Check your internet connection.")
     if r.status_code >= 400:
         raise AccountError("That sign-in link has expired. Request a new one.")
+    try:
+        pending = json.loads(db.get_settings().get("signin_pending") or "{}")
+    except ValueError:
+        pending = {}
+    email = (r.json().get("email") or "").lower()
+    if not pending or time.time() - pending.get("at", 0) > PENDING_SECONDS or email != pending.get("email"):
+        raise AccountError("This sign-in link wasn't requested from this app. Ask for a new one under Settings → Account & Plus.")
+    db.set_setting("signin_pending", "")
     try:
         exp = int(expires_at)
     except (TypeError, ValueError):
@@ -153,9 +168,11 @@ def token():
                            json={"refresh_token": sess["refresh_token"]}, timeout=20)
         except httpx.HTTPError:
             return sess["access_token"]  # offline: let the request fail with a clear message
-        if r.status_code >= 400:
+        if r.status_code in (400, 401, 403):
             _save(None)  # refresh token revoked or expired: signed out
             return None
+        if r.status_code >= 400:
+            return sess["access_token"]  # server hiccup (429, 5xx): keep the session and try again later
         new = _from_auth(r.json())
         new["email"] = new["email"] or sess.get("email")
         _save(new)
@@ -217,11 +234,16 @@ def delete_account():
         raise AccountError(msg or "Couldn't cancel your subscription, so the account wasn't deleted. Try again later.")
     from . import cloud
     try:
-        cloud.delete_all()  # backups next: the server can't remove them once the account is gone
+        if plus_active() or cloud.status()["last"]:
+            cloud.delete_all()  # backups next: the server can't remove them once the account is gone
     except Exception as e:
         raise AccountError(f"Couldn't remove your cloud backups, so the account wasn't deleted: {e}")
     t = token()
-    r = httpx.post(f"{SUPABASE_URL}/rest/v1/rpc/delete_my_account", headers=_headers(t), json={}, timeout=20)
+    try:
+        r = httpx.post(f"{SUPABASE_URL}/rest/v1/rpc/delete_my_account", headers=_headers(t), json={}, timeout=20)
+    except httpx.HTTPError:
+        raise AccountError("Couldn't reach the account server. Your subscription is canceled and your cloud backups are "
+                           "deleted; try Delete account again to finish.")
     if r.status_code >= 400:
         raise AccountError(f"Couldn't delete the account: {_msg(r)}")
     with _lock:
@@ -261,10 +283,17 @@ def _account_status(force=False):
         return {"signed_in": False, "plus": False}
     try:
         r = httpx.get(f"{AI_BASE_URL}/status", headers=_headers(t), timeout=15)
-        data = {**base, **r.json(), "signed_in": True} if r.status_code == 200 else {**base, "error": _msg(r)}
+        ok = r.status_code == 200
+        data = {**base, **r.json(), "signed_in": True} if ok else None
     except (httpx.HTTPError, ValueError):
+        ok, r = False, None
+    if not ok:
+        # Keep the last known answer (a paying user stays Plus through a hiccup) and try again in a minute.
         cached = _status["data"]
-        return {**(cached or base), "offline": True}
+        _status["at"] = time.time() - STATUS_TTL + 60
+        if cached:
+            _status["data"] = cached
+        return {**(cached or base), "offline": r is None, **({"error": _msg(r)} if r is not None else {})}
     _status.update(at=time.time(), data=data)
     return data
 

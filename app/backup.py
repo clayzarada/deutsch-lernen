@@ -77,9 +77,36 @@ def restore(name):
         raise db.UserError("That backup doesn't exist any more.")
     _check(path)
     safety = make("before-restore")
+    keep = keep_local()
     _copy(path, db.DB_PATH)
     db.init()  # brings an older backup up to date with the current app
+    scrub(keep)  # brings an older backup up to date with the current app
     return {"restored": name, "safety_copy": safety}
+
+
+LOCAL_KEYS = ("share_usage", "install_id")  # belong to this computer, not to the backup
+
+
+def keep_local():
+    s = db.get_settings()
+    return {k: s.get(k) or "" for k in LOCAL_KEYS}
+
+
+def scrub(keep=None):
+    """Called right after a backup replaced the database: forget the update cache (a backup must never choose
+    where updates come from) and clear file names that aren't plain names inside the app's folders."""
+    db.ex("DELETE FROM settings WHERE key = 'update_cache'")
+    for k, v in (keep or {}).items():
+        db.set_setting(k, v)
+    for table in ("books", "media"):
+        try:
+            rows = db.q(f"SELECT id, filename FROM {table}")
+        except Exception:
+            continue
+        for r in rows:
+            n = r["filename"] or ""
+            if n and (n != PurePosixPath(n).name or "\\" in n or ":" in n or n.startswith(".")):
+                db.ex(f"UPDATE {table} SET filename = '' WHERE id = ?", (r["id"],))
 
 
 def _check(path):
@@ -157,7 +184,9 @@ def import_file(src):
                 with z.open(n) as r, open(target, "wb") as w:
                     shutil.copyfileobj(r, w)
                 files += 1
+        keep = keep_local()
         _copy(snap, db.DB_PATH)
     db.init()  # brings a backup from an older version up to date
+    scrub(keep)  # brings a backup from an older version up to date
     return {"restored": manifest.get("created"), "from_version": manifest.get("version"), "files": files,
             "safety_copy": safety}

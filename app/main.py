@@ -4,6 +4,7 @@ import os
 import re
 import sqlite3
 import uuid
+from urllib.parse import urlsplit
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -35,6 +36,26 @@ surveys.start_background()  # weekly usage summary (if allowed) and the list of 
 
 app = FastAPI(title="German Study")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+
+_LOCAL_HOSTS = {"127.0.0.1", "localhost", "[::1]"} | ({"testserver"} if os.environ.get("GERMANSTUDY_TESTING") else set())
+
+
+@app.middleware("http")
+async def _local_only(request, call_next):
+    """The app listens on this computer only. Refuse requests whose Host isn't local (DNS rebinding) and
+    changes sent by another website (a page elsewhere posting to 127.0.0.1). The app's own window sends a
+    local Origin; tools without a browser send none."""
+    host = (request.headers.get("host") or "").rsplit(":", 1)[0].lower()
+    if host not in _LOCAL_HOSTS:
+        return JSONResponse({"detail": "Forbidden"}, status_code=403)
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
+        origin = request.headers.get("origin") or request.headers.get("referer")
+        if origin is not None:
+            o = urlsplit(origin)
+            if o.hostname not in _LOCAL_HOSTS - {"[::1]"} | {"::1"} or (o.port or 80) != (request.url.port or 80):
+                return JSONResponse({"detail": "Forbidden"}, status_code=403)
+    return await call_next(request)
 
 
 @app.middleware("http")

@@ -35,7 +35,7 @@ def _price(model):
     return PRICES["claude-opus-5-5"]  # unknown model: assume Opus pricing rather than under-count
 
 
-def log_claude(feature, resp):
+def log_claude(feature, resp, provider="claude"):
     u = resp.usage
     inp = getattr(u, "input_tokens", 0) or 0
     out = getattr(u, "output_tokens", 0) or 0
@@ -48,7 +48,7 @@ def log_claude(feature, resp):
     cost = (inp * pi + out * po + cread * pc + cwrite * pi * 1.25) / 1e6 + searches * WEB_SEARCH_PER_1000 / 1000
     db.ex("INSERT INTO api_usage(ts, date, feature, provider, model, input_tokens, output_tokens, cache_read, cache_write, "
           "web_searches, cost) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
-          (db.now(), db.today(), feature, "claude", model, inp, out, cread, cwrite, searches, round(cost, 6)))
+          (db.now(), db.today(), feature, provider, model, inp, out, cread, cwrite, searches, round(cost, 6)))
 
 
 def log_gemini(feature, model):

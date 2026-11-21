@@ -108,7 +108,8 @@ def _parse_json(text, texts):
 def call(system, content, schema=None, effort=None, web=False, history=None, max_tokens=16000, feature=None):
     # the helper that called us (e.g. generate_exercises): for the cost meter and to pick the model
     feature = feature or sys._getframe(1).f_code.co_name
-    usage.check_budget()
+    if not using_plus():
+        usage.check_budget()  # the monthly budget is for the learner's own key; Plus has its own limit
     s = db.get_settings()
     model = model_for(feature, s)
     messages = list(history or []) + [{"role": "user", "content": content}]
@@ -129,7 +130,7 @@ def call(system, content, schema=None, effort=None, web=False, history=None, max
             else:
                 resp = client.messages.create(messages=messages, **kwargs)
             try:
-                usage.log_claude(feature, resp)
+                usage.log_claude(feature, resp, provider="plus" if plus else "claude")
             except Exception as e:  # the cost meter must never break a feature
                 print("usage log failed:", e)
             if resp.stop_reason != "pause_turn":

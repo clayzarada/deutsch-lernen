@@ -16,7 +16,12 @@ async function refresh() {
   $('#nav-survey')?.classList.toggle('hidden', !open.length);
 }
 
-function close() { $('.survey-back')?.remove(); undoTry(); }
+let onKey = null;
+function close() {
+  $('.survey-back')?.remove();
+  undoTry();
+  if (onKey) { document.removeEventListener('keydown', onKey); onKey = null; }
+}
 
 function render(s) {
   close();
@@ -42,7 +47,8 @@ function render(s) {
     const o = e.target.closest('.survey-opt');
     if (o) {
       picked = o.dataset.v;
-      tryOut((s.options || []).find(x => String(x.id) === picked)?.try);
+      const spec = (s.options || []).find(x => String(x.id) === picked)?.try;
+      if (spec) tryOut(spec); else undoTry();
       back.querySelectorAll('.survey-opt').forEach(b => b.classList.toggle('on', b === o));
       back.querySelector('[data-send]').disabled = false;
       return;
@@ -58,7 +64,8 @@ function render(s) {
       if (!skip) toast('Thanks for answering!');
     } catch (err) { toast(err.message, 'error'); }
   });
-  document.addEventListener('keydown', function esc_(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc_); } });
+  onKey = e => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
 }
 
 $('#nav-survey')?.addEventListener('click', e => { e.preventDefault(); if (open.length) render(open[0]); });

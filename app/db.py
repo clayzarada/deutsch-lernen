@@ -82,11 +82,12 @@ DEFAULT_SETTINGS = {
     "level": "A2",
     "native_language": "English",
     "ui_language": "en",
-    "nav_layout": "side",
+    "nav_layout": "side",  # "side" = pages listed under each section in the sidebar; "top" = tabs across the top
     "share_usage": "1",       # "1" = send the weekly usage numbers (days studied, cards reviewed...) to help improve the app
-    "install_id": "",         # random id for this copy, made on first use
+    "install_id": "",
+    "signin_pending": "",     # the email a sign-in link was just sent to, and when (JSON); used once         # random id for this copy, made on first use
     "surveys_done": "",       # ids of in-app questions already answered or skipped (JSON list)
-    "usage_sent_week": "",    # the week the last usage summary was sent for  # "side" = pages listed under each section in the sidebar; "top" = tabs across the top
+    "usage_sent_week": "",    # the week the last usage summary was sent for
     "daily_minutes": "45",
     "goal": "",
     "exam_date": "",

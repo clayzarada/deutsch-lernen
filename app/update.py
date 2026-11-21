@@ -38,7 +38,7 @@ from .version import VERSION
 REPO = "clayzarada/deutsch-lernen"
 # GERMANSTUDY_UPDATE_API lets a test point the app at a fake release; normal use never sets it.
 API = os.environ.get("GERMANSTUDY_UPDATE_API") or f"https://api.github.com/repos/{REPO}/releases/latest"
-DOWNLOAD_PAGE = "https://zaradaholdingsgroup.com/lab/"
+DOWNLOAD_PAGE = "https://deutschlernenapp.com/download/"
 WINDOWS_ASSET = "Deutsch-lernen-Windows.zip"
 MAC_ASSET = f"Deutsch-lernen-Mac-app-{'arm64' if platform.machine() == 'arm64' else 'x86_64'}.zip"
 CHECK_EVERY = dt.timedelta(hours=24)
@@ -140,21 +140,8 @@ def _work_dir():
 
 def _install_windows(latest):
     try:
-        cache = json.loads(db.get_settings().get("update_cache") or "{}")
-        url = cache["assets"][WINDOWS_ASSET]
         work = _work_dir()
-        shutil.rmtree(work, ignore_errors=True)
-        work.mkdir(parents=True)
-        zpath = work / WINDOWS_ASSET
-        with _get(url, timeout=30) as r, open(zpath, "wb") as f:
-            total = int(r.headers.get("Content-Length") or 0)
-            done = 0
-            while chunk := r.read(1 << 16):
-                f.write(chunk)
-                done += len(chunk)
-                if total:
-                    JOB["pct"] = round(100 * done / total)
-        JOB.update(stage="unpacking", pct=100)
+        zpath = _download(WINDOWS_ASSET, work)
         staging = work / "staging"
         with zipfile.ZipFile(zpath) as z:
             z.extractall(staging)
@@ -170,6 +157,8 @@ def _install_windows(latest):
 def _download(asset, work):
     cache = json.loads(db.get_settings().get("update_cache") or "{}")
     url = cache["assets"][asset]
+    if not os.environ.get("GERMANSTUDY_UPDATE_API") and not url.startswith(f"https://github.com/{REPO}/releases/download/"):
+        raise RuntimeError("Unexpected download location for the update.")
     shutil.rmtree(work, ignore_errors=True)
     work.mkdir(parents=True)
     zpath = work / asset
@@ -228,11 +217,20 @@ rem Deutsch lernen updater: waits for the app to quit, swaps in the new version,
 set "PID={pid}"
 :wait
 tasklist /FI "PID eq %PID%" 2>nul | find "%PID%" >nul && (timeout /t 1 /nobreak >nul & goto wait)
-rmdir /s /q "{app}\_internal"
-robocopy "{new}" "{app}" /E /R:10 /W:1 /NFL /NDL /NJH /NJS /NP >> "{log}"
-if %ERRORLEVEL% GEQ 8 echo robocopy failed with %ERRORLEVEL% >> "{log}"
-start "" "{app}\Deutsch lernen.exe"
-rmdir /s /q "{work}"
+rem Paths come in as DL_APP, DL_NEW, DL_WORK and DL_LOG (environment), so any letters in them are safe.
+if exist "%DL_APP%\_internal.old" rmdir /s /q "%DL_APP%\_internal.old"
+move "%DL_APP%\_internal" "%DL_APP%\_internal.old" >nul
+robocopy "%DL_NEW%" "%DL_APP%" /E /R:10 /W:1 /NFL /NDL /NJH /NJS /NP >> "%DL_LOG%"
+if %ERRORLEVEL% GEQ 8 goto rollback
+rmdir /s /q "%DL_APP%\_internal.old"
+rmdir /s /q "%DL_WORK%"
+goto open
+:rollback
+echo update: robocopy failed with %ERRORLEVEL%, putting the old version back >> "%DL_LOG%"
+if exist "%DL_APP%\_internal" rmdir /s /q "%DL_APP%\_internal"
+move "%DL_APP%\_internal.old" "%DL_APP%\_internal" >nul
+:open
+start "" "%DL_APP%\Deutsch lernen.exe"
 """
 
 
@@ -282,10 +280,11 @@ def restart_to_finish():
     work = _work_dir()
     app_dir = Path(sys.executable).parent
     helper = work.parent / "finish-update.cmd"
-    helper.write_text(HELPER.format(pid=os.getpid(), app=app_dir, new=work / "staging" / "Deutsch lernen",
-                                    log=work.parent / "app.log", work=work), encoding="mbcs")
+    helper.write_text(HELPER.format(pid=os.getpid()), encoding="ascii")
+    env = {**os.environ, "DL_APP": str(app_dir), "DL_NEW": str(work / "staging" / "Deutsch lernen"),
+           "DL_WORK": str(work), "DL_LOG": str(work.parent / "app.log")}
     subprocess.Popen(["cmd", "/c", str(helper)], creationflags=NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP,
-                     close_fds=True, cwd=str(work.parent))
+                     close_fds=True, cwd=str(work.parent), env=env)
     _set(stage="restarting")
 
     def quit_soon():

@@ -59,17 +59,37 @@ function addDays(iso: string, days: number) {
 }
 
 async function findUserId(sub: Record<string, any>) {
-  const fromCheckout = sub.custom_data?.user_id;
-  if (fromCheckout) return fromCheckout as string;
   const { data } = await admin.from("profiles").select("user_id")
-    .or(`paddle_subscription_id.eq.${sub.id},paddle_customer_id.eq.${sub.customer_id}`).limit(1).maybeSingle();
-  return data?.user_id as string | undefined;
+    .eq("paddle_subscription_id", String(sub.id)).limit(1).maybeSingle();
+  if (data?.user_id) return data.user_id as string;
+  const fromCheckout = sub.custom_data?.user_id;
+  if (typeof fromCheckout === "string" && /^[0-9a-f-]{36}$/i.test(fromCheckout)) return fromCheckout;
+  const { data: byCustomer } = await admin.from("profiles").select("user_id")
+    .eq("paddle_customer_id", String(sub.customer_id)).limit(1).maybeSingle();
+  return byCustomer?.user_id as string | undefined;
+}
+
+// While testing with Paddle's sandbox, anyone could "buy" Plus with Paddle's public test card. Only accounts listed
+// in the PADDLE_SANDBOX_TESTERS secret (comma-separated account ids) get Plus from sandbox payments.
+function sandboxAllowed(userId: string) {
+  if (env("PADDLE_ENV") === "live") return true;
+  return env("PADDLE_SANDBOX_TESTERS").split(",").map((s) => s.trim()).filter(Boolean).includes(userId);
 }
 
 async function onSubscription(sub: Record<string, any>) {
   const userId = await findUserId(sub);
   if (!userId) {
     console.error("subscription without a known account", sub.id);
+    return;
+  }
+  const { data: current } = await admin.from("profiles").select("paddle_subscription_id").eq("user_id", userId).maybeSingle();
+  const stored = current?.paddle_subscription_id;
+  if (stored && stored !== sub.id && (sub.status === "canceled" || sub.status === "paused")) {
+    console.error("ignoring a late cancel for an older subscription", sub.id);
+    return;
+  }
+  if (!sandboxAllowed(userId)) {
+    console.error("sandbox subscription for an account that isn't a tester; ignored", sub.id);
     return;
   }
   const status = sub.status as string; // active, trialing, past_due, paused, canceled
@@ -108,6 +128,11 @@ async function onAdjustment(adj: Record<string, any>) {
     .or(`paddle_subscription_id.eq.${adj.subscription_id},paddle_customer_id.eq.${adj.customer_id}`).limit(1).maybeSingle();
   if (!data?.user_id) {
     console.error("refund for an unknown subscription", adj.subscription_id);
+    return;
+  }
+  const { data: cur } = await admin.from("profiles").select("paddle_subscription_id").eq("user_id", data.user_id).maybeSingle();
+  if (cur?.paddle_subscription_id && cur.paddle_subscription_id !== adj.subscription_id) {
+    console.error("refund for an older subscription; Plus left as it is", adj.subscription_id);
     return;
   }
   await admin.from("profiles").update({ plan: "free", plus_until: new Date().toISOString(), updated_at: new Date().toISOString() })

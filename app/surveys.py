@@ -17,7 +17,6 @@ from .version import VERSION
 
 CACHE_SECONDS = 1800
 _cache = {"at": 0, "list": []}
-_lock = threading.Lock()
 
 
 def install_id():

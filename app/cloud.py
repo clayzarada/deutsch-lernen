@@ -6,6 +6,7 @@ Backups are made once a day when the setting is on, and by hand any time. The ne
 Restoring works like a local restore: the current data is backed up on this computer first, so it can be undone."""
 import datetime as dt
 import gzip
+import zlib
 import re
 import shutil
 import tempfile
@@ -94,6 +95,8 @@ def make():
                            content=data, timeout=120)
         except httpx.HTTPError:
             raise CloudError("Couldn't reach the backup server. Check your internet connection.")
+        if r.status_code == 409:
+            return {"made": name, "size": len(data)}  # made a moment ago (same second): nothing more to do
         if r.status_code >= 400:
             _fail(r, "save the cloud backup")
         db.set_setting("cloud_backup_last", dt.datetime.now().isoformat(timespec="seconds"))
@@ -120,21 +123,22 @@ def restore(name):
             snap = Path(tmp) / "study.db"
             try:
                 snap.write_bytes(gzip.decompress(r.content))
-            except (OSError, EOFError):
+            except (OSError, EOFError, zlib.error):
                 raise CloudError("That cloud backup is damaged and wasn't used.")
             backup._check(snap)
             safety = backup.make("before-restore")
+            keep = backup.keep_local()
             backup._copy(snap, db.DB_PATH)
         db.init()  # brings a backup from an older version up to date
+        backup.scrub(keep)
         return {"restored": name, "safety_copy": safety}
 
 
 def delete_all():
     """Remove every cloud backup of the signed-in account (used before deleting the account)."""
-    try:
-        names = [b["name"] for b in listing()]
-    except CloudError:
-        return 0
+    if not account.user_id():
+        return 0  # no account id in the session: there is no backup folder to empty
+    names = [b["name"] for b in listing()]  # an error here stops the account deletion, so no backups are left behind
     for i in range(0, len(names), 50):
         _delete(names[i:i + 50])
     return len(names)
@@ -158,11 +162,15 @@ def due():
         return True
 
 
+def _has_study_data():
+    return bool(db.q1("SELECT (SELECT COUNT(*) FROM cards) + (SELECT COUNT(*) FROM answers) + (SELECT COUNT(*) FROM reviews) AS n")["n"])
+
+
 def auto():
     """At start-up, in the background: back up if it's on, due, and the account has Plus. Never raises."""
     def run():
         try:
-            if due() and account.plus_active():
+            if due() and account.plus_active() and _has_study_data():
                 make()
         except Exception as e:
             print("automatic cloud backup failed:", e)

@@ -29,6 +29,8 @@ const ALLOWED = ["claude-sonnet-5-5", "claude-haiku-5-5"];
 const FALLBACK_MODEL = "claude-sonnet-5-5";
 const WEB_SEARCH_PER_1000 = 10.0;
 const MAX_TOKENS = 16000;
+const MAX_BODY = 8_000_000;  // bytes; scanned page images are the biggest thing the app sends
+const BETAS = new Set(["server-side-fallback-2026-07-01"]);
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
@@ -89,22 +91,40 @@ Deno.serve(async (req) => {
   }
   if (!ANTHROPIC_KEY) return fail(500, "api_error", "The AI service isn't configured yet.");
 
-  let body: Record<string, unknown>;
-  try { body = await req.json(); } catch { return fail(400, "invalid_request_error", "Bad request body."); }
-  if (body.stream) return fail(400, "invalid_request_error", "Streaming isn't supported.");
-  if (!ALLOWED.includes(String(body.model))) body.model = FALLBACK_MODEL;
-  body.max_tokens = Math.min(Number(body.max_tokens) || 4000, MAX_TOKENS);
-  const feature = req.headers.get("x-dl-feature") ?? null;
+  const raw = await req.text();
+  if (raw.length > MAX_BODY) return fail(413, "invalid_request_error", "That request is too large.");
+  let b: Record<string, any>;
+  try { b = JSON.parse(raw); } catch { return fail(400, "invalid_request_error", "Bad request body."); }
+  if (b.stream) return fail(400, "invalid_request_error", "Streaming isn't supported.");
+  // Only the fields the app uses; anything else (other tools, MCP servers, containers...) is dropped.
+  const body: Record<string, unknown> = {
+    model: ALLOWED.includes(String(b.model)) ? b.model : FALLBACK_MODEL,
+    max_tokens: Math.min(Number(b.max_tokens) || 4000, MAX_TOKENS),
+    messages: b.messages, system: b.system, output_config: b.output_config,
+  };
+  if (b.fallbacks === "default") body.fallbacks = "default";
+  const ws = Array.isArray(b.tools) ? b.tools.find((t: any) => String(t?.type).startsWith("web_search_")) : null;
+  if (ws) body.tools = [{ type: ws.type, name: "web_search", max_uses: Math.min(Number(ws.max_uses) || 5, 5) }];
+  // Rough worst case for this call, so a burst of requests can't run far past the monthly limit.
+  const [epi, epo] = price(String(body.model));
+  // Base64 image data isn't text: count each image as ~2,000 tokens instead of by its length.
+  const images = (raw.match(/"data":"[A-Za-z0-9+\/=]{200,}"/g) || []).length;
+  const textLen = raw.replace(/"data":"[A-Za-z0-9+\/=]{200,}"/g, '"data":""').length;
+  const estimate = (textLen / 3 + images * 2000) * epi / 1e6 + Number(body.max_tokens) * epo / 1e6 + (ws ? 5 * WEB_SEARCH_PER_1000 / 1000 : 0);
+  if (acct.used + estimate > acct.cap * 1.05) {
+    return fail(429, "rate_limit_error", "You've reached this month's AI limit for Plus. AI features come back at the start of next month; everything else keeps working.");
+  }
+  const feature = (req.headers.get("x-dl-feature") ?? "").slice(0, 40) || null;
 
   const headers: Record<string, string> = {
     "content-type": "application/json",
     "x-api-key": ANTHROPIC_KEY,
     "anthropic-version": req.headers.get("anthropic-version") ?? "2023-06-01",
   };
-  const beta = req.headers.get("anthropic-beta");
+  const beta = (req.headers.get("anthropic-beta") ?? "").split(",").map((s) => s.trim()).filter((s) => BETAS.has(s)).join(",");
   if (beta) headers["anthropic-beta"] = beta;
 
-  const upstream = await fetch("https://api.anthropic.com/v1/messages" + url.search, {
+  const upstream = await fetch("https://api.anthropic.com/v1/messages" + (url.searchParams.get("beta") === "true" ? "?beta=true" : ""), {
     method: "POST", headers, body: JSON.stringify(body),
   });
   const text = await upstream.text();
