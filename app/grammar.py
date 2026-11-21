@@ -6,7 +6,7 @@ Everything here is rule-based and offline: no AI.
 import json
 import re
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from . import db, decl, genderrules, wordorder
 from .grammar_data import LEVELS, THEMES, TOPIC_BY_ID, TOPICS
@@ -372,5 +372,12 @@ def wordorder_typed_next(body: dict):
 
 @router.post("/api/wordorder/typed/check")
 def wordorder_typed_check(body: dict):
-    return localize({**typed_check(body["id"], body.get("answer", ""), bool(body.get("hinted"))),
+    try:
+        sid = int(body.get("id"))
+    except (TypeError, ValueError):
+        sid = -1
+    if not 0 <= sid < len(wordorder.SENTENCES):  # a bad id was a 500 error, and -1 quietly read the last sentence
+        raise HTTPException(400, "No such sentence")
+    answer = str(body.get("answer") or "")[:500]  # one sentence
+    return localize({**typed_check(sid, answer, bool(body.get("hinted"))),
                      "progress": wordorder.progress()})
