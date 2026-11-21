@@ -33,15 +33,16 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS level_checks(
   id INTEGER PRIMARY KEY, started_at TEXT, finished_at TEXT, date TEXT, state TEXT, result TEXT);
 """
-_ready = False
+_ready = None  # the db.init() run the tables were made for
 
 
 def _init():
     global _ready
-    if not _ready:
+    # Again after every db.init(): a restored backup from before 3.0 doesn't have this module's tables yet.
+    if _ready != db.INITS:
         with db.connect() as conn:
             conn.executescript(SCHEMA)
-        _ready = True
+        _ready = db.INITS
 
 
 def level_index(name):
@@ -588,4 +589,8 @@ def level_check_start():
 
 @router.post("/api/level/check/answer")
 def level_check_answer(body: dict):
-    return answer_check(int(body.get("id") or 0), str(body.get("answer") or ""))
+    try:
+        cid = int(body.get("id") or 0)
+    except (TypeError, ValueError):
+        cid = 0  # not a check id: the usual "already finished" 404 instead of a 500
+    return answer_check(cid, str(body.get("answer") or ""))

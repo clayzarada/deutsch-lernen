@@ -20,8 +20,14 @@ POS_NAME = {"noun": "noun", "verb": "verb", "adj": "adjective", "adv": "adverb",
 _local = threading.local()
 
 
+_AVAILABLE = False
+
+
 def available():
-    return PATH.exists()
+    # Checked on every look-up, so remember a yes (the file never goes away while the app runs).
+    global _AVAILABLE
+    _AVAILABLE = _AVAILABLE or PATH.exists()
+    return _AVAILABLE
 
 
 def _con():
@@ -78,6 +84,20 @@ def _clean(word):
     return re.sub(r"^[^\wäöüÄÖÜß]+|[^\wäöüÄÖÜß]+$", "", word or "").strip()
 
 
+def _ranked(w):
+    """The dictionary rows for a cleaned word, best match first."""
+    rows = _con().execute(
+        "SELECT w.*, f.form AS via FROM form f JOIN word w ON w.id = f.word_id WHERE f.form = ? "
+        "UNION SELECT w.*, w.word AS via FROM word w WHERE w.word = ? COLLATE NOCASE", (w, w)).fetchall()
+
+    def score(r):
+        # Same capitalization first (Haus is the noun, haus a verb form), then the more common word
+        # (schönen is far more often schön than the rare verb schönen).
+        # A capitalized word that is itself a noun entry wins over a noun it's a form of (Lehrerin, not Lehrer).
+        return (r["via"] == w, w[:1].isupper() and r["word"] == w, -(r["rank"] or 10 ** 6))
+    return sorted(rows, key=score, reverse=True)
+
+
 def lookup(word, limit=4):
     """Entries for a word as it appears in a text, best match first. [] if nothing is known."""
     if not available():
@@ -85,17 +105,8 @@ def lookup(word, limit=4):
     w = _clean(word)
     if not w:
         return []
-    rows = _con().execute(
-        "SELECT w.*, f.form AS via FROM form f JOIN word w ON w.id = f.word_id WHERE f.form = ? "
-        "UNION SELECT w.*, w.word AS via FROM word w WHERE w.word = ? COLLATE NOCASE", (w, w)).fetchall()
     seen, out = set(), []
-
-    def score(r):
-        # Same capitalization first (Haus is the noun, haus a verb form), then the more common word
-        # (schönen is far more often schön than the rare verb schönen).
-        # A capitalized word that is itself a noun entry wins over a noun it's a form of (Lehrerin, not Lehrer).
-        return (r["via"] == w, w[:1].isupper() and r["word"] == w, -(r["rank"] or 10 ** 6))
-    for r in sorted(rows, key=score, reverse=True):
+    for r in _ranked(w):
         if r["id"] not in seen:
             seen.add(r["id"])
             out.append(_entry(r, r["via"]))
@@ -110,8 +121,10 @@ def compound(w):
     """An unknown capitalized word read as a compound noun: its last part decides gender and plural."""
     for i in range(1, len(w) - 3):
         head = w[i:].capitalize()
-        r = _con().execute("SELECT * FROM word WHERE word = ? AND pos = 'noun' AND gender != '' ORDER BY rank LIMIT 1",
-                           (head,)).fetchone()
+        # The NOCASE term lets SQLite use the word index (word_i is NOCASE); the plain "=" then keeps the exact
+        # match. Without it every try scanned all 78,000 words (about 25 ms each, seconds for one long text).
+        r = _con().execute("SELECT * FROM word WHERE word = ? COLLATE NOCASE AND word = ? AND pos = 'noun' "
+                           "AND gender != '' ORDER BY rank LIMIT 1", (head, head)).fetchone()
         if r:
             e = _entry(r)
             first = w[:i]
@@ -147,9 +160,16 @@ def known(word):
 
 
 def lemma_of(token):
-    """(dictionary form, part of speech) for a word in running text, or (None, None)."""
-    found = lookup(token, 1)
-    return (found[0]["word"], found[0]["pos"]) if found else (None, None)
+    """(dictionary form, part of speech) for a word in running text, or (None, None). Same answer as
+    lookup(token, 1), without building whole entries (the reading room calls this for thousands of words)."""
+    w = _clean(token) if available() else ""
+    if not w:
+        return None, None
+    rows = _ranked(w)
+    if rows:
+        return rows[0]["word"], rows[0]["pos"]
+    found = compound(w) if w[:1].isupper() else None
+    return (found["word"], found["pos"]) if found else (None, None)
 
 
 # ---------- small grammar words, explained from the app's own grammar tables ----------

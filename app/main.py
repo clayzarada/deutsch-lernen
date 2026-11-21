@@ -33,6 +33,7 @@ except Exception as _e:  # a failed backup must never stop the app from starting
     print('daily backup failed:', _e)
 cloud.auto()  # in the background; only does anything for Plus accounts with cloud backup on
 surveys.start_background()  # weekly usage summary (if allowed) and the list of open questions
+readingroom.warm_up()  # looks up the library's words in the background, so the reading room opens quickly
 
 app = FastAPI(title="German Study")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
@@ -792,6 +793,8 @@ def review_card(card_id: int, body: dict):
     if not card:
         raise HTTPException(404, "Card not found")
     grade = int(body["grade"])
+    if grade not in (1, 2, 3, 4):  # FSRS only knows these four; anything else was a 500 error
+        raise HTTPException(400, "Grade must be 1 to 4")
     upd = srs.schedule(card, grade)
     prev = {k: card[k] for k in SCHEDULE_COLS}
     db.ex("UPDATE cards SET ease=?, interval=?, reps=?, lapses=?, due=?, stability=?, difficulty=? WHERE id=?",
@@ -890,7 +893,10 @@ def lesson_complete(lesson_id: str, body: dict):
     except ValueError as e:
         raise HTTPException(400, str(e))
     if out["passed"]:
-        known.mark([known.lemma(w["word"]) for w in lessons.lesson_words(lesson_id)], known.LEARNING, "lesson")
+        # Read like a flashcard front, so "die Eltern", "sich waschen" and "zu Hause" count too (known.lemma alone
+        # gives None for anything with a space: about one lesson word in twenty was never marked).
+        known.mark([x for w in lessons.lesson_words(lesson_id) for x in known.words_of(w["word"])],
+                   known.LEARNING, "lesson")
     return out
 
 
@@ -909,7 +915,7 @@ def known_mark(body: dict):
     status = int(body.get("status", known.KNOWN))
     if status not in known.NAMES:
         raise HTTPException(400, "Unknown status")
-    lemmas = [str(x) for x in (body.get("lemmas") or [])][:500]
+    lemmas = [str(x)[:100] for x in (body.get("lemmas") or [])][:500]  # a word, not a pasted text
     known.mark(lemmas, status)
     return {"statuses": known.statuses(lemmas)}
 

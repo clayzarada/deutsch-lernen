@@ -102,6 +102,6 @@ def level_test(level: str):
 def level_test_complete(level: str, body: dict):
     _check(level)
     try:
-        return complete(level, body.get("results") or [])
+        return complete(level, list(body.get("results") or [])[:200])  # a test has about 35 questions
     except ValueError as e:
         raise HTTPException(400, str(e))

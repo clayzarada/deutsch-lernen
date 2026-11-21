@@ -7,6 +7,7 @@ the planner, the stats and the streak count it without any extra code.
 """
 import random
 import re
+import threading
 
 from fastapi import APIRouter, HTTPException
 
@@ -71,6 +72,19 @@ def _get(key):
     return {"key": key, "id": row["id"], "title": row["title"], "level": row["level"] or "", "genre": "",
             "topic": row["topic"] or "", "summary_en": "", "summary_tr": "", "source": row["source"],
             "created_at": row["created_at"]}, row["text"]
+
+
+def warm_up():
+    """Look up the words of the built-in texts in the background when the app starts. The first look-up of a
+    word goes to the dictionary (about 1.5 s for the whole library); afterwards known.lemma has them cached, so the
+    first visit to the reading room is as quick as the later ones. Read-only, so it never gets in the way."""
+    def run():
+        try:
+            for t in TEXTS:
+                known.lemmas_in(_lib_text(t))
+        except Exception as e:  # only a speed-up: never let it break the start
+            print("reading room warm-up failed:", e)
+    threading.Thread(target=run, daemon=True).start()
 
 
 def coverages(texts):

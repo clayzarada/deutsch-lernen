@@ -136,21 +136,34 @@ def today():
     return study_date().isoformat()
 
 
+_dirs_made = None
+
+
 def connect():
-    for d in (DATA, BOOKS, THUMBS, MEDIA):
-        d.mkdir(parents=True, exist_ok=True)
+    # Making the folders costs eight file-system calls; pages open dozens of connections, so do it once per data
+    # folder (and again if that folder has gone away).
+    global _dirs_made
+    if _dirs_made != DATA or not DATA.is_dir():
+        for d in (DATA, BOOKS, THUMBS, MEDIA):
+            d.mkdir(parents=True, exist_ok=True)
+        _dirs_made = DATA
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
     return conn
 
 
+INITS = 0  # how often init() ran; modules that make their own tables make them again after a restore
+
+
 def init():
+    global INITS
     with connect() as conn:
         conn.executescript(SCHEMA)
         if conn.execute("SELECT COUNT(*) FROM resources").fetchone()[0] == 0:
             conn.executemany("INSERT INTO resources(title,url,kind,notes) VALUES(?,?,?,?)", SEED_RESOURCES)
         _migrate(conn)
+    INITS += 1
 
 
 def _migrate(conn):

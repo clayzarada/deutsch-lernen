@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS known_history(date TEXT PRIMARY KEY, known INTEGER, l
 
 _WORD = re.compile(r"[^\W\d_]+(?:-[^\W\d_]+)*")  # any letters, so "Café" or "Señor" stay one word
 _ARTICLES = {"der", "die", "das"}
-_ready = False
+_ready = None  # the db.init() run the tables were made for
 
 
 def _family(base, *forms):
@@ -57,10 +57,11 @@ _FORMAL = {"Sie": "Sie", "Ihnen": "Sie"}
 
 def _init():
     global _ready
-    if not _ready:
+    # Again after every db.init(): a restored backup from before 3.0 doesn't have this module's tables yet.
+    if _ready != db.INITS:
         with db.connect() as conn:
             conn.executescript(SCHEMA)
-        _ready = True
+        _ready = db.INITS
 
 
 # ---------- words in text ----------
@@ -99,16 +100,23 @@ def lemmas_in(text):
 
 # ---------- where statuses come from ----------
 
+@functools.lru_cache(maxsize=50000)
 def _card_words(front):
     """The German words a flashcard teaches, from its front. Pattern cards ("helfen + ?") and long sentences
-    teach grammar more than words, so only the first few words count."""
+    teach grammar more than words, so only the first few words count. Cached: statuses() reads every card on
+    every call, and a card's front rarely changes."""
     f = re.sub(r"\s*[·(|].*$", "", front or "").strip()  # "gehen · to go", "der Mann (Männer)" -> the word part
     if "+" in f or "___" in f:
-        return []
+        return ()
     toks = [t for t in _WORD.findall(f)]
     if toks and toks[0].lower() in _ARTICLES and len(toks) > 1:
         toks = toks[1:]
-    return [x for x in (lemma(t) for t in toks[:4]) if x]
+    return tuple(x for x in (lemma(t) for t in toks[:4]) if x)
+
+
+def words_of(phrase):
+    """The words a flashcard front or a lesson word teaches: "die Eltern" -> Eltern, "zu Hause" -> zu, Haus."""
+    return list(_card_words(phrase))
 
 
 def _from_cards():
@@ -145,24 +153,26 @@ def mark(lemmas, status, source="user"):
     _init()
     now = db.now()
     rows = _rows()
+    todo = []
     for w in {x for x in lemmas if x}:
         r = rows.get(w)
         if r and source != "user" and (r["source"] == "user" or r["status"] >= status):
             continue
-        db.ex("INSERT INTO known_words(lemma, status, source, first_seen, updated_at) VALUES(?,?,?,?,?) "
+        todo.append((w, status, source, now, now))
+    # One transaction for all of them: a commit per word took over 10 ms each (seconds for a whole text).
+    db.exmany("INSERT INTO known_words(lemma, status, source, first_seen, updated_at) VALUES(?,?,?,?,?) "
               "ON CONFLICT(lemma) DO UPDATE SET status=excluded.status, source=excluded.source, "
-              "updated_at=excluded.updated_at", (w, status, source, now, now))
+              "updated_at=excluded.updated_at", todo)
 
 
 def saw(lemmas):
     """The learner met these words in a text: count it, and new words become "seen"."""
     _init()
     now = db.now()
-    for w in {x for x in lemmas if x}:
-        db.ex("INSERT INTO known_words(lemma, status, source, seen, first_seen, updated_at) VALUES(?,?,'reading',1,?,?) "
+    db.exmany("INSERT INTO known_words(lemma, status, source, seen, first_seen, updated_at) VALUES(?,?,'reading',1,?,?) "
               "ON CONFLICT(lemma) DO UPDATE SET seen = seen + 1, "
               "status = CASE WHEN source != 'user' AND status < ? THEN ? ELSE status END",
-              (w, SEEN, now, now, SEEN, SEEN))
+              [(w, SEEN, now, now, SEEN, SEEN) for w in {x for x in lemmas if x}])
 
 
 # ---------- summaries ----------
