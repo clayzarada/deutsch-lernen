@@ -3,6 +3,7 @@ import {
   $, $$, S, api, esc, icon, busy, toast, emptyState, loadBooks, chapterOptions, scopeParams, queryString,
   registerView, cardEditor, setBadge, confirmDialog, hearButton, refreshNav, loading, fillIcons,
 } from './core.js';
+import { aiTag, isAiCard } from './aitag.js';
 
 const GRADES = [['Again', 1], ['Hard', 2], ['Good', 3], ['Easy', 4]];
 
@@ -124,7 +125,7 @@ function renderReview() {
     <div class="review-top"><span>${left} left in this session</span><span class="muted">${R.ahead ? 'practice' : `${k.due} due · ${k.new_available} new today`}</span></div>
     <div class="session-bar"><span style="width:${(100 * R.done) / (R.done + left)}%"></span></div>
     <div class="flash ${R.revealed ? 'revealed' : ''}">
-      <div class="flash-type">${esc(c.type)}${c.due ? '' : ' · new'}${c.lapses >= TRICKY ? ` · <span class="tricky" title="Consider rewording it or adding a hint (Browse & create → edit)">tricky: missed ${c.lapses} times</span>` : ''}</div>
+      <div class="flash-type">${esc(c.type)}${c.due ? '' : ' · new'}${isAiCard(c) ? ' ' + aiTag() : ''}${c.lapses >= TRICKY ? ` · <span class="tricky" title="Consider rewording it or adding a hint (Browse & create → edit)">tricky: missed ${c.lapses} times</span>` : ''}</div>
       ${frontHtml(c)}
       ${!R.revealed && hintTopics(c).length ? `<button class="flash-hint" id="rv-hint" title="Show which grammar point this card is about (Alt+H)">${icon('sparkles')}<span class="q">Hint</span><span class="a">${hintTopics(c).map(esc).join(' · ')}</span></button>` : ''}
       ${R.revealed ? `<div class="flash-answer"><div class="flash-back">${esc(c.back)}</div>
@@ -158,7 +159,7 @@ function frontHtml(c) {
 function reveal() { R.revealed = true; renderReview(); }
 
 // The grammar point a card practices, from its tags (e.g. "Possessives in the dative"), hidden until asked for.
-const NOT_HINTS = new Set(['mistake-book', 'grammar', 'declension', 'verbs', 'vocab', 'vocabulary']);
+const NOT_HINTS = new Set(['ai', 'mistake-book', 'grammar', 'declension', 'verbs', 'vocab', 'vocabulary']);
 function hintTopics(c) {
   if (!['fix', 'cloze', 'rule'].includes(c.type)) return [];
   let tags = [];
@@ -297,7 +298,7 @@ function cardRow(c) {
   const st = cardStatus(c);
   return `<div class="card-row" data-id="${c.id}">
     <div class="cr-front">${esc(c.front)}</div><div class="cr-back">${esc(c.back)}${c.extra ? `<small>${esc(c.extra)}</small>` : ''}</div>
-    <div class="cr-meta"><span class="chip">${esc(c.type)}</span><span class="st ${st.cls}">${st.text}</span>${c.lapses >= TRICKY ? `<span class="st due" title="Missed ${c.lapses} times">tricky</span>` : ''}</div>
+    <div class="cr-meta"><span class="chip">${esc(c.type)}</span><span class="st ${st.cls}">${st.text}</span>${isAiCard(c) ? aiTag() : ''}${c.lapses >= TRICKY ? `<span class="st due" title="Missed ${c.lapses} times">tricky</span>` : ''}</div>
     <div class="cr-acts"><button class="icon-btn" data-edit title="Edit">${icon('edit')}</button><button class="icon-btn danger-hover" data-del title="Delete">${icon('trash')}</button></div></div>`;
 }
 
