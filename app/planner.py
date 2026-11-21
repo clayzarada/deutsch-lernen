@@ -3,7 +3,7 @@ import datetime as dt
 import json
 
 from .i18n import localize
-from . import ai, course, db, decl, lessons, verbs, writing
+from . import ai, course, db, decl, lessons, levels, readingroom, verbs, writing
 from .verbcourse import VERBS_COURSE
 
 PAGE_READ_SECONDS = 20  # time on a page before it counts as read
@@ -24,7 +24,7 @@ def day_stats(date):
     return {
         "date": date,
         "minutes": round((reading + rev["s"] + sum(act.values())) / 60),
-        "reading_minutes": round(reading / 60),
+        "reading_minutes": round((reading + act.get("reading", 0)) / 60),  # textbook pages + the reading room
         "practice_minutes": round(act.get("practice", 0) / 60),
         "listening_minutes": round(act.get("listening", 0) / 60),
         "pages_read": _pages_read("date=?", (date,)),
@@ -179,7 +179,8 @@ def build_context():
         "learner": {k: s[k] for k in ("level", "native_language", "daily_minutes", "goal", "exam_date")},
         "coach_notes": s["coach_notes"],
         "last_7_days": week(),
-        "streak_days": streak()["days"],
+        # A weekly goal, not a streak: rest days are normal, so the coach never counts days in a row.
+        "study_days_this_week": {k: levels.week_goal()[k] for k in ("days", "target")},
         "flashcards": card_counts(),
         "weak_topics": weak_topics(),
         "books": book_progress(),
@@ -199,6 +200,7 @@ def build_context():
         "listening_library": db.q(
             "SELECT m.id AS media_id, m.title, m.source, c.title AS chapter, ROUND(m.seconds / 60.0, 1) AS minutes, "
             "m.listens FROM media m LEFT JOIN chapters c ON c.id = m.chapter_id ORDER BY m.id DESC LIMIT 40"),
+        "reading_room_finished": readingroom.coach_summary(),
         "recent_plans": recent_plans,
     }
 
@@ -322,10 +324,10 @@ def quick_plan(minutes):
     lesson = lessons.brief() if db.get_settings()["use_course"] == "1" else None
     if lesson and not lesson["finished"]:
         nxt = lesson["next"]
-        if add({"kind": "course", "lesson_id": nxt["id"], "title": f"Lesson {nxt['n']}: {nxt['title']}", "minutes": 10,
+        if add({"kind": "course", "lesson_id": nxt["id"], "title": f"{nxt['level']} · Lesson {nxt['ln']}: {nxt['title']}", "minutes": 10,
                 "target_questions": 14, "instructions": f"{nxt['subtitle']}. New words, a short dialogue, one grammar point and a quiz.",
                 "why": "One lesson a day keeps the course moving."}):
-            why.append(f"lesson {nxt['n']} of the course")
+            why.append(f"lesson {nxt['ln']} of {nxt['level']} in the course")
 
     cc = card_counts()
     cards = cc["due"] + cc["new_available"]

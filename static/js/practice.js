@@ -1,5 +1,6 @@
 // Practice page: generate exercise sets per chapter, answer them, get them graded.
 import { $, $$, S, api, esc, icon, busy, loading, emptyState, confirmDialog, toast, loadBooks, chapterOptions, registerView, isActive, store } from './core.js';
+import { aiTag } from './aitag.js';
 
 const TYPE_LABEL = {
   fill_blank: 'Fill the gap', multiple_choice: 'Multiple choice', translate_to_german: 'Translate into German',
@@ -49,7 +50,7 @@ async function loadSets() {
   $('#p-sets').innerHTML = S.sets.length ? S.sets.map(s => {
     const pct = s.total ? Math.round((100 * (s.answered || 0)) / s.total) : 0;
     return `<div class="set-item ${S.currentSet?.id === s.id ? 'active' : ''}" data-id="${s.id}">
-      <div class="grow"><div class="set-title">${esc(s.title)}</div>
+      <div class="grow"><div class="set-title">${esc(s.title)}${aiTag()}</div>
         <div class="meter"><div class="meter-bar"><span style="width:${pct}%"></span></div>
         <span>${s.answered || 0}/${s.total}${s.answered ? ` · ${Math.round((100 * s.correct) / s.answered)}%` : ''}</span></div></div>
       <button class="icon-btn danger-hover" data-del="${s.id}" title="Delete set">${icon('trash')}</button></div>`;
@@ -111,7 +112,7 @@ function renderSet(s, drafts = {}) {
   const finished = answered.length === s.exercises.length;
   $('#p-set').innerHTML = `
     <div class="set-head">
-      <div><h2>${esc(s.title)}</h2>
+      <div><h2>${esc(s.title)}${aiTag()}</h2>
         <div class="meter"><div class="meter-bar"><span style="width:${(100 * answered.length) / s.exercises.length}%"></span></div>
         <span>${answered.length}/${s.exercises.length} answered · ${right} right</span></div></div>
       <div class="row"><button data-check>${icon('check')}<span>Check answers</span></button>

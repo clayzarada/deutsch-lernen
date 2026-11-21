@@ -78,6 +78,8 @@ const ICONS = {
   rocket: '<path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1zM12 15l-3-3a22 22 0 0 1 2-4A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22.4 22.4 0 0 1-4 2zM9 12H4s.6-3 2-4c1.6-1.1 5 0 5 0M12 15v5s3-.6 4-2c1.1-1.6 0-5 0-5"/>',
   star: '<path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',
   moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  progress: '<path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/>',
+  calendar: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
 };
 
 // ---------- pronunciation: Gemini reads a short German text aloud; without a key, the computer's own voice ----------
@@ -211,8 +213,8 @@ export function registerView(name, load) { views[name] = load; }
 
 // The sidebar has five sections; a section with several pages shows them as tabs across the top.
 export const SECTIONS = {
-  home: [['today', 'Today', 'today'], ['coach', 'Coach', 'coach']],
-  learn: [['course', 'Course', 'book'], ['decl', 'Declensions', 'rocket'], ['verbs', 'Verbs', 'spear']],
+  home: [['today', 'Today', 'today'], ['progress', 'Progress', 'progress'], ['coach', 'Coach', 'coach']],
+  learn: [['course', 'Course', 'book'], ['decl', 'Declensions', 'rocket'], ['verbs', 'Verbs', 'spear'], ['reading', 'Reading room', 'reader']],
   practice: [['practice', 'Exercises', 'practice'], ['writing', 'Writing', 'edit'], ['listening', 'Listening', 'headphones'], ['mistakes', 'Mistakes', 'mistake']],
   cards: [['cards', 'Flashcards', 'cards']],
   library: [['library', 'Books', 'library'], ['reader', 'Reader', 'reader'], ['resources', 'Resources', 'resources']],
@@ -273,9 +275,9 @@ export function setBadge(view, n) {
 export function updateNavStatus(stats) {
   if (stats) {
     setBadge('cards', stats.cards.due + stats.cards.new_available);
-    const st = stats.streak;
-    $('#nav-streak').innerHTML = st.days ? `${icon('flame')}<span><b>${st.days}</b> day${st.days === 1 ? '' : 's'} streak</span>` : '';
-    $('#nav-streak').classList.toggle('lit', st.today_done);
+    // A weekly goal instead of a streak: rest days are normal and never break anything.
+    const wg = stats.week_goal;
+    if (wg) $('#nav-streak').innerHTML = `${icon('calendar')}<a href="#" data-go="progress" class="week-goal-link">${weekGoalText(wg)}</a>`;
   }
   const ok = S.settings?.has_key;
   $('#nav-ai').innerHTML = `<i class="dot ${ok ? 'on' : ''}"></i><span>${ok ? 'AI is on' : 'Turn on AI features'}</span>`;
@@ -283,6 +285,11 @@ export function updateNavStatus(stats) {
   $('#nav-version').textContent = v ? `v${v}${S.settings.build_name ? ' · ' + S.settings.build_name : ''}` : '';
   const c = S.settings?.credits;
   if (c) $('#nav-credit').textContent = `by ${c.author}`;
+}
+
+/** "3 of 5 days this week": one plain text node, so it translates as a whole. */
+export function weekGoalText(wg) {
+  return `${wg.days} of ${wg.target} days this week`;
 }
 
 export async function refreshNav() {

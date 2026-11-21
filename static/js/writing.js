@@ -1,6 +1,7 @@
 // Writing desk: pick an exam-style task (or the plan's writing task, or your own topic), write, and get it
 // marked like the Goethe writing paper. Corrections go to the Mistake Book.
 import { $, $$, S, api, esc, icon, busy, toast, store, registerView, refreshNav, isActive, confirmDialog } from './core.js';
+import { aiTag } from './aitag.js';
 
 const W = { tasks: [], history: [], task: null, view: 'write', piece: null, started: 0, seconds: 0, timer: null, level: null };
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1'];
@@ -47,7 +48,7 @@ function taskHtml(t) {
   if (t.id === 'own') return `<div class="w-taskbox"><p class="eyebrow">Free writing</p><h2>My own topic</h2>
     <input id="w-own-title" placeholder="What are you writing about? (optional)" value="${esc(t.title === 'My own topic' ? '' : t.title)}"></div>`;
   return `<div class="w-taskbox"><p class="eyebrow">${esc(t.level || '')} ${esc(t.kind || 'Task')}${t.minutes ? ` · ${t.minutes} min in the exam` : ''}</p>
-    <h2>${esc(t.title)}</h2><p>${esc(t.task)}</p>
+    <h2>${esc(t.title)}${t.id === 'ai' ? aiTag() : ''}</h2><p>${esc(t.task)}</p>
     ${t.points?.length ? `<ul>${t.points.map(p => `<li>${esc(p)}</li>`).join('')}</ul>` : ''}</div>`;
 }
 
@@ -135,6 +136,7 @@ function renderResult() {
   const p = W.piece, r = p.result;
   $('#w-main').innerHTML = `${taskHtml({ ...p.task, id: p.task.task_id || 'done', title: p.title, level: p.level })}
     <div class="w-result">
+      ${aiTag('block')}
       <div class="w-scores">
         <div class="w-overall ${r.passes ? 'pass' : ''}"><b>${r.overall}</b><span>/ 100</span><small>${r.passes ? `Would pass ${esc(p.level)}` : `Not a pass at ${esc(p.level)} yet`}</small></div>
         <div class="w-crit">${r.criteria.map(c => `<div><span>${esc(c.name)}</span><span class="meter"><span class="meter-bar ${c.score <= 2 ? 'bad' : c.score === 3 ? 'mid' : ''}"><span style="width:${c.score * 20}%"></span></span><b>${c.score}/5</b></span><small>${esc(c.comment)}</small></div>`).join('')}</div>

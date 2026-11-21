@@ -1,6 +1,8 @@
 """SQLite storage. Every helper opens its own short-lived connection, which is fine for a single-user local app."""
 import datetime as dt
+import json
 import os
+
 import sqlite3
 import sys
 from pathlib import Path
@@ -89,6 +91,7 @@ DEFAULT_SETTINGS = {
     "surveys_done": "",       # ids of in-app questions already answered or skipped (JSON list)
     "usage_sent_week": "",    # the week the last usage summary was sent for
     "daily_minutes": "45",
+    "week_goal": "5",  # days a week the learner means to study (3-7); rest days never break anything
     "goal": "",
     "exam_date": "",
     "model": "claude-sonnet-5-5",
@@ -96,6 +99,7 @@ DEFAULT_SETTINGS = {
     "quick_model": "claude-haiku-5-5",  # small, frequent jobs (look-ups, marking); "" = use "model" for everything
     "web_search": "1",
     "new_cards_per_day": "20",
+    "desired_retention": "0.9",  # flashcards: the chance of remembering a card when it comes back (0.8-0.95)
     "coach_notes": "",
     "tts_model": "gemini-3.8-flash-tts",
     "voice_a": "Kore",
@@ -156,6 +160,17 @@ def _migrate(conn):
                       ("skills", "TEXT"), ("learned_at", "TEXT"), ("learned_by", "TEXT")):
         if col not in cols:  # columns added after the Mistake Book first shipped
             conn.execute(f"ALTER TABLE mistakes ADD COLUMN {col} {kind}")
+    card_cols = {r[1] for r in conn.execute("PRAGMA table_info(cards)")}
+    for col in ("stability", "difficulty"):  # FSRS scheduling (srs.py)
+        if col not in card_cols:
+            conn.execute(f"ALTER TABLE cards ADD COLUMN {col} REAL")
+    # Cards scheduled before FSRS (or restored from an older backup, or imported from Anki) get a stability and
+    # difficulty that keep their current schedule. Runs at every start but only touches cards that lack them.
+    from . import srs
+    rows = conn.execute("SELECT id, ease, interval, reps, lapses FROM cards "
+                        "WHERE due IS NOT NULL AND (stability IS NULL OR difficulty IS NULL)").fetchall()
+    conn.executemany("UPDATE cards SET stability=?, difficulty=? WHERE id=?",
+                     [(*(round(v, 4) for v in srs.from_legacy(dict(r))), r["id"]) for r in rows])
     done = {r[0] for r in conn.execute("SELECT key FROM settings WHERE key LIKE 'migrated_%'")}
     if "migrated_text_size_10" not in done:
         # Typed answers were 11pt, a bit larger than most textbook text; new boxes are 10pt.
@@ -175,6 +190,34 @@ def _migrate(conn):
                      "SELECT 'practice', topic, user_answer, trim(substr(answer || '|', 1, instr(answer || '|', '|') - 1)), "
                      "feedback, prompt, answered_at, answered_at FROM exercises WHERE correct = 0 AND user_answer IS NOT NULL")
         conn.execute("INSERT INTO settings(key, value) VALUES('migrated_mistakes_backfill', '1')")
+    if "migrated_ai_card_tags" not in done:
+        _tag_ai_cards(conn)
+        conn.execute("INSERT INTO settings(key, value) VALUES('migrated_ai_card_tags', '1')")
+
+
+# Tags that say where a card came from without AI (dictionary, packs, Anki, the Mistake Book, the course, the
+# declension and verb journeys).
+NON_AI_SOURCES = {"dictionary", "pack", "anki", "mistake-book", "course"}
+
+
+def _tag_ai_cards(conn):
+    """Cards made by AI before they were tagged "ai": AI flashcards for a chapter carry topic tags from Claude and
+    none of the other sources' tags (cards written by hand have no tags at all), and Gemini Notebook imports that
+    Claude tidied have topic tags besides "gemini-notebook" (plain tables have none)."""
+    rows = conn.execute("SELECT id, tags FROM cards WHERE chapter_id IS NOT NULL AND tags IS NOT NULL").fetchall()
+    for r in rows:
+        try:
+            tags = json.loads(r["tags"])
+        except ValueError:
+            continue
+        if not isinstance(tags, list) or not tags or "ai" in tags:
+            continue
+        names = {str(t) for t in tags}
+        if names & NON_AI_SOURCES or any(t.startswith(("decl:", "lesson:")) for t in names):
+            continue
+        if "gemini-notebook" in names and len(names) == 1:
+            continue
+        conn.execute("UPDATE cards SET tags=? WHERE id=?", (json.dumps(tags + ["ai"], ensure_ascii=False), r["id"]))
 
 
 def q(sql, args=()):

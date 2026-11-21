@@ -3,6 +3,7 @@
 // tables). Both run on this one page: COURSES says what differs, the server's course kit (app/coursekit.py) does the rest.
 import { $, $$, S, api, esc, icon, store, toast, busy, registerView, refreshNav, isActive } from './core.js';
 import { ALEXMAP } from './alexmap.js';
+import { aiTag } from './aitag.js';
 
 const CASE_SHORT = { nom: 'Nominativ', akk: 'Akkusativ', dat: 'Dativ', gen: 'Genitiv' };
 const TENSE_SHORT = { praes: 'Präsens', perf: 'Perfekt', fut1: 'Futur I', modal: 'Modalverben', praet: 'Präteritum',
@@ -581,7 +582,7 @@ function showReading(reading, fresh) {
     return `<span class="rd-gap ${seg.hint ? 'word' : 'ending'}"><input data-gap="${i}" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="${esc(seg.hint || '')}" aria-label="gap ${i + 1}"></span>`;
   }).join('');
   const ai = S.settings?.has_key;
-  stepShell('Reading', `<article class="dj-reading"><h2>${esc(reading.title)}</h2>
+  stepShell('Reading', `<article class="dj-reading"><h2>${esc(reading.title)}${fresh ? aiTag() : ''}</h2>
       <p class="muted small">Fill in each gap. Gray words in the boxes are hints; small boxes want just an ending. <kbd>Enter</kbd> jumps to the next gap.</p>
       <p class="rd-text">${text}</p>
       <div class="row dj-end-row"><button id="dj-read-check">${icon('check')}Check</button><span id="dj-read-result" class="muted small"></span></div></article>

@@ -12,7 +12,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import (account, ai, cloud, surveys, anki, ankiimport, backup, lessons, leveltest, course, db, decl, dictionary, known, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
+from . import (account, ai, cloud, dataexport, surveys, anki, ankiimport, backup, lessons, leveltest, course, db, decl, dictionary, known, levels, mistakelink, packs, pagecheck, pdfs, planner, readingroom, srs, textwork, tts,
                update, usage, verbs, wordorder, wordtrain, writing)
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
@@ -36,7 +36,6 @@ surveys.start_background()  # weekly usage summary (if allowed) and the list of 
 
 app = FastAPI(title="German Study")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
-app.include_router(leveltest.router)
 
 
 _LOCAL_HOSTS = {"127.0.0.1", "localhost", "[::1]"} | ({"testserver"} if os.environ.get("GERMANSTUDY_TESTING") else set())
@@ -751,7 +750,7 @@ def generate_cards(chapter_id: int, body: dict):
     db.exmany("INSERT INTO cards(book_id, chapter_id, type, front, back, extra, tags, created_at) "
               "VALUES(?,?,?,?,?,?,?,?)",
               [(c["book_id"], chapter_id, k["type"], k["front"], k["back"], k["extra"],
-                json.dumps(k["tags"], ensure_ascii=False), now) for k in cards])
+                json.dumps(k["tags"] + ["ai"], ensure_ascii=False), now) for k in cards])  # "ai": labeled AI-written
     return {"added": len(cards)}
 
 
@@ -773,12 +772,16 @@ def review_queue(chapter_id: int | None = None, book_id: int | None = None, extr
         limit = counts["new_available"] + max(0, min(extra_new, 200))
         new = db.q("SELECT * FROM cards WHERE due IS NULL" + scope + " ORDER BY id LIMIT ?", [*args, limit])
         cards = due + new
+    r = srs.retention()
     for c in cards:
-        c["previews"] = srs.preview(c)
+        c["previews"] = srs.preview(c, r)
     summary = db.q1("SELECT COUNT(*) AS total, COALESCE(SUM(due IS NULL), 0) AS new, "
                     "COALESCE(SUM(due > ?), 0) AS later, MIN(CASE WHEN due > ? THEN due END) AS next_due "
                     "FROM cards WHERE 1=1" + scope, [now, now, *args])
     return {"cards": cards, "counts": counts, "scope": summary, "ahead": ahead}
+
+
+SCHEDULE_COLS = ("ease", "interval", "reps", "lapses", "due", "stability", "difficulty")  # what a grade changes
 
 
 @app.post("/api/review/{card_id}")
@@ -788,9 +791,9 @@ def review_card(card_id: int, body: dict):
         raise HTTPException(404, "Card not found")
     grade = int(body["grade"])
     upd = srs.schedule(card, grade)
-    prev = {k: card[k] for k in ("ease", "interval", "reps", "lapses", "due")}
-    db.ex("UPDATE cards SET ease=?, interval=?, reps=?, lapses=?, due=? WHERE id=?",
-          (upd["ease"], upd["interval"], upd["reps"], upd["lapses"], upd["due"], card_id))
+    prev = {k: card[k] for k in SCHEDULE_COLS}
+    db.ex("UPDATE cards SET ease=?, interval=?, reps=?, lapses=?, due=?, stability=?, difficulty=? WHERE id=?",
+          (*(upd[k] for k in SCHEDULE_COLS), card_id))
     rid = db.ex("INSERT INTO reviews(card_id, grade, seconds, was_new, ts, date) VALUES(?,?,?,?,?,?)",
                 (card_id, grade, max(0, min(int(body.get("seconds", 0)), 180)), 1 if card["due"] is None else 0,
                  db.now(), db.today()))
@@ -805,8 +808,9 @@ def review_undo(body: dict):
     card_id, rid, prev = int(body["card_id"]), int(body["review_id"]), body["prev"]
     if not db.q1("SELECT id FROM reviews WHERE id=? AND card_id=?", (rid, card_id)):
         raise HTTPException(404, "That review can't be undone any more")
-    db.ex("UPDATE cards SET ease=?, interval=?, reps=?, lapses=?, due=? WHERE id=?",
-          (prev["ease"], prev["interval"], prev["reps"], prev["lapses"], prev["due"], card_id))
+    # stability/difficulty may be missing from an undo made by an older page; the card then re-derives them
+    db.ex("UPDATE cards SET ease=?, interval=?, reps=?, lapses=?, due=?, stability=?, difficulty=? WHERE id=?",
+          (*(prev.get(k) for k in SCHEDULE_COLS), card_id))
     db.ex("DELETE FROM reviews WHERE id=?", (rid,))
     card = db.q1("SELECT * FROM cards WHERE id=?", (card_id,))
     card["previews"] = srs.preview(card)
@@ -862,6 +866,7 @@ def anki_import(body: dict):
 
 
 # ---------- Beginner course ----------
+app.include_router(leveltest.router)  # the course level tests: GET /api/levels/{level}/test, POST .../complete
 @app.get("/api/lessons")
 def lessons_overview():
     return lessons.overview()
@@ -885,6 +890,9 @@ def lesson_complete(lesson_id: str, body: dict):
     if out["passed"]:
         known.mark([known.lemma(w["word"]) for w in lessons.lesson_words(lesson_id)], known.LEARNING, "lesson")
     return out
+
+
+app.include_router(levels.router)  # honest progress: level estimates, weekly goal, monthly level check
 
 
 # ---------- known words (shared by the progress page and the reading room) ----------
@@ -918,6 +926,9 @@ def known_text(body: dict):
         if p.get("lemma"):
             p["s"] = st.get(p["lemma"], known.NEW)
     return {"tokens": toks, "coverage": known.coverage(text)}
+
+
+app.include_router(readingroom.router)  # the reading room: graded texts, own texts, finished log
 
 
 @app.post("/api/lessons/{lesson_id}/cards")
@@ -1245,12 +1256,15 @@ def import_material(chapter_id: int = Form(...), kind: str = Form(...), text: st
         raise HTTPException(400, "That's a lot of text. Import it in smaller pieces.")
 
     if kind == "cards":
-        cards = _parse_table(text) or ai.convert_import("cards", text, c["title"])
+        cards = _parse_table(text)
+        tags = ["gemini-notebook"]
+        if not cards:  # not a plain table: Claude tidies it into cards, so they're labeled AI-written
+            cards, tags = ai.convert_import("cards", text, c["title"]), ["gemini-notebook", "ai"]
         now = db.now()
         db.exmany("INSERT INTO cards(book_id, chapter_id, type, front, back, extra, tags, created_at) "
                   "VALUES(?,?,?,?,?,?,?,?)",
                   [(c["book_id"], chapter_id, k["type"], k["front"], k["back"], k["extra"],
-                    json.dumps(k["tags"] + ["gemini-notebook"], ensure_ascii=False), now) for k in cards])
+                    json.dumps(k["tags"] + tags, ensure_ascii=False), now) for k in cards])
         return {"kind": "cards", "added": len(cards)}
 
     items = ai.convert_import("exercises", text, c["title"])
@@ -1508,6 +1522,9 @@ def backups_export():
                         filename=f"Deutsch-lernen-backup-{_dt.date.today():%Y-%m-%d}.zip")
 
 
+app.include_router(dataexport.router)  # GET /api/export/all: "Export all my data"
+
+
 @app.post("/api/backups/import")
 def backups_import(file: UploadFile = File(...)):
     import shutil as _sh
@@ -1523,7 +1540,7 @@ def backups_import(file: UploadFile = File(...)):
 
 @app.get("/api/stats")
 def stats():
-    return {"today": planner.day_stats(db.today()), "week": planner.week(), "streak": planner.streak(),
+    return {"today": planner.day_stats(db.today()), "week": planner.week(), "streak": planner.streak(), "week_goal": levels.week_goal(),
             "cards": planner.card_counts(), "weak_topics": planner.weak_topics(),
             "calendar": planner.calendar(), "journey": localize(course.brief()), "verbs_journey": localize(VERBS_COURSE.brief()),
             "book": planner.current_book_brief(),

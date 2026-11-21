@@ -3,7 +3,7 @@ from app import db, lessons
 
 
 def test_every_lesson_is_complete_and_its_quiz_is_answerable():
-    assert len(lessons.LESSONS) == 12
+    assert len([l for l in lessons.LESSONS if l["level"] == "A1"]) == 20
     for l in lessons.LESSONS:
         c = lessons._content(l)
         assert len(c["words"]) >= 12 and len(c["dialogue"]) >= 5 and len(c["grammar"]["examples"]) >= 3, l["id"]
@@ -27,7 +27,7 @@ def test_nouns_carry_their_article():
 
 def test_lesson_endpoints_and_progress(client):
     o = client.get("/api/lessons").json()
-    assert o["next"] == "hallo" and o["done"] == 0 and o["total"] == 12
+    assert o["next"] == "hallo" and o["done"] == 0 and o["total"] == len(lessons.LESSONS)
     l = client.get("/api/lessons/hallo").json()
     n = len(l["quiz"])
     assert l["n"] == 1 and l["next"] == "woher" and l["cards_left"] == len(l["words"])

@@ -13,3 +13,4 @@ dist/
 __pycache__/
 *.zip
 CLAUDE.local.md
+.tmpdata/

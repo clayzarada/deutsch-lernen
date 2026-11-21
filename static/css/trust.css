@@ -1,0 +1,13 @@
+/* The shared "AI-written" label (static/js/aitag.js). Same look everywhere, light and dark. */
+.ai-tag {
+  display: inline-flex; align-items: center; gap: 4px; vertical-align: middle;
+  font-size: 11px; font-weight: 600; line-height: 1.4; letter-spacing: .01em; white-space: nowrap;
+  padding: 1px 7px; border-radius: 20px; cursor: help;
+  color: var(--muted); background: var(--sunken); border: 1px solid var(--line-strong);
+}
+.ai-tag .icon { width: 11px; height: 11px; }
+h2 .ai-tag, h3 .ai-tag, .set-title .ai-tag { margin-left: 6px; }
+.ai-tag.block { margin-bottom: 6px; }
+.ai-tag + p, .ai-tag + .md { margin-top: 4px; }
+.msg-body > .ai-tag { margin-bottom: 4px; }
+.export-all { margin-top: 14px; }

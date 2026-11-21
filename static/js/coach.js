@@ -1,5 +1,6 @@
 // Coach page: chat with the study coach, and its notes about you.
-import { $, S, api, esc, icon, md, toast, registerView, confirmDialog } from './core.js';
+import { $, S, api, esc, icon, md, toast, registerView, confirmDialog, weekGoalText } from './core.js';
+import { aiTag } from './aitag.js';
 
 const IDEAS = ['How did my week go?', 'What should I focus on this week?', 'Find me a good video on this chapter\'s grammar', 'Make a plan to reach my goal'];
 
@@ -29,23 +30,24 @@ function renderProgress(p) {
     ${miniBars('Cards reviewed', p.weeks, w => w.cards, v => v)}
     ${miniBars('Study days', p.weeks, w => w.days, v => v + ' of 7')}
   </div>
-  <p class="muted small pg-foot">${icon('flame')}${p.streak.days} day streak &nbsp;·&nbsp; ${icon('rocket')}Declensions: ${j.planets_done} of ${j.planets_total} planets, now on ${esc(j.title)} &nbsp;·&nbsp; bars show the last 8 weeks</p>`;
+  <p class="muted small pg-foot">${icon('calendar')}<span>${weekGoalText({ days: p.weeks[p.weeks.length - 1]?.days || 0, target: +S.settings.week_goal || 5 })}</span> &nbsp;·&nbsp;${icon('rocket')}Declensions: ${j.planets_done} of ${j.planets_total} planets, now on ${esc(j.title)} &nbsp;·&nbsp; bars show the last 8 weeks</p>`;
 }
 
-function bubble(m) {
+// Coach answers are AI-written and say so; the fixed greeting below is the app's own text.
+function bubble(m, ai = true) {
   return m.role === 'user'
     ? `<div class="msg user">${esc(m.content)}</div>`
-    : `<div class="msg assistant"><span class="avatar">${icon('sparkles')}</span><div class="msg-body">${md(m.content)}</div></div>`;
+    : `<div class="msg assistant"><span class="avatar">${icon('sparkles')}</span><div class="msg-body">${ai ? aiTag() : ''}${md(m.content)}</div></div>`;
 }
 
 function renderChat(msgs, pending) {
   const log = $('#coach-log');
   if (!msgs.length && !pending) {
-    log.innerHTML = bubble({ role: 'assistant', content: 'Hallo! I\'m your study coach. I can see your reading, practice results and flashcards, so ask me anything. For a full session plan, press **Plan my day** on the Today page.' })
+    log.innerHTML = bubble({ role: 'assistant', content: 'Hallo! I\'m your study coach. I can see your reading, practice results and flashcards, so ask me anything. For a full session plan, press **Plan my day** on the Today page.' }, false)
       + `<div class="suggest">${IDEAS.map(i => `<button class="chip-btn" data-suggest>${esc(i)}</button>`).join('')}</div>`;
     return;
   }
-  log.innerHTML = msgs.map(bubble).join('')
+  log.innerHTML = msgs.map(m => bubble(m)).join('')
     + (pending ? `<div class="msg user">${esc(pending)}</div><div class="msg assistant"><span class="avatar">${icon('sparkles')}</span><div class="msg-body typing"><i></i><i></i><i></i></div></div>` : '');
   log.lastElementChild?.scrollIntoView({ block: 'end', behavior: 'smooth' });
 }

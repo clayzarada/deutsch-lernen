@@ -8,7 +8,7 @@ from . import dictionary, lessons, verbs
 from .packs import _items, _rows
 
 ARTICLE_GENDER = {"der": {"m"}, "die": {"f", "pl"}, "das": {"n"}}
-_TOKEN = re.compile(r"[A-Za-zÄÖÜäöüß]+(?:-[A-Za-zÄÖÜäöüß]+)*")
+_TOKEN = re.compile(r"[A-Za-zÄÖÜäöüßıİ]+(?:-[A-Za-zÄÖÜäöüßıİ]+)*")
 # Names, places and words the dictionary doesn't list as they are written here.
 ALLOW = {
     "Anna", "Ben", "Tom", "Lena", "Mia", "Jonas", "Emre", "Kaya", "Weber", "Sara", "Paul", "Lisa", "Maria", "Eva",
@@ -20,13 +20,16 @@ ALLOW = {
     "E-Mail", "Kopfschmerzen", "Apfelkuchen", "Holzboden", "Glasflaschen", "Plastikflaschen", "Mietvertrag",
     "Fluggesellschaft", "Lieblingsfach", "Mittagspause", "Kellnerin", "Mitarbeiterin", "Passantin", "Beamtin",
     "zwanzigste", "zwanzigsten", "möchten",
+    # B1 (checked by hand by its author, see tests/test_lessons_b1.py)
+    "Bremen", "Roth", "Yılmaz", "Gisela", "Meyer", "Jana", "wiederbekommen", "mitschicken", "Onlinebanking",
+    "umweltfreundlich", "abwechslungsreich", "lachendes", "schlafendes",
 }
 # Nouns the dictionary gets wrong: Student is missing (only Studentin is there), and "das Gehalt" (salary) is
 # merged into "der Gehalt" (content).
 GENDER_OK = {"Student": "der", "Gehalt": "das"}
 NOT_VERBS = {"gern", "morgen", "oben", "unten", "eben", "trotzdem", "zwischen", "gegen", "neben", "hinten", "zusammen",
              "gestern", "selten", "geboren", "gegessen", "getrunken", "gegangen", "gefahren", "gekommen", "geblieben",
-             "unterwegs", "schüchtern", "modern", "trocken", "offen", "verheiratet"}
+             "unterwegs", "wegen", "schüchtern", "modern", "trocken", "offen", "verheiratet"}
 
 
 def _tokens(text):
@@ -107,7 +110,7 @@ def turkish_problems(l):
 
 def _hint_problem(l, prompt):
     m = re.search(r"\(([^()]+)\)\s*$", prompt)
-    if m and re.search(r"[a-z]{2}", m.group(1)) and m.group(1) != "du" and lessons.tr_text(l, m.group(1)) == m.group(1):
+    if m and re.search(r"[a-z]{2}", m.group(1)) and m.group(1) != "du" and not dictionary.known(m.group(1)) and lessons.tr_text(l, m.group(1)) == m.group(1):
         return [f"no Turkish for the hint ({m.group(1)})"]
     return []
 

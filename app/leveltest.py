@@ -42,12 +42,11 @@ def _level_lessons(level):
     return [l for l in lessons.LESSONS if l["level"] == level]
 
 
-def build(level, seed=None, tr=None):
+def build(level, seed=None, tr=False):
     """About 35 questions in the lesson quiz format."""
     ls = _level_lessons(level)
     if not ls:
         raise KeyError(level)
-    tr = lessons.turkish() if tr is None else tr
     rnd = random.Random(seed)
     words = list({w["de"]: w for l in ls for w in lessons._words(l, tr)}.values())
     qs = lessons.word_questions(words, rnd, n_mean=4, n_german=3, n_type=3, n_art=4)
@@ -64,7 +63,7 @@ def build(level, seed=None, tr=None):
 
 def test(level):
     r = results().get(level) or {"best": None, "total": None, "passed": False, "tries": 0}
-    return {"level": level, "quiz": build(level), "pass": PASS, "lessons": len(_level_lessons(level)), **r}
+    return {"level": level, "quiz": build(level, tr=lessons.turkish()), "pass": PASS, "lessons": len(_level_lessons(level)), **r}
 
 
 def complete(level, answers):

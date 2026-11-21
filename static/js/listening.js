@@ -4,6 +4,7 @@ import {
   confirmDialog, promptDialog, hearButton,
 } from './core.js';
 import { openNotebookBridge } from './notebook.js';
+import { aiTag } from './aitag.js';
 
 const STYLE_LABEL = { dialogue: 'Dialogue', podcast: 'Podcast', story: 'Story', imported: 'Imported' };
 const L = { media: null, played: 0, lastTime: 0 };
@@ -36,7 +37,7 @@ async function loadList() {
   $('#l-list').innerHTML = list.length ? list.map(m => `
     <div class="set-item ${L.media?.id === m.id ? 'active' : ''}" data-id="${m.id}">
       <span class="res-icon small">${icon(m.source === 'imported' ? 'upload' : 'headphones')}</span>
-      <div class="grow"><div class="set-title">${esc(m.title)}</div>
+      <div class="grow"><div class="set-title">${esc(m.title)}${m.source !== 'imported' ? aiTag() : ''}</div>
         <div class="muted small">${STYLE_LABEL[m.source] || ''}${m.seconds ? ' · ' + fmt(m.seconds) : ''}${m.chapter ? ' · ' + esc(m.chapter) : ''}${m.listens ? ` · ${icon('check')}${m.listens}×` : ''}</div></div>
     </div>`).join('') : '<p class="muted small">No audio yet.</p>';
   return list;
@@ -82,7 +83,7 @@ function renderPlayer(m) {
   $('#l-player').innerHTML = `
     <div class="player-head">
       <div class="grow"><span class="chip">${icon(m.source === 'imported' ? 'upload' : 'headphones')}${STYLE_LABEL[m.source] || 'Audio'}</span>
-        <h2>${esc(m.title)}</h2>
+        <h2>${esc(m.title)}${sc ? aiTag() : ''}</h2>
         <p class="muted small">${sc?.summary ? esc(sc.summary) + ' · ' : ''}${m.seconds ? fmt(m.seconds) : ''}${m.listens ? ` · listened ${m.listens}×` : ''}</p></div>
       <div class="row"><button class="icon-btn" id="l-rename" title="Rename">${icon('edit')}</button>
         <button class="icon-btn danger-hover" id="l-delete" title="Delete">${icon('trash')}</button></div>

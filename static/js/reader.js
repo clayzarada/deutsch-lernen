@@ -4,6 +4,7 @@ import {
   $, $$, S, api, esc, icon, md, toast, busy, loading, emptyState, store,
   loadBooks, registerView, show, isActive, cardEditor, playClip, hearButton,
 } from './core.js';
+import { aiTag } from './aitag.js';
 import { openNotebookBridge } from './notebook.js';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/vendor/pdf.worker.min.js';
@@ -445,7 +446,7 @@ function cardContext() {
 
 // The offline dictionary answers instantly and for free; the AI is only asked when it knows nothing, for phrases,
 // or when you want the word explained in its sentence.
-function dictEntryHtml(e) {
+export function dictEntryHtml(e) {
   const head = [e.article, e.word].filter(Boolean).join(' ') + (e.plural && e.pos === 'noun' ? `, ${e.plural}` : '');
   const tone = e.article ? `g-${e.article}` : '';
   return `<div class="dict-entry">
@@ -483,7 +484,7 @@ async function aiLookup(text, sentence) {
   try {
     const r = await api('/lookup', { method: 'POST', body: { word: text, sentence } });
     const head = [r.article, r.lemma].filter(Boolean).join(' ') + (r.plural ? `, ${r.plural}` : '');
-    out.innerHTML = `<div class="lookup">
+    out.innerHTML = `<div class="lookup">${aiTag('block')}
       <div class="lk-head"><span class="lk-word ${r.article ? 'g-' + r.article : ''}">${esc(head)}</span>${hearButton([r.article, r.lemma].filter(Boolean).join(' '), 'tiny')}<span class="chip">${esc(r.part_of_speech)}</span></div>
       <p class="lk-meaning">${esc(r.meaning)}</p>
       ${r.meaning_in_context ? `<p class="small"><b>Here:</b> ${esc(r.meaning_in_context)}</p>` : ''}
@@ -503,7 +504,7 @@ async function doExplain(text) {
   out.innerHTML = loading('Explaining...');
   try {
     const r = await api('/explain', { method: 'POST', body: { text, book_id: R.book.id, page: R.page } });
-    out.innerHTML = `<blockquote>${esc(text.slice(0, 300))}</blockquote>${md(r.text)}`;
+    out.innerHTML = `<blockquote>${esc(text.slice(0, 300))}</blockquote>${aiTag('block')}${md(r.text)}`;
     out.append(cardEditor({ front: text.slice(0, 200) }, { collapsed: true, context: cardContext }));
   } catch (err) { out.innerHTML = `<p class="error">${esc(err.message)}</p>`; }
 }
@@ -556,7 +557,7 @@ $('#r-check').addEventListener('click', e => {
       const r = await api(`/books/${R.book.id}/check_page`, { method: 'POST', body: { page: R.page, image: composePage() } });
       const right = r.items.filter(i => i.verdict === 'correct').length;
       if (r.new_mistakes) toast(`${r.new_mistakes} mistake${r.new_mistakes === 1 ? '' : 's'} saved to your Mistake Book`);
-      out.innerHTML = (r.items.length ? `<div class="score">${right}/${r.items.length} correct</div>` : '') + md(r.summary)
+      out.innerHTML = aiTag('block') + (r.items.length ? `<div class="score">${right}/${r.items.length} correct</div>` : '') + md(r.summary)
         + (r.reused ? `<p class="muted small">${r.reused === 1 ? '1 answer hadn’t changed since your last check and kept its mark.' : `${r.reused} answers hadn’t changed since your last check and kept their marks.`}</p>` : '')
         + (r.items.length ? r.items.map(i => `
           <div class="check-item ${i.verdict}">

@@ -143,7 +143,8 @@ def overview():
     for lv in LEVELS:
         mine = [x for x in rows if x["level"] == lv]
         t = tests.get(lv) or {"best": None, "total": None, "passed": False, "tries": 0}
-        levels.append({"level": lv, "done": sum(x["done"] for x in mine), "total": len(mine), "test": t})
+        levels.append({"level": lv, "done": sum(x["done"] for x in mine), "total": len(mine), "test": t,
+                       "pass": leveltest.PASS})
     return {"lessons": rows, "levels": levels, "next": nxt["id"] if nxt else None,
             "done": sum(x["done"] for x in rows), "total": len(rows)}
 
@@ -193,10 +194,9 @@ def exercise_question(l, row, rnd, tr=False):
             "choices": opts, "answers": [row[1]]}
 
 
-def quiz(lesson_id, seed=None, tr=None):
+def quiz(lesson_id, seed=None, tr=False):
     """About 15 questions: {kind: choice|text, group, prompt, cue, choices, answers}."""
     l = BY_ID[lesson_id]
-    tr = turkish() if tr is None else tr
     rnd = random.Random(seed)
     qs = word_questions(_words(l, tr), rnd)
     rnd.shuffle(qs)

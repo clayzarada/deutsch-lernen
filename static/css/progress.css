@@ -1,0 +1,63 @@
+/* Progress page: level estimates per skill, words known, the weekly goal and the level check. */
+.lv-verdict p { margin: 4px 0; }
+.lv-ready { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ok); }
+.lv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.lv-grid .panel { margin-bottom: 0; }
+.lv-two { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; }
+@media (max-width: 860px) { .lv-two { grid-template-columns: 1fr; } }
+.lv-skill-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+.lv-skill-head h3 { margin: 0; }
+.lv-chip { font-weight: 700; font-size: 15px; padding: 2px 10px; border-radius: 20px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+.lv-chip.none { font-weight: 500; font-size: 12px; background: var(--sunken); color: var(--muted); }
+.lv-chip.low { font-size: 13px; background: var(--sunken); color: var(--text); }
+.lv-areas { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+
+.lv-meter { display: block; height: 8px; border-radius: 4px; background: var(--sunken); overflow: hidden; }
+.lv-meter > i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.lv-meter.ok > i { background: var(--ok); } .lv-meter.mid > i { background: var(--mid); } .lv-meter.bad > i { background: var(--bad); }
+.lv-bands, .lv-cases { display: grid; gap: 6px; margin-top: 8px; }
+.lv-band { display: grid; grid-template-columns: 78px 1fr 40px; align-items: center; gap: 8px; font-size: 12.5px; }
+.lv-case { display: grid; grid-template-columns: 84px 1fr 40px 74px; align-items: center; gap: 8px; font-size: 12.5px; }
+.lv-band small, .lv-case small { text-align: right; }
+
+.lv-nums { display: flex; gap: 28px; margin: 4px 0 10px; }
+.lv-nums b { display: block; font-size: 26px; line-height: 1.1; letter-spacing: -.02em; }
+.lv-nums span { color: var(--muted); font-size: 13px; }
+.lv-line { width: 100%; height: auto; display: block; }
+.lv-line text { font-size: 11px; fill: var(--muted); }
+.lv-line .axis { stroke: var(--line-strong); } .lv-line .grid { stroke: var(--line); stroke-dasharray: 3 4; }
+.lv-line .known { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.lv-line .known-dot { fill: var(--accent); }
+
+.lv-week-text { font-size: 18px; font-weight: 600; margin: 4px 0 8px; }
+.lv-days { display: flex; gap: 6px; margin: 6px 0; }
+.lv-day { flex: 1; text-align: center; font-size: 11px; padding: 6px 0; border-radius: 6px; background: var(--sunken); color: var(--muted); }
+.lv-day.on { background: var(--ok-soft); color: var(--ok); font-weight: 600; }
+.lv-day.today { outline: 1.5px solid var(--line-strong); }
+
+.lv-check-panel .panel-head { flex-wrap: wrap; }
+.lv-hist { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+.lv-hist th { text-align: left; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.lv-hist td { padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.lv-hist .chip, .lv-q .chip { margin-right: 4px; }
+
+.lv-q { max-width: 680px; }
+.lv-q-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.lv-q-head .link-btn { margin-left: auto; }
+.lv-q-meter { margin-bottom: 16px; height: 5px; }
+.lv-q-prompt { font-size: 22px; font-weight: 600; margin: 8px 0; }
+.lv-q-cue { font-size: 16px; color: var(--muted); margin: 4px 0 12px; }
+.lv-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin: 10px 0; }
+.lv-choices button { text-align: left; justify-content: flex-start; white-space: normal; }
+.lv-answer input { width: 100%; font-size: 16px; }
+.lv-right, .lv-wrong { display: flex; align-items: center; gap: 8px; font-weight: 600; margin: 12px 0 4px; }
+.lv-right { color: var(--ok); } .lv-wrong { color: var(--bad); }
+.lv-big { font-size: 44px; font-weight: 700; margin: 4px 0; color: var(--accent); }
+
+#nav .week-goal-link { display: inline; padding: 0; color: inherit; font-weight: inherit; background: none; }
+#nav .week-goal-link:hover { color: var(--text); text-decoration: underline; }
+a.lv-home { display: block; color: var(--text); text-decoration: none; }
+a.lv-home:hover { border-color: var(--line-strong); text-decoration: none; }
+a.lv-home h2 { display: flex; align-items: center; gap: 8px; }
+a.lv-home .lv-nums { gap: 20px; }
+a.lv-home .lv-nums b { font-size: 22px; }
