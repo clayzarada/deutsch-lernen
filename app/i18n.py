@@ -487,8 +487,11 @@ PATTERNS.extend(_WORDS_PATTERNS)
 # The B1 course lessons keep their Turkish in their own file. setdefault: a short word meaning there
 # ("form", "team") never replaces an existing UI translation.
 from .lessons_b1_tr import EXACT as _B1_EXACT  # noqa: E402
+# The A1 and A2 lessons do the same (app/lessons.py looks up each lesson's own Turkish first).
+from .lessons_a1_tr import EXACT as _A1_EXACT  # noqa: E402
+from .lessons_a2_tr import EXACT as _A2_EXACT  # noqa: E402
 
-for _k, _v in _B1_EXACT.items():
+for _k, _v in {**_B1_EXACT, **_A2_EXACT, **_A1_EXACT}.items():
     EXACT.setdefault(_k, _v)
 _PATTERNS = _compile()
 _SENTENCE = re.compile(r"(?<=[.!?])\s+")

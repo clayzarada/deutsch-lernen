@@ -12,7 +12,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import (account, ai, cloud, dataexport, surveys, anki, ankiimport, backup, lessons, course, db, decl, dictionary, grammar, known, levels, mistakelink, packs, pagecheck, pdfs, planner, readingroom, srs, textwork, tts,
+from . import (account, ai, cloud, dataexport, surveys, anki, ankiimport, backup, lessons, leveltest, course, db, decl, dictionary, grammar, known, levels, mistakelink, packs, pagecheck, pdfs, planner, readingroom, srs, textwork, tts,
                update, usage, verbs, wordorder, wordtrain, writing)
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
@@ -868,6 +868,7 @@ def anki_import(body: dict):
 
 
 # ---------- Beginner course ----------
+app.include_router(leveltest.router)  # the course level tests: GET /api/levels/{level}/test, POST .../complete
 @app.get("/api/lessons")
 def lessons_overview():
     return lessons.overview()

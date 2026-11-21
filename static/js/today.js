@@ -182,7 +182,7 @@ function renderHero() {
   $('#home-next').innerHTML =
     card('cards', 'cards', waiting ? `${waiting} cards waiting` : 'Flashcards', waiting ? `About ${Math.max(1, Math.round(waiting / 4))} min` : (c.total ? 'Nothing due right now' : 'Add a ready-made deck'))
     + (st.course && !st.course.finished
-      ? card('lesson', 'book', `Lesson ${st.course.next.n}: ${st.course.next.title}`, `Course · ${st.course.done} of ${st.course.total} lessons done`)
+      ? card('lesson', 'book', `${st.course.next.level} · Lesson ${st.course.next.ln}: ${st.course.next.title}`, `Course · ${st.course.done} of ${st.course.total} lessons done`)
       : card('decl', 'rocket', j.finished ? 'Declensions' : j.title, j.finished ? 'Course finished · free practice' : `Declensions · step ${Math.min(j.steps_done + 1, j.steps_total)} of ${j.steps_total}`))
     + (bk ? card('book', 'reader', bk.title, `Read on from page ${bk.page}`) : card('library', 'library', 'Add a textbook', 'Any PDF, read and practice inside the app'));
 }

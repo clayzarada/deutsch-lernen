@@ -324,10 +324,10 @@ def quick_plan(minutes):
     lesson = lessons.brief() if db.get_settings()["use_course"] == "1" else None
     if lesson and not lesson["finished"]:
         nxt = lesson["next"]
-        if add({"kind": "course", "lesson_id": nxt["id"], "title": f"Lesson {nxt['n']}: {nxt['title']}", "minutes": 10,
+        if add({"kind": "course", "lesson_id": nxt["id"], "title": f"{nxt['level']} · Lesson {nxt['ln']}: {nxt['title']}", "minutes": 10,
                 "target_questions": 14, "instructions": f"{nxt['subtitle']}. New words, a short dialogue, one grammar point and a quiz.",
                 "why": "One lesson a day keeps the course moving."}):
-            why.append(f"lesson {nxt['n']} of the course")
+            why.append(f"lesson {nxt['ln']} of {nxt['level']} in the course")
 
     cc = card_counts()
     cards = cc["due"] + cc["new_available"]

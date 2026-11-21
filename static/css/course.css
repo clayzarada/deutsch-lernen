@@ -1,0 +1,21 @@
+/* The course page: one collapsible section per level (A1, A2, B1) with its progress and level test. */
+.course-level { margin: 0 0 14px; }
+.course-level > summary { list-style: none; display: flex; align-items: center; gap: 14px; cursor: pointer; padding: 12px 16px;
+  background: var(--sunken); border: 1px solid var(--line); border-radius: var(--r); margin-bottom: 10px; }
+.course-level > summary::-webkit-details-marker { display: none; }
+.course-level > summary:hover { border-color: var(--line-strong); }
+.course-level > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.course-level > summary b { display: block; font-size: 16px; font-weight: 650; }
+.course-level > summary small { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: 13px; }
+.course-level > summary small.level-passed { color: var(--ok); }
+.course-level > summary small .icon { width: 14px; height: 14px; }
+.level-badge { min-width: 42px; height: 34px; border-radius: 8px; display: grid; place-items: center; font-weight: 700;
+  background: var(--accent-soft); color: var(--accent); flex-shrink: 0; }
+.level-meter { width: 140px; flex-shrink: 0; }
+.lesson-unit { color: var(--accent); }
+.test-row { border-style: dashed; }
+.test-row .lesson-num { background: var(--accent-soft); color: var(--accent); }
+.test-row.done .lesson-num { background: var(--ok-soft); color: var(--ok); }
+@media (max-width: 640px) {
+  .level-meter { display: none; }
+}
