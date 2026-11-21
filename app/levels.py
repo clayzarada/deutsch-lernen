@@ -294,8 +294,11 @@ def reading_estimate(vocab):
             continue
     if texts:
         r = reading_from_texts(texts)
-        return {"skill": "reading", **r, "enough": True, "source": "texts"}
-    return {"skill": "reading", "texts": 0, "level": vocab["level"], "enough": vocab["enough"], "source": "vocab"}
+        # Texts only count once they show a level (two comfortable reads at it): one hard text early on must not
+        # make reading look like the weakest skill. Until then the vocabulary estimate stands in, as before.
+        if r["level"] is not None:
+            return {"skill": "reading", **r, "enough": True, "source": "texts"}
+    return {"skill": "reading", "texts": len(texts), "level": vocab["level"], "enough": vocab["enough"], "source": "vocab"}
 
 
 # ---------------------------------------------------------------------------------------------------------------
