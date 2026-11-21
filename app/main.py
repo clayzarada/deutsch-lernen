@@ -12,7 +12,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import (account, ai, cloud, surveys, anki, ankiimport, backup, lessons, course, db, decl, dictionary, known, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
+from . import (account, ai, cloud, surveys, anki, ankiimport, backup, lessons, leveltest, course, db, decl, dictionary, known, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
                update, usage, verbs, wordorder, wordtrain, writing)
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
@@ -36,6 +36,7 @@ surveys.start_background()  # weekly usage summary (if allowed) and the list of 
 
 app = FastAPI(title="German Study")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+app.include_router(leveltest.router)
 
 
 _LOCAL_HOSTS = {"127.0.0.1", "localhost", "[::1]"} | ({"testserver"} if os.environ.get("GERMANSTUDY_TESTING") else set())
