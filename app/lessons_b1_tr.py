@@ -586,7 +586,7 @@ Yine de arayıp evi görmek için randevu isteyeceğim.""",
 - ein groß**er** Balkon, ein groß**es** Bad, eine groß**e** Küche
 - diğer her yerde der'den sonrakiyle aynıdır: mit einem groß**en** Balkon
 
-**Artikel yoksa** sıfat, der, die veya das'ın alacağı eki alır:
+**Artikel yoksa** sıfat, der, die veya das'ın alacağı eki alır (tek istisna: eril ve nötr Genitiv **-en** alır, örneğin trotz schlecht**en** Wetters):
 - groß**er** Balkon, groß**e** Küche, groß**es** Bad, mit groß**em** Balkon, in ruhig**er** Lage
 
 Hepsinin arkasındaki kural: cinsiyeti ve hali ya artikel ya da sıfat açıkça gösterir. Artikel göstermiyorsa sıfat göstermek zorundadır.""",

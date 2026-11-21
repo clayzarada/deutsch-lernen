@@ -42,7 +42,7 @@ Herr Demir|Ja. Zuerst hatte ich eine kleine Stelle, später bekam ich mehr Veran
 Separable verbs split just as in the present: Ich **zog** 2020 nach Berlin **um**.""",
                     "Ich wuchs in einem kleinen Dorf auf.=I grew up in a small village.; Nach der Schule begann sie eine Ausbildung.=After school she started vocational training.; Wir zogen 2018 nach Köln um.=We moved to Cologne in 2018.; Damals arbeitete er bei einer großen Firma.=Back then he worked for a big company."),
         "exercises": """Ich ___ 2015 mein Studium. (beginnen)|begann|beginnte|begonnen
-Er ___ drei Jahre in München. (arbeiten)|arbeitete|arbeitet|arbeitte
+Früher ___ er drei Jahre in München. (arbeiten)|arbeitete|arbeitet|arbeitte
 Wir ___ in einer kleinen Stadt auf. (wachsen)|wuchsen|wachsten|wuchs
 Damals ___ sie keine Zeit. (haben)|hatte|habte|hattet
 2019 ___ ich nach Berlin um. (ziehen)|zog|ziehte|zogen
@@ -161,7 +161,7 @@ der Bewerber=applicant; das Anschreiben=cover letter; die Teilzeit=part-time wor
 die Probezeit=probation period; einstellen=to hire; kündigen=to quit, to give notice; verdienen=to earn;
 erfahren=experienced; flexibel=flexible; selbstständig=independent, independently""",
         "dialogue": """Frau Schulz|Firma Weber und Partner, Schulz am Apparat. Guten Tag!|Weber and Partners, Schulz speaking. Hello!
-Herr Yılmaz|Guten Tag, mein Name ist Yılmaz. Ich habe Ihre Stellenanzeige gelesen und hätte ein paar Fragen.|Hello, my name is Yılmaz. I read your job advertisement and I'd have a few questions.
+Herr Yılmaz|Guten Tag, mein Name ist Yılmaz. Ich habe Ihre Stellenanzeige gelesen und hätte ein paar Fragen.|Hello, my name is Yılmaz. I read your job advertisement and have a few questions.
 Frau Schulz|Gern. Worum geht es?|Of course. What is it about?
 Herr Yılmaz|Könnten Sie mir sagen, ob die Stelle auch in Teilzeit möglich ist?|Could you tell me whether the job is also possible part-time?
 Frau Schulz|Leider nicht, wir suchen jemanden in Vollzeit.|Unfortunately not, we're looking for someone full-time.
@@ -512,7 +512,7 @@ In the past, use the Präteritum of the modal verb: Die Wohnung **musste** renov
 Im Treppenhaus darf nicht ___ werden.|geraucht|rauchen|raucht
 Die Fenster ___ geschlossen werden.|müssen|muss|musst
 Die Heizung ___ gestern nicht repariert werden.|konnte|kann|könnt
-Ich weiß, dass der Keller aufgeräumt werden ___.|muss|müssen|wird
+Ich weiß, dass der Keller aufgeräumt werden ___.|muss|müssen|musst
 Kann das Fahrrad im Hof abgestellt ___?|werden|worden|wurde
 Die Nachbarn sollen nicht ___ werden.|gestört|stören|stört""",
     },
@@ -768,7 +768,7 @@ Sara|Ich rufe trotzdem an und frage nach einem Termin für die Besichtigung.|I'l
 - ein groß**er** Balkon, ein groß**es** Bad, eine groß**e** Küche
 - everywhere else it's the same as after der: mit einem groß**en** Balkon
 
-**With no article** the adjective takes the ending der, die or das would have:
+**With no article** the adjective takes the ending der, die or das would have (one exception: masculine and neuter genitive take **-en**, as in trotz schlecht**en** Wetters):
 - groß**er** Balkon, groß**e** Küche, groß**es** Bad, mit groß**em** Balkon, in ruhig**er** Lage
 
 The rule behind it all: either the article or the adjective shows gender and case clearly. If the article doesn't, the adjective must.""",

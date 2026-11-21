@@ -204,7 +204,9 @@ Mia|Gut, ich nehme zwei Kilo.|Good, I'll take two kilos.""",
 - **-n / -en**: die Banane → die Banane**n**, die Tomate → die Tomate**n**
 - **-e** (often with an umlaut): das Brot → die Brot**e**, der Apfel → die **Ä**pfel
 - **-er**: das Ei → die Ei**er**, das Kind → die Kind**er**
-- **-s**: das Kilo → die Kilo**s**
+- **-s**: das Auto → die Auto**s**, das Handy → die Handy**s**
+
+After a number, measures stay singular: zwei **Kilo**, neun **Euro**.
 
 In the plural the article is always **die**: die Äpfel, die Eier.
 
@@ -361,7 +363,7 @@ Ben|Dann gehen wir jetzt essen!|Then let's go eat now!""",
 
 Regular verbs form it with **ge- ... -t**: machen → **gemacht**, lernen → **gelernt**. Many common verbs are irregular and end in **-en**: essen → **gegessen**, trinken → **getrunken**.
 
-Verbs of movement or change use **sein**: Ich **bin** nach Berlin **gefahren**. Sie **ist** nach Hause **gegangen**. Wir **sind** zu Hause **geblieben**.""",
+Verbs of movement or change use **sein**, and so does **bleiben** (to stay): Ich **bin** nach Berlin **gefahren**. Sie **ist** nach Hause **gegangen**. Wir **sind** zu Hause **geblieben**.""",
                     "Ich habe Deutsch gelernt.=I learned German.; Wir haben Pizza gegessen.=We ate pizza.; Sie ist nach Wien gefahren.=She went to Vienna.; Bist du zu Hause geblieben?=Did you stay at home?"),
         "exercises": """Ich ___ Fußball gespielt.|habe|bin|hat
 Er ___ nach Berlin gefahren.|ist|hat|habe
@@ -574,14 +576,14 @@ Lena|Liegt es nicht auf dem Tisch?|Isn't it on the table?
 Tom|Nein. Und mein Schlüssel ist auch weg!|No. And my key is gone too!
 Lena|Der Schlüssel hängt an der Wand, neben der Tür.|The key is hanging on the wall, next to the door.
 Tom|Ah, danke. Aber das Handy?|Ah, thanks. But the phone?
-Lena|Schau mal unter dem Sofa. Oder hinter der Lampe im Regal.|Have a look under the sofa. Or behind the lamp on the shelf.
+Lena|Vielleicht liegt es unter dem Sofa. Oder hinter der Lampe im Regal.|Maybe it's under the sofa. Or behind the lamp on the shelf.
 Tom|Da ist es, zwischen dem Sofa und dem Regal!|There it is, between the sofa and the shelf!""",
         "grammar": ("Where? Prepositions with the dative", """To say **where** something is, use **in, an, auf, unter, neben, vor, hinter, zwischen** with the **dative**. The articles change:
 
 - der → **dem**: auf **dem** Tisch, unter **dem** Stuhl
 - das → **dem**: neben **dem** Sofa, **im** (= in dem) Regal
 - die → **der**: an **der** Wand, hinter **der** Tür
-- plural die → **den**, and the noun adds -n: zwischen **den** Büchern
+- plural die → **den**, and the noun adds -n (unless it already ends in -n or -s): zwischen **den** Büchern
 
 Short forms: in dem → **im**, an dem → **am**.
 

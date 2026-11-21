@@ -83,7 +83,7 @@ Sophie|Und ich sollte studieren, aber ich wollte nicht. Meine Eltern waren nicht
         "grammar": ("Modal verbs in the past: konnte, musste, wollte", """Modal verbs use the **Präteritum** for the past, like sein and haben. Take the infinitive without its umlaut, drop **-en** and add **-te**:
 
 - können → ich **konnte**, müssen → ich **musste**, dürfen → ich **durfte**
-- wollen → ich **wollte**, sollen → ich **sollte**, mögen → ich **mochte**
+- wollen → ich **wollte**, sollen → ich **sollte**, mögen → ich **mochte** (g → ch)
 
 Endings: ich konnte, du konnte**st**, er/sie konnte, wir konnte**n**, ihr konnte**t**, sie/Sie konnte**n**.
 
@@ -92,9 +92,9 @@ As in the present, the second verb goes to the end: Ich **musste** viel **lernen
 **dürfen** means "be allowed to"; **sollen** means "be supposed to" (someone else wants it).""",
                     "Als Kind konnte ich nicht schwimmen.=As a child I couldn't swim.; Wir mussten jeden Tag Hausaufgaben machen.=We had to do homework every day.; Ich durfte abends nicht ausgehen.=I wasn't allowed to go out in the evening.; Er wollte Arzt werden.=He wanted to become a doctor."),
         "exercises": """Früher ___ ich nicht gut kochen.|konnte|kann|könnte
-Wir ___ viel lernen.|mussten|musste|müssten
+Früher ___ wir viel lernen.|mussten|musste|müssten
 Er ___ Lehrer werden.|wollte|willte|wollten
-Ich ___ abends nicht fernsehen.|durfte|dürfte|darfte
+Als Kind ___ ich abends nicht fernsehen.|durfte|dürfte|darfte
 Ihr ___ um acht Uhr in der Schule sein.|musstet|musstest|mussten
 Ich habe die Prüfung ___.|bestanden|gebestanden|bestehen
 ___ du als Kind schwimmen?|Konntest|Konnte|Kanntest""",
@@ -356,7 +356,7 @@ Many short adjectives get an umlaut: groß → gr**ö**ßer → am gr**ö**ßten
 
 Irregular: gut → **besser** → am **besten**; viel → **mehr** → am **meisten**; gern → **lieber** → am **liebsten**; hoch → **höher** → am **höchsten**.
 
-After -t, -d, -s, -ß and -z, add -e- before -sten: am ält**e**sten, am heiß**e**sten.""",
+After -t, -d, -s, -ß and -z, add -e- before -sten: am ält**e**sten, am heiß**e**sten. Exception: am **größten**.""",
                     "Mein Bruder ist älter als ich.=My brother is older than me.; Berlin ist größer als Hamburg.=Berlin is bigger than Hamburg.; Ich trinke lieber Tee als Kaffee.=I prefer tea to coffee.; Im Juli ist es am heißesten.=It's hottest in July."),
         "exercises": """Die Stadt ist lauter ___ das Dorf.|als|wie|so
 Tim ist so groß ___ sein Vater.|wie|als|am
@@ -587,7 +587,7 @@ Typical starts: **Ich weiß nicht, ...** / **Weißt du, ...?** / **Ich frage, ..
 
 Careful: for "if" meaning a condition, use **wenn**; for "if" meaning "whether", use **ob**: Ich frage, **ob** du Zeit hast.""",
                     "Ich weiß nicht, ob die App kostenlos ist.=I don't know if the app is free.; Können Sie mir sagen, wann die Sendung beginnt?=Can you tell me when the programme starts?; Weißt du, wie das funktioniert?=Do you know how that works?; Sie fragt, ob wir heute Abend fernsehen.=She's asking whether we're watching TV this evening."),
-        "exercises": """Ich frage ihn, ___ er heute kommt.|ob|wenn|dass
+        "exercises": """Ich frage ihn, ___ er heute kommt oder nicht.|ob|wenn|dass
 Weißt du, wo ___?|mein Handy ist|ist mein Handy|mein Handy sind
 Können Sie mir sagen, wann der Film ___?|beginnt|beginnen|beginnst
 Sie fragt, ___ das Internet funktioniert.|ob|wenn|was
@@ -650,7 +650,7 @@ Herr Demir|Ab dem ersten Oktober.|From the first of October.""",
 - **seit** (since, for): **seit** 2020, **seit** einem Monat. It started in the past and is still going on, so the verb is in the **present**!
 - **nach** (after): **nach** dem Studium, **nach** der Arbeit
 - **ab** (from ... on): **ab** Montag, **ab** dem ersten Mai
-- **von ... bis** (from ... until): **von** März **bis** August, **von** neun **bis** fünf Uhr
+- **von ... bis** (from ... until): **von** März **bis** August, **von** neun **bis** fünf Uhr (bis on its own takes the accusative: **bis** nächsten Montag)
 - **in** (in, from now): **in** zwei Wochen
 
 Careful: English "for two years" is **seit** zwei Jahren when it is still true: Ich wohne **seit** zwei Jahren hier.
@@ -683,6 +683,6 @@ Ich hoffe, dass es dir bald besser ___.|geht|gehst|gehen
 Wenn ich Zeit habe, ___ ich ins Kino.|gehe|ich gehe|gehen
 Ich frage den Verkäufer, ___ der Laden am Sonntag offen ist.|ob|dass|wenn
 ___ Sie mir bitte helfen?|Könnten|Hätten|Würde
-Er wäscht ___ die Hände.|sich|ihm|ihn
+Er wäscht ___ die Hände. (his own)|sich|ihm|ihn
 Wir fahren durch ___ Wald.|den|dem|der
 Ich bin müde. ___ gehe ich früh ins Bett.|Deshalb|Denn|Weil"""
