@@ -2422,4 +2422,7 @@ export default {
   "Nature": "Doğa",
   "Media": "Medya",
   "Services": "Hizmetler",
+  // Settings lines that were never translated
+  'Include the built-in beginner course on Home and in quick plans': 'Yerleşik kursu Ana sayfaya ve hızlı planlara dahil et',
+  'Run the welcome setup again': 'Karşılama kurulumunu yeniden çalıştır',
 };
