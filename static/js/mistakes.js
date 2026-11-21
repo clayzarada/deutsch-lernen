@@ -3,7 +3,7 @@ import { $, $$, S, api, esc, icon, busy, toast, emptyState, registerView, show, 
 import { aiTag } from './aitag.js';
 
 const SOURCE_LABEL = { practice: 'Practice set', page: 'Textbook page', speaking: 'Speaking', writing: 'Writing' };
-const M = { status: 'open', topic: null, selected: new Set(), data: null };
+const M = { status: 'open', topic: null, selected: new Set(), data: null, explain: {} };
 
 registerView('mistakes', loadMistakes);
 
@@ -17,7 +17,9 @@ async function loadMistakes() {
   $$('#mk-status button').forEach(b => b.classList.toggle('active', b.dataset.status === M.status));
   const params = new URLSearchParams({ status: M.status });
   if (M.topic !== null) params.set('topic', M.topic);
-  M.data = await api('/mistakes?' + params);
+  // Which Grammar handbook topic explains each mistake (simple rules on its topic, skills and explanation).
+  [M.data, M.explain] = await Promise.all([api('/mistakes?' + params),
+    api('/grammar/mistakes?status=' + M.status).then(r => r.links).catch(() => ({}))]);
   // New mistakes are linked to declension skills in the background (one small Claude call per 40 mistakes).
   if (M.data.unlinked && S.settings?.has_key && !M.linking) {
     M.linking = true;
@@ -60,6 +62,7 @@ function render() {
         ${questionHtml(m)}
         <div class="mk-line"><span class="wrong">${esc(m.wrong)}</span>${icon('right')}<span class="right">${esc(m.correct)}</span></div>
         ${m.explanation ? `<p class="small">${aiTag()} ${esc(m.explanation)}</p>` : ''}
+        ${M.explain[m.id] ? `<button type="button" class="link-btn mk-explain" data-explain="${esc(M.explain[m.id].id)}" title="${esc(M.explain[m.id].title)}">${icon('page')}<span>Explain this</span><small>${esc(M.explain[m.id].title)}</small></button>` : ''}
         <p class="muted small">${m.context ? esc(m.context) + ' · ' : ''}${SOURCE_LABEL[m.source] || esc(m.source)} · ${new Date(m.last_seen || m.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
       </div>
       <div class="mk-tags">${m.topic ? `<span class="chip">${esc(m.topic)}</span>` : ''}
@@ -110,6 +113,8 @@ function freeDrill(ids) {
 }
 
 $('#mk-list').addEventListener('click', e => {
+  const ex = e.target.closest('[data-explain]');
+  if (ex) { e.preventDefault(); S.grammarTopic = ex.dataset.explain; return show('grammar'); }
   if (e.target.closest('[data-free-all]')) { e.preventDefault(); freeDrill(M.data.mistakes.filter(m => m.skills?.length).map(m => m.id)); }
 });
 

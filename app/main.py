@@ -12,7 +12,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import (account, ai, cloud, dataexport, surveys, anki, ankiimport, backup, lessons, course, db, decl, dictionary, known, levels, mistakelink, packs, pagecheck, pdfs, planner, readingroom, srs, textwork, tts,
+from . import (account, ai, cloud, dataexport, surveys, anki, ankiimport, backup, lessons, course, db, decl, dictionary, grammar, known, levels, mistakelink, packs, pagecheck, pdfs, planner, readingroom, srs, textwork, tts,
                update, usage, verbs, wordorder, wordtrain, writing)
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
@@ -36,6 +36,7 @@ surveys.start_background()  # weekly usage summary (if allowed) and the list of 
 
 app = FastAPI(title="German Study")
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+app.include_router(grammar.router)
 
 
 _LOCAL_HOSTS = {"127.0.0.1", "localhost", "[::1]"} | ({"testserver"} if os.environ.get("GERMANSTUDY_TESTING") else set())
@@ -550,14 +551,15 @@ def nouns_state(level: str = "650"):
 
 @app.post("/api/nouns/next")
 def nouns_next(body: dict):
-    return localize(wordtrain.noun_question(body.get("level", "650"), body.get("mode", "mix"), body.get("recent")))
+    return localize(wordtrain.noun_question(body.get("level", "650"), body.get("mode", "mix"), body.get("recent"),
+                                            body.get("rule")))
 
 
 @app.post("/api/nouns/answer")
 def nouns_answer(body: dict):
     res = wordtrain.grade(body["question"], body.get("answer", ""), body.get("ms"))
     return localize({**res, "next": wordtrain.noun_question(body.get("level", "650"), body.get("mode", "mix"),
-                                                            body.get("recent"))})
+                                                            body.get("recent"), body.get("rule"))})
 
 
 @app.get("/api/numbers/state")

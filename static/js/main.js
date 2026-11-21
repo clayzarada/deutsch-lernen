@@ -6,6 +6,7 @@ import './library.js';
 import './reader.js';
 import './practice.js';
 import './declensions.js';
+import './grammar.js';
 import './writing.js';
 import './cards.js';
 import './listening.js';

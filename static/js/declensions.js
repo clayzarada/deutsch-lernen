@@ -1,7 +1,7 @@
 // Grammar courses: Declensions (a journey across "planets") and Verbs (Alexander's march across a map), each with a
 // lesson, charts, a drill, a reading, flashcards and a checkpoint per stage, plus free practice (smart drill, sprints,
 // tables). Both run on this one page: COURSES says what differs, the server's course kit (app/coursekit.py) does the rest.
-import { $, $$, S, api, esc, icon, store, toast, busy, registerView, refreshNav, isActive } from './core.js';
+import { $, $$, S, api, esc, icon, store, toast, busy, registerView, refreshNav, isActive, show } from './core.js';
 import { ALEXMAP } from './alexmap.js';
 import { aiTag } from './aitag.js';
 
@@ -95,6 +95,7 @@ async function loadDecl() {
   if (S[skey('Tab')]) { V.tab = S[skey('Tab')]; S[skey('Tab')] = null; }
   if (S[skey('Sub')]) { V.tab = 'free'; stopSprint(); D.sub = S[skey('Sub')]; S[skey('Sub')] = null; }
   if (S[skey('Keys')]) { D.keys = S[skey('Keys')]; S[skey('Keys')] = null; D.sub = 'drill'; stopSprint(); free.q = null; }
+  if (S[skey('Want')]) { applyWant(S[skey('Want')]); S[skey('Want')] = null; }
   $$('#dv-tabs button').forEach(b => b.classList.toggle('active', b.dataset.dv === V.tab));
   $('#dv-journey').classList.toggle('hidden', V.tab !== 'journey');
   $('#dv-free').classList.toggle('hidden', V.tab !== 'free');
@@ -254,9 +255,13 @@ function choicesHtml(q, r, given) {
   }).join('')}</div>`;
 }
 
+// der/die/das: which gender rule predicts this noun, or that it has to be learned by heart (app/genderrules.py).
+const ruleNote = q => q.rule_note
+  ? `<p class="gr-rulenote ${q.rule_id ? (q.rule_fits ? 'fits' : 'exception') : ''}">${esc(q.rule_note)}</p>` : '';
+
 function feedbackHtml(q, r, given, waits) {
   if (r.correct) {
-    return `<div class="dc-fb right">${icon('check')}<div><b>Richtig!</b> ${esc(q.full)}${r.fast ? ` <span class="dc-fast" title="Fast enough to count toward mastery">${icon('flame')}fast</span>` : ''}</div></div>`;
+    return `<div class="dc-fb right">${icon('check')}<div><b>Richtig!</b> ${esc(q.full)}${r.fast ? ` <span class="dc-fast" title="Fast enough to count toward mastery">${icon('flame')}fast</span>` : ''}</div></div>${ruleNote(q)}`;
   }
   const keys = (r.wrong_parts.length ? r.wrong_parts : q.parts.map(p => p.key)).filter(k => keyTable[k]);
   const seen = new Set();
@@ -265,7 +270,7 @@ function feedbackHtml(q, r, given, waits) {
   return `<div class="dc-fb wrong">${icon('x')}<div>
       <p class="dc-answer">${esc(q.full)}</p>
       ${given ? `<p class="muted small">You wrote: ${esc(given)}</p>` : ''}
-      <p class="small">${esc(q.why)}</p></div></div>
+      <p class="small">${esc(q.why)}</p></div></div>${ruleNote(q)}
     ${charts ? `<div class="dc-charts">${charts}</div>` : ''}
     ${waits ? '<div class="dc-hint"><span class="muted small"><kbd>Enter</kbd> for the next one. This comes back soon.</span></div>' : ''}`;
 }
@@ -689,6 +694,7 @@ function stepClick(e) {
 function newFreeState() {
   return {
     sub: 'drill', sprint: null, table: C.id === 'decl' ? 'def' : 't-praes', tableMode: 'test', checked: null, tableVals: {}, clock: null,
+    peek: store.get(skey('Peek')) === '1',
     focus: new Set(saved(skey('Focus'), [])), cases: new Set(saved(skey('Cases'), Object.keys(C.toggles))),
     session: { n: 0, right: 0, streak: 0 },
   };
@@ -700,10 +706,14 @@ const makeFree = () => makeRunner($('#dc-main'), {
   stats: () => {
     const s = D.session;
     if (D.sprint) return `<span class="dc-score"><b>${D.sprint.score}</b> right</span>`;
-    return `<span class="muted small">${s.n ? `${s.right}/${s.n} right${s.streak > 2 ? ` · ${icon('flame')}${s.streak} in a row` : ''} · ` : ''}${V.state?.today.answered || 0} today</span>`;
+    return (peekTables(free.q).length ? `<button type="button" class="link-btn" data-peek aria-pressed="${D.peek}">${D.peek ? 'Hide the table' : 'Show the table'}</button>` : '')
+      + `<span class="muted small">${s.n ? `${s.right}/${s.n} right${s.streak > 2 ? ` · ${icon('flame')}${s.streak} in a row` : ''} · ` : ''}${V.state?.today.answered || 0} today</span>`;
   },
   above: () => (D.keys ? `<div class="dc-keys">${icon('mistake')}<span class="grow">Drilling <b>${D.keys.length} skill${D.keys.length === 1 ? '' : 's'}</b> from your Mistake Book. Each mistake is marked learned after 3 days of right answers.</span><button class="link-btn" data-keys-off>Back to normal practice</button></div>` : '')
-    + (D.sprint ? '<div class="dc-timer"><i id="dc-timer-bar"></i></div>' : ''),
+    + (D.sprint ? '<div class="dc-timer"><i id="dc-timer-bar"></i></div>' : '')
+    + (D.peek && !D.sprint ? `<div class="dc-peek">${peekTables(free.q).map(t => `<div class="dc-mini">${gridHtml(t)}</div>`).join('')}</div>` : ''),
+  // Answers given while the table is showing never count as fast, so looking can't push a skill to mastered.
+  afterRender: () => { if (D.peek && !D.sprint && free.phase === 'ask') free.t0 = -Infinity; },
   delay: res => D.sprint ? (res.correct ? 120 : 1400) : (res.correct ? 650 : null),
   onResult: (res, q) => {
     const s = D.session;
@@ -716,6 +726,31 @@ const makeFree = () => makeRunner($('#dc-main'), {
 });
 let free = makeFree();
 
+// The tables a question's skills come from (adjective endings after der-words, ein-words, no article, ...).
+function peekTables(q) {
+  if (!q || D.sprint) return [];
+  const seen = new Set();
+  return (q.parts || []).map(p => keyTable[p.key]).filter(t => t && !seen.has(t.id) && seen.add(t.id)).slice(0, 2);
+}
+
+// "Try it" from the Grammar handbook (grammar.js): open free practice on the matching drill.
+function applyWant(w) {
+  V.tab = 'free';
+  stopSprint();
+  activeRunner?.stop?.();
+  D.sub = w.sub || 'drill';
+  D.keys = null;
+  if (w.focus) { D.focus = new Set(w.focus); store.set(skey('Focus'), JSON.stringify(w.focus)); }
+  if (w.focus || w.cases) {
+    D.cases = new Set(w.cases?.length ? w.cases : Object.keys(C.toggles));
+    store.set(skey('Cases'), JSON.stringify([...D.cases]));
+  }
+  if (w.table) Object.assign(D, { table: w.table, checked: null, tableVals: {} });
+  if (w.mode) { NV.mode = w.mode; NV.rule = null; store.set('nounMode', w.mode); store.set('nounRule', ''); nounRunner.q = null; }
+  if (w.rules) { O.rules = new Set(w.rules); store.set('verbsWoRules', JSON.stringify(w.rules)); O.q = null; }
+  free.q = null;
+}
+
 function loadFree() {
   renderSide();
   renderFreeMain();
@@ -727,7 +762,10 @@ function loadFree() {
 
 function renderSide() {
   if (D.sub === 'order') return renderOrderSide();
-  if (D.sub === 'nouns') { if (NV.state) renderNounSide(); return loadNounState().then(renderNounSide).catch(err => toast(err.message, 'error')); }
+  if (D.sub === 'nouns') {
+    if (NV.state) renderNounSide();
+    return Promise.all([loadNounState(), loadGenderRules()]).then(renderNounSide).catch(err => toast(err.message, 'error'));
+  }
   if (D.sub === 'numbers') { if (NM.state) renderNumSide(); return loadNumState().then(renderNumSide).catch(err => toast(err.message, 'error')); }
   const fams = V.state.families;
   const groups = [...new Set(fams.map(f => f.group))];
@@ -794,13 +832,20 @@ $('#dc-sub').addEventListener('click', e => {
 // ================= nouns and numbers (Declensions only; offline, no AI) =================
 const sessionStats = s => `<span class="muted small">${s.n ? `${s.right}/${s.n} right${s.streak > 2 ? ` · ${icon('flame')}${s.streak} in a row` : ''}` : ''}</span>`;
 const tally = (s, res) => { s.n++; if (res.correct) { s.right++; s.streak++; } else s.streak = 0; };
-const NV = { level: store.get('nounLevel') || '650', mode: store.get('nounMode') || 'mix', state: null, session: { n: 0, right: 0, streak: 0 } };
+const NV = { level: store.get('nounLevel') || '650', mode: store.get('nounMode') || 'mix', rule: store.get('nounRule') || null, rules: null,
+  state: null, session: { n: 0, right: 0, streak: 0 } };
 const NM = { groups: new Set(saved('numGroups', ['numbers', 'times', 'dates', 'prices', 'years'])), listen: store.get('numListen') === '1',
   state: null, session: { n: 0, right: 0, streak: 0 }, said: null };
 
 const nounRunner = makeRunner($('#dc-main'), {
-  url: '/nouns', params: () => ({ level: NV.level, mode: NV.mode }), stats: () => sessionStats(NV.session),
-  onResult: res => { tally(NV.session, res); if (NV.session.n % 5 === 0) loadNounState().then(renderNounSide).catch(() => {}); },
+  url: '/nouns', params: () => ({ level: NV.level, mode: NV.mode, rule: NV.rule }), stats: () => sessionStats(NV.session),
+  // A right der/die/das answer stays a moment longer, so there's time to read the rule behind it.
+  delay: res => (res.correct ? (nounRunner.q?.rule_note ? 1800 : 650) : null),
+  onResult: (res, q) => {
+    tally(NV.session, res);
+    if (q.family === 'ngender') loadGenderRules().then(renderNounSide).catch(() => {});
+    if (NV.session.n % 5 === 0) loadNounState().then(renderNounSide).catch(() => {});
+  },
 });
 const numRunner = makeRunner($('#dc-main'), {
   url: '/numbers', params: () => ({ groups: [...NM.groups] }), stats: () => sessionStats(NM.session),
@@ -817,6 +862,26 @@ function resumeRunner(R) {
 }
 
 async function loadNounState() { NV.state = await api(`/nouns/state?level=${NV.level}`); }
+async function loadGenderRules() { NV.rules = await api('/genders/rules'); }
+
+// Which gender rules the learner has mastered, and a way to practise the nouns of one rule.
+function genderRulesPanel() {
+  const g = NV.rules;
+  if (!g || NV.mode === 'plural') return '';
+  const cur = g.rules.find(r => r.id === NV.rule);
+  return `<div class="panel"><h2>Gender rules</h2>
+    <p class="small"><b>${g.mastered} of ${g.total} rules mastered</b></p>
+    <p class="muted small">After every answer you see the rule that predicts the noun. Pick a rule to practise only its nouns.</p>
+    ${cur ? `<div class="gr-rule-card"><p><b>${esc(cur.rule)}</b></p><p class="muted" lang="de">${esc(cur.examples.join(', '))}</p>
+      ${cur.exceptions.length ? `<p><span class="muted">Exceptions:</span> <span lang="de">${esc(cur.exceptions.join(', '))}</span></p>` : ''}
+      <button type="button" class="link-btn" data-grule-off>Back to all nouns</button></div>` : ''}
+    ${g.rules.map(r => `<button type="button" class="gr-rule ${NV.rule === r.id ? 'on' : ''}" data-grule="${r.id}" title="${esc(r.rule)}" aria-pressed="${NV.rule === r.id}">
+      <span class="art ${r.article}">${r.article}</span><span class="grow">${esc(r.label)}</span>
+      ${r.mastered ? `<span title="Mastered">${icon('check')}</span>` : r.answered ? `<small>${r.recent_right}/${r.recent}</small>` : ''}</button>`).join('')}
+    ${g.by_heart.answered ? `<p class="muted small">No rule, learned by heart: ${g.by_heart.right}/${g.by_heart.answered} right</p>` : ''}
+    <button type="button" class="link-btn" data-gtopic="gender-rules">${icon('page')}<span>All the rules in the Grammar handbook</span></button>
+  </div>`;
+}
 function progressRow(label, solid, total, extra = '') {
   return `<div class="nn-meter"><span class="grow">${label}</span><small>${solid}/${total} solid${extra}</small>
     <span class="dc-meter"><i style="width:${total ? Math.round((100 * solid) / total) : 0}%"></i></span></div>`;
@@ -833,11 +898,21 @@ function renderNounSide() {
       <h4 class="dc-group">Which nouns</h4>
       ${st.levels.map(l => `<button class="dc-fam ${NV.level === l.id ? 'on' : ''}" data-nlevel="${l.id}"><span class="grow">${esc(l.label)}</span></button>`).join('')}
     </div><div class="panel"><h2>Progress</h2>
-      ${progressRow('der, die, das', p.ng.solid, p.ng.total, ` · ${p.ng.seen} seen`)}${progressRow('Plurals', p.np.solid, p.np.total, ` · ${p.np.seen} seen`)}</div>`;
+      ${progressRow('der, die, das', p.ng.solid, p.ng.total, ` · ${p.ng.seen} seen`)}${progressRow('Plurals', p.np.solid, p.np.total, ` · ${p.np.seen} seen`)}</div>
+    ${genderRulesPanel()}`;
 }
 function nounSideClick(e) {
-  const m = e.target.closest('[data-nmode]'), l = e.target.closest('[data-nlevel]');
-  if (m) { NV.mode = m.dataset.nmode; store.set('nounMode', NV.mode); }
+  const m = e.target.closest('[data-nmode]'), l = e.target.closest('[data-nlevel]'), gr = e.target.closest('[data-grule]');
+  const topic = e.target.closest('[data-gtopic]');
+  if (topic) { S.grammarTopic = topic.dataset.gtopic; return show('grammar'); }
+  if (gr || e.target.closest('[data-grule-off]')) {
+    NV.rule = gr && NV.rule !== gr.dataset.grule ? gr.dataset.grule : null;
+    store.set('nounRule', NV.rule || '');
+  } else if (m) {
+    NV.mode = m.dataset.nmode;
+    store.set('nounMode', NV.mode);
+    if (NV.mode === 'plural') { NV.rule = null; store.set('nounRule', ''); }
+  }
   else if (l) { NV.level = l.dataset.nlevel; store.set('nounLevel', NV.level); NV.state = null; }
   else return;
   renderNounSide();
@@ -980,6 +1055,15 @@ function renderTable() {
 
 $('#dc-main').addEventListener('click', async e => {
   const t = e.target;
+  if (t.closest('[data-peek]')) {
+    D.peek = !D.peek;
+    store.set(skey('Peek'), D.peek ? '1' : '0');
+    const typed = $('.dc-input', free.box)?.value;
+    free.render();
+    const inp = $('.dc-input', free.box);
+    if (inp && typed) inp.value = typed;
+    return inp?.focus();
+  }
   if (t.closest('[data-keys-off]')) { D.keys = null; stopSprint(); return free.start(); }
   if (t.closest('#dc-sprint-again')) return startSprint();
   if (t.closest('#dc-sprint-close')) { stopSprint(); return free.start(); }
@@ -1229,12 +1313,15 @@ function miniRegion(s, size = 84) {
 // ================= word order (Verbs > Free practice > Word order) =================
 // Build the sentence by tapping word tiles in order; tap a placed tile to take it back. Keys: 1-9 place the
 // numbered tile, Backspace takes the last one back, Enter checks and moves on.
-const O = { q: null, placed: [], result: null, rules: new Set(saved('verbsWoRules', [])), recent: [], n: 0, right: 0, progress: null };
+// "Typing" mode: the learner writes the whole sentence from the English (or Turkish) meaning; a hint shows the words.
+const O = { q: null, placed: [], result: null, rules: new Set(saved('verbsWoRules', [])), recent: [], n: 0, right: 0, progress: null,
+  typed: store.get('woTyped') === '1', hinted: false, answer: '' };
 
 async function nextOrder() {
-  const p = new URLSearchParams({ rules: [...O.rules].join(','), recent: O.recent.slice(-6).join(',') });
-  const q = await api('/wordorder/next?' + p);
-  Object.assign(O, { q, placed: [], result: null, progress: q.progress });
+  let q;
+  if (O.typed) q = await api('/wordorder/typed/next', { method: 'POST', body: { rules: [...O.rules], recent: O.recent.slice(-6) } });
+  else q = await api('/wordorder/next?' + new URLSearchParams({ rules: [...O.rules].join(','), recent: O.recent.slice(-6).join(',') }));
+  Object.assign(O, { q, placed: [], result: null, progress: q.progress, hinted: false, answer: '' });
   renderOrder();
   if (V.tab === 'free' && D.sub === 'order') renderOrderSide();
 }
@@ -1243,7 +1330,11 @@ function renderOrderSide() {
   const prog = Object.fromEntries((O.progress || []).map(r => [r.rule, r]));
   const rows = (O.progress || []).map(r => `<button class="dc-fam ${O.rules.has(r.rule) ? 'on' : ''}" data-worule="${r.rule}"><span class="grow">${esc(r.label)}
     <span class="dc-meter"><i style="width:${Math.round((r.box / 5) * 100)}%"></i></span></span></button>`).join('');
-  $('#dc-side').innerHTML = `<div class="panel"><h2>Rules</h2>
+  $('#dc-side').innerHTML = `<div class="panel"><h2>Answer by</h2><div class="wo-mode" role="group" aria-label="Answer by">
+      <button type="button" class="chip-btn ${O.typed ? '' : 'on'}" data-womode="tiles" aria-pressed="${!O.typed}">Tapping tiles</button>
+      <button type="button" class="chip-btn ${O.typed ? 'on' : ''}" data-womode="typed" aria-pressed="${O.typed}">Typing</button></div>
+    <p class="muted small">Typing trains real production: you write the whole sentence yourself. Capitals and punctuation don't matter.</p></div>
+    <div class="panel"><h2>Rules</h2>
     <button class="dc-fam smart ${O.rules.size ? '' : 'on'}" data-worule-all>${icon('sparkles')}<span class="grow"><b>All rules</b><small>Your weakest rules come up most</small></span></button>
     ${rows}</div>`;
   if (!prog) return;
@@ -1251,6 +1342,7 @@ function renderOrderSide() {
 
 function renderOrder() {
   if (!O.q) { $('#dc-main').innerHTML = '<div class="dc-card"><p class="muted">Loading...</p></div>'; nextOrder().catch(err => toast(err.message, 'error')); return; }
+  if (O.typed) return renderTyped();
   const q = O.q, r = O.result;
   const left = q.tiles.map((t, k) => k).filter(k => !O.placed.includes(k));
   const cap = (s, first) => first ? s.charAt(0).toUpperCase() + s.slice(1) : s;
@@ -1282,7 +1374,64 @@ async function checkOrder(giveUp = false) {
   renderOrderSide();
 }
 
+function renderTyped() {
+  const q = O.q, r = O.result;
+  $('#dc-main').innerHTML = `<div class="dc-card wo ${r ? (r.correct ? 'right' : 'wrong') : ''}">
+    <div class="dc-top"><span class="chip">${esc(q.label)}</span><span class="grow"></span><span class="dc-score"><b>${O.right}</b>/${O.n}</span></div>
+    <p class="dc-instr">Type the sentence in German</p>
+    <p class="dc-cue">${esc(q.meaning)}</p>
+    ${q.start ? `<p class="wo-start muted small"><span>Start with:</span> <b lang="de">${esc(q.start)} ...</b></p>` : ''}
+    <input class="dc-input wo-typed" lang="de" autocomplete="off" spellcheck="false" aria-label="Your sentence" placeholder="Your sentence"
+      value="${esc(O.answer)}" ${r ? 'readonly' : ''}>
+    ${O.hinted && !r ? `<div class="wo-hint-tiles" aria-label="The words">${q.tiles.map(t => `<span lang="de">${esc(t.text)}</span>`).join('')}</div>` : ''}
+    ${r ? typedFeedback(r) : `<div class="dc-hint"><span class="muted small"><kbd>Enter</kbd> to check</span>
+      <span class="row"><button type="button" class="link-btn" data-wo-hint ${O.hinted ? 'disabled' : ''}>Show the words</button>
+      <button type="button" class="link-btn" data-wo-skip>I don't know</button><button type="button" id="wo-check">${icon('check')}Check</button></span></div>`}
+  </div>`;
+  const inp = $('.wo-typed');
+  if (!r) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } else $('#wo-next')?.focus();
+}
+
+function typedFeedback(r) {
+  let head;
+  if (r.verdict === 'right') head = `<b>Richtig!</b> <span lang="de">${esc(r.solution)}</span>`;
+  else if (r.verdict === 'typo') {
+    head = `<b>Richtig!</b> <span lang="de">${esc(r.solution)}</span><p class="wo-diff"><span>Watch the spelling:</span> <s lang="de">${esc(r.typo.given)}</s> → <b lang="de">${esc(r.typo.right)}</b></p>`;
+  } else head = `<p class="dc-answer" lang="de">${esc(r.solution)}</p>`;
+  let diff = '';
+  if (r.verdict === 'order') diff = '<p class="wo-diff">All the right words, but not in the right order.</p>';
+  if (r.verdict === 'middle') diff = '<p class="wo-diff">Your verbs are in the right place, so this doesn\'t count against the rule. The other parts usually go in the order shown above.</p>';
+  if (r.verdict === 'words') {
+    diff = (r.missing.length ? `<p class="wo-diff"><span>Missing:</span> <b lang="de">${esc(r.missing.join(', '))}</b></p>` : '')
+      + (r.extra.length ? `<p class="wo-diff"><span>Not in this sentence:</span> <s lang="de">${esc(r.extra.join(', '))}</s></p>` : '');
+  }
+  return `<div class="dc-fb ${r.correct ? 'right' : 'wrong'}">${icon(r.correct ? 'check' : 'x')}<div>${head}${diff}
+      ${!r.correct && O.answer ? `<p class="muted small">You wrote: ${esc(O.answer)}</p>` : ''}
+      <p class="small">${esc(r.why)}</p>
+      ${r.also.length ? `<p class="muted small"><span>Also right:</span> <span lang="de">${esc(r.also.join(' · '))}</span></p>` : ''}</div></div>
+    <div class="row dc-end-actions"><button type="button" id="wo-next">${icon('right')}Next</button></div>`;
+}
+
+async function checkTyped(giveUp = false) {
+  if (O.result || !O.q) return;
+  const answer = giveUp ? '' : ($('.wo-typed')?.value || '').trim();
+  if (!giveUp && !answer) return;
+  O.answer = answer;
+  const r = await api('/wordorder/typed/check', { method: 'POST', body: { id: O.q.id, answer, hinted: O.hinted } });
+  O.result = r; O.progress = r.progress; O.n++; if (r.correct) O.right++;
+  O.recent.push(O.q.id);
+  renderOrder();
+  renderOrderSide();
+}
+
 function orderKey(e) {
+  if (O.typed) {
+    if (e.key !== 'Enter' || !O.q) return;
+    e.preventDefault();
+    if (O.result) return nextOrder().catch(err => toast(err.message, 'error'));
+    if (e.target.closest?.('.wo-typed')) checkTyped().catch(err => toast(err.message, 'error'));
+    return;
+  }
   if (e.target.closest?.('input, textarea, select') || !O.q) return;
   if (e.key === 'Enter') { e.preventDefault(); if (O.result) nextOrder(); else checkOrder(); return; }
   if (O.result) return;
@@ -1299,13 +1448,21 @@ $('#dc-main').addEventListener('click', e => {
   if (tile && !O.result) { O.placed.push(+tile.dataset.wo); return renderOrder(); }
   const back = t.closest('[data-wo-back]');
   if (back && !O.result) { O.placed.splice(+back.dataset.woBack, 1); return renderOrder(); }
-  if (t.closest('#wo-check')) return checkOrder().catch(err => toast(err.message, 'error'));
-  if (t.closest('[data-wo-skip]')) return checkOrder(true).catch(err => toast(err.message, 'error'));
+  if (t.closest('[data-wo-hint]') && !O.result) { O.answer = $('.wo-typed')?.value || ''; O.hinted = true; return renderOrder(); }
+  if (t.closest('#wo-check')) return (O.typed ? checkTyped() : checkOrder()).catch(err => toast(err.message, 'error'));
+  if (t.closest('[data-wo-skip]')) return (O.typed ? checkTyped(true) : checkOrder(true)).catch(err => toast(err.message, 'error'));
   if (t.closest('#wo-next')) return nextOrder().catch(err => toast(err.message, 'error'));
 });
 $('#dc-side').addEventListener('click', e => {
   if (D.sub !== 'order' || C.id !== 'verbs') return;
-  const r = e.target.closest('[data-worule]');
+  const r = e.target.closest('[data-worule]'), mode = e.target.closest('[data-womode]');
+  if (mode) {
+    O.typed = mode.dataset.womode === 'typed';
+    store.set('woTyped', O.typed ? '1' : '0');
+    O.q = null;
+    renderOrderSide();
+    return renderOrder();
+  }
   if (e.target.closest('[data-worule-all]')) O.rules.clear();
   else if (r) { if (O.rules.has(r.dataset.worule)) O.rules.delete(r.dataset.worule); else O.rules.add(r.dataset.worule); }
   else return;

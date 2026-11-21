@@ -6,7 +6,7 @@ same way and the skills use the same spaced repetition):
 """
 import random
 
-from . import db, decl, dictionary
+from . import db, decl, dictionary, genderrules
 
 # ---------- nouns ----------
 LEVELS = {  # name -> (label, highest frequency rank)
@@ -38,16 +38,13 @@ def _plural_pattern(word, pl):
     return "an irregular change"
 
 
-GENDER_RULES = decl.GENDER_HINTS
-
-
-def _gender_why(n):
-    art = decl.ARTICLE["nom"][n["g"]]
-    w = n["word"].lower()
-    for ends, hint_art, text in GENDER_RULES:
-        if w.endswith(ends):
-            return text if hint_art == art else f"An exception to the pattern: {text}"
-    return "No reliable ending rule for this one, so learn it with its article."
+def _gender_pool(pool, rule):
+    """Only the nouns one gender rule covers, when the learner picked a rule to practise. A small level may
+    hold too few of them, so it widens to the whole dictionary then."""
+    if not rule:
+        return pool
+    picked = genderrules.nouns_for(rule, pool)
+    return picked if len(picked) >= 8 else genderrules.nouns_for(rule, _pool("all")) or pool
 
 
 def _pick(pool, prefix, recent):
@@ -66,18 +63,23 @@ def _pick(pool, prefix, recent):
     return random.choices(cands, weights)[0]
 
 
-def noun_question(level="650", mode="mix", recent=()):
+def noun_question(level="650", mode="mix", recent=(), rule=None):
+    """rule: a gender rule id (genderrules.py) to practise only the nouns it covers; it implies mode "gender"."""
     pool = _pool(level)
     if not pool:
         raise db.UserError("The dictionary isn't installed in this copy of the app.")
-    mode = mode if mode in ("gender", "plural") else random.choice(["gender", "plural"])
+    rule = rule if rule in genderrules.RULE_BY_ID else None
+    mode = "gender" if rule else mode if mode in ("gender", "plural") else random.choice(["gender", "plural"])
     prefix = "ng" if mode == "gender" else "np"
-    n = _pick(pool, prefix, recent)
+    n = _pick(_gender_pool(pool, rule) if mode == "gender" else pool, prefix, recent)
     art = decl.ARTICLE["nom"][n["g"]]
     meaning = n["meaning"]
     if mode == "gender":
+        # After every answer, right or wrong, the page shows which rule predicts this noun (rule_note).
+        rid, fits, note = genderrules.explain(n["word"], n["g"])
         return {"family": "ngender", "label": "Noun genders", "key": f"ng:{n['word']}", "prompt": n["word"],
-                "answers": [art], "display": art, "why": f"{art} {n['word']}: {meaning}. {_gender_why(n)}",
+                "answers": [art], "display": art, "why": f"{art} {n['word']}: {meaning}.",
+                "rule_id": rid, "rule_fits": fits, "rule_note": note,
                 "cue": "", "case": None, "gender": n["g"], "hide_case": True, "kind": "choice",
                 "choices": ["der", "die", "das"], "parts": [{"key": f"ng:{n['word']}"}],
                 "full": f"{art} {n['word']} ({meaning})"}
@@ -279,6 +281,8 @@ def grade(q, answer, ms=None):
     fast = bool(right and ms is not None and ms <= decl.speed_limit_ms(q))
     for part in q["parts"]:
         decl.update_skill(part["key"], right, fast, ms)
+    if q["family"] == "ngender":
+        genderrules.record(q.get("rule_id"), q["prompt"], right)
     topic = {"ngender": "Nouns: genders", "nplural": "Nouns: plurals", "numbers": "Numbers, times and dates"}[q["family"]]
     db.ex("INSERT INTO answers(source, topic, correct, ts, date) VALUES('declension',?,?,?,?)",
           (topic, int(right), db.now(), db.today()))
