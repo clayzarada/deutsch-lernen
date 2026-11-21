@@ -14,6 +14,7 @@ import './mistakes.js';
 import './umlauts.js';
 import './theme.js';
 import './coach.js';
+import './progress.js';
 import './settings.js';
 import './course.js';
 import { startWelcome } from './welcome.js';

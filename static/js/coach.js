@@ -1,5 +1,5 @@
 // Coach page: chat with the study coach, and its notes about you.
-import { $, S, api, esc, icon, md, toast, registerView, confirmDialog } from './core.js';
+import { $, S, api, esc, icon, md, toast, registerView, confirmDialog, weekGoalText } from './core.js';
 
 const IDEAS = ['How did my week go?', 'What should I focus on this week?', 'Find me a good video on this chapter\'s grammar', 'Make a plan to reach my goal'];
 
@@ -29,7 +29,7 @@ function renderProgress(p) {
     ${miniBars('Cards reviewed', p.weeks, w => w.cards, v => v)}
     ${miniBars('Study days', p.weeks, w => w.days, v => v + ' of 7')}
   </div>
-  <p class="muted small pg-foot">${icon('flame')}${p.streak.days} day streak &nbsp;·&nbsp; ${icon('rocket')}Declensions: ${j.planets_done} of ${j.planets_total} planets, now on ${esc(j.title)} &nbsp;·&nbsp; bars show the last 8 weeks</p>`;
+  <p class="muted small pg-foot">${icon('calendar')}<span>${weekGoalText({ days: p.weeks[p.weeks.length - 1]?.days || 0, target: +S.settings.week_goal || 5 })}</span> &nbsp;·&nbsp;${icon('rocket')}Declensions: ${j.planets_done} of ${j.planets_total} planets, now on ${esc(j.title)} &nbsp;·&nbsp; bars show the last 8 weeks</p>`;
 }
 
 function bubble(m) {
