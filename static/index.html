@@ -15,6 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/css/trust.css">
 <script src="/static/vendor/pdf.min.js"></script>
 </head>
 <body>
@@ -420,6 +421,8 @@
           <label>Native language<input id="s-native"></label>
           <label>Usual minutes per day<input id="s-minutes" type="number" min="10" max="300"></label>
           <label>New flashcards per day<input id="s-newcards" type="number" min="0" max="200"></label>
+          <label>Flashcard retention<select id="s-retention"><option value="0.8">80% · fewer reviews</option><option value="0.85" data-tr="%85">85%</option><option value="0.9">90% · recommended</option><option value="0.95">95% · more reviews</option></select></label>
+          <p class="muted small budget-note">How sure you want to be of remembering a card when it comes back. Higher means more reviews.</p>
         </div>
         <label>Goal<input id="s-goal" placeholder="e.g. pass Goethe B1, move to Berlin, read novels"></label>
         <label>Exam or deadline (optional)<input id="s-exam" type="date"></label>
@@ -443,12 +446,18 @@
           <button type="button" class="ghost small" id="backup-load">Load backup file</button>
           <input type="file" id="backup-load-file" accept=".zip" hidden>
         </div>
+        <h3 class="backup-file-head">Export all my data</h3>
+        <p class="muted small">A .zip you can open anywhere: a copy of your study database, spreadsheets (CSV) of your flashcards, known words, writing, mistakes and study history, and your imported books and audio. Your API keys are never included.</p>
+        <div class="backup-file-actions"><button type="button" class="ghost small" id="export-all" data-icon="download"><span>Export all my data</span></button>
+</div>
       </div>
       <div class="panel about-panel">
         <h2>About</h2>
         <p class="about-name">Deutsch lernen <span id="about-version" class="muted"></span></p>
         <p>Made by <b id="about-author">Clay Zarada</b></p>
-        <p class="muted small">Dictionary: Wiktionary (CC BY-SA), via kaikki.org. Word frequencies: FrequencyWords (CC BY-SA).</p>
+        <p class="muted small">Core lessons and drills are written by people and checked by rules. AI is optional, and anything it writes is labeled “AI-written”.</p>
+        <p class="muted small">Dictionary: Wiktionary (CC BY-SA), via kaikki.org.
+ Word frequencies: FrequencyWords (CC BY-SA).</p>
         <p class="muted small" id="about-copyright">© 2026 Zarada Holdings Group. All rights reserved.</p>
         <p class="muted small">Personal, non-commercial use only. Copying, changing, redistributing or selling the app requires written permission.</p>
         <p class="row about-update"><button type="button" id="check-update" class="ghost small" data-icon="download"><span>Check for updates</span></button><span id="update-status" class="muted small"></span></p>

@@ -2128,5 +2128,17 @@ export default {
   "There's no subscription on this account yet.": 'Bu hesapta henüz bir abonelik yok.',
   "Couldn't cancel the subscription. Try again, or cancel it from Manage subscription.": "Abonelik iptal edilemedi. Tekrar deneyin ya da Aboneliği yönet'ten iptal edin.",
   'Sign in again.': 'Tekrar giriş yapın.',
+  // ---------- Trust: AI-written labels, flashcard retention (FSRS), "Export all my data" ----------
+  'AI-written': 'Yapay zekâ yazdı',
+  'Written by AI. It may contain mistakes.': 'Bunu yapay zekâ yazdı. Hatalar içerebilir.',
+  'Core lessons and drills are written by people and checked by rules. AI is optional, and anything it writes is labeled “AI-written”.': 'Temel dersler ve alıştırmalar insanlar tarafından yazılır ve kurallarla denetlenir. Yapay zekâ isteğe bağlıdır; yazdığı her şey “Yapay zekâ yazdı” etiketini taşır.',
+  'Flashcard retention': 'Kartlarda hatırlama hedefi',
+  '80% · fewer reviews': '%80 · daha az tekrar',
+  '90% · recommended': '%90 · önerilen',
+  '95% · more reviews': '%95 · daha çok tekrar',
+  'How sure you want to be of remembering a card when it comes back. Higher means more reviews.': 'Bir kart yeniden karşınıza çıktığında onu ne kadar kesin hatırlamak istediğiniz. Daha yüksek değer, daha çok tekrar demektir.',
+  'Export all my data': 'Tüm verilerimi dışa aktar',
+  'A .zip you can open anywhere: a copy of your study database, spreadsheets (CSV) of your flashcards, known words, writing, mistakes and study history, and your imported books and audio. Your API keys are never included.': 'Her yerde açabileceğiniz bir .zip dosyası: çalışma veritabanınızın bir kopyası; kartlarınızın, bildiğiniz kelimelerin, yazılarınızın, hatalarınızın ve çalışma geçmişinizin tabloları (CSV); içe aktardığınız kitaplar ve sesler. API anahtarlarınız asla dahil edilmez.',
+  'Preparing your data. With many books this can take a moment...': 'Verileriniz hazırlanıyor. Çok sayıda kitap varsa bu biraz sürebilir...',
 };
 

@@ -1,5 +1,6 @@
 // Mistake Book: every wrong answer collected in one place, grouped by topic, with drills and flashcards.
 import { $, $$, S, api, esc, icon, busy, toast, emptyState, registerView, show, confirmDialog, refreshNav, isActive } from './core.js';
+import { aiTag } from './aitag.js';
 
 const SOURCE_LABEL = { practice: 'Practice set', page: 'Textbook page', speaking: 'Speaking', writing: 'Writing' };
 const M = { status: 'open', topic: null, selected: new Set(), data: null };
@@ -58,7 +59,7 @@ function render() {
       <div class="grow">
         ${questionHtml(m)}
         <div class="mk-line"><span class="wrong">${esc(m.wrong)}</span>${icon('right')}<span class="right">${esc(m.correct)}</span></div>
-        ${m.explanation ? `<p class="small">${esc(m.explanation)}</p>` : ''}
+        ${m.explanation ? `<p class="small">${aiTag()} ${esc(m.explanation)}</p>` : ''}
         <p class="muted small">${m.context ? esc(m.context) + ' · ' : ''}${SOURCE_LABEL[m.source] || esc(m.source)} · ${new Date(m.last_seen || m.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
       </div>
       <div class="mk-tags">${m.topic ? `<span class="chip">${esc(m.topic)}</span>` : ''}

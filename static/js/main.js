@@ -15,6 +15,7 @@ import './umlauts.js';
 import './theme.js';
 import './coach.js';
 import './settings.js';
+import './trust.js';
 import './course.js';
 import { startWelcome } from './welcome.js';
 import './update.js';

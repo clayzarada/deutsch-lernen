@@ -2,6 +2,7 @@
 import { $, S, api, esc, icon, md, busy, loading, registerView, show, updateNavStatus } from './core.js';
 import { openReader } from './reader.js';
 import { kittySvg, hopliteKittySvg } from './declensions.js';
+import { aiTag } from './aitag.js';
 
 const KIND = {
   reader: { label: 'Textbook', icon: 'reader' }, practice: { label: 'Practice', icon: 'practice' },
@@ -228,7 +229,7 @@ function renderPlan(plan) {
   const done = plan.blocks.filter(b => b.status === 'done').length;
   const total = plan.blocks.reduce((a, b) => a + (b.minutes || 0), 0);
   const left = plan.blocks.filter(b => !['done', 'skipped'].includes(b.status)).reduce((a, b) => a + (b.minutes || 0), 0);
-  $('#plan-meta').innerHTML = `${plan.quick ? '<span class="chip">Quick plan · no AI</span> ' : ''}${total} min · ${done} of ${plan.blocks.length} done${left && left < total ? ` · <b>${left} min left</b>` : ''}`;
+  $('#plan-meta').innerHTML = `${plan.quick ? '<span class="chip">Quick plan · no AI</span> ' : aiTag() + ' '}${total} min · ${done} of ${plan.blocks.length} done${left && left < total ? ` · <b>${left} min left</b>` : ''}`;
   $('#plan').innerHTML = `<div class="plan-progress"><span style="width:${(100 * done) / plan.blocks.length}%"></span></div>
     <div class="plan-summary">${md(plan.summary)}</div>
     <ol class="blocks">${plan.blocks.map(blockHtml).join('')}</ol>
