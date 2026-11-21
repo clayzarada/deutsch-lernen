@@ -12,7 +12,7 @@ steps below happen on approval day. They take about 30 minutes.
 
 ## 0. Before approval: activation (owner)
 
-Stripe → **Activate payments** for the account "Zarada Holdings Group LLC" (acct_1UeECbEhU4c63nIw). It typically asks for:
+Stripe → **Activate payments** for the account "Zarada Holdings Group LLC". It typically asks for:
 
 - **Business type:** Registered business → LLC. Legal name, **EIN**, registered address, phone.
 - **Business details:**
@@ -74,7 +74,7 @@ have Plus":
 
 ```sql
 update public.profiles set stripe_customer_id = null, stripe_subscription_id = null, stripe_status = null
-where user_id = '9d6ff94a-1e24-4680-8356-ef7e16b61309';
+where user_id = '<your account id from Supabase → Authentication → Users>';
 ```
 
 ## 3. Website (repo `deutschlernenapp-site`)
