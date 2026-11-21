@@ -12,7 +12,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import (account, ai, cloud, surveys, anki, ankiimport, backup, lessons, course, db, decl, dictionary, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
+from . import (account, ai, cloud, surveys, anki, ankiimport, backup, lessons, course, db, decl, dictionary, known, mistakelink, packs, pagecheck, pdfs, planner, srs, textwork, tts,
                update, usage, verbs, wordorder, wordtrain, writing)
 from .verbcourse import VERBS_COURSE
 from .version import AUTHOR, BUILD_NAME, COPYRIGHT, OWNER, VERSION, WEBSITE
@@ -878,9 +878,45 @@ def lesson_complete(lesson_id: str, body: dict):
     if lesson_id not in lessons.BY_ID:
         raise HTTPException(404, "No such lesson")
     try:
-        return lessons.complete(lesson_id, body.get("results") or [])
+        out = lessons.complete(lesson_id, body.get("results") or [])
     except ValueError as e:
         raise HTTPException(400, str(e))
+    if out["passed"]:
+        known.mark([known.lemma(w["word"]) for w in lessons.lesson_words(lesson_id)], known.LEARNING, "lesson")
+    return out
+
+
+# ---------- known words (shared by the progress page and the reading room) ----------
+
+@app.get("/api/known")
+def known_summary():
+    return {**known.counts(), "history": known.history()}
+
+
+@app.post("/api/known/mark")
+def known_mark(body: dict):
+    status = int(body.get("status", known.KNOWN))
+    if status not in known.NAMES:
+        raise HTTPException(400, "Unknown status")
+    lemmas = [str(x) for x in (body.get("lemmas") or [])][:500]
+    known.mark(lemmas, status)
+    return {"statuses": known.statuses(lemmas)}
+
+
+@app.post("/api/known/text")
+def known_text(body: dict):
+    """A text split into words with each word's status, and how much of it is already known.
+    saw=true records that the learner read it (new words become "seen")."""
+    text = str(body.get("text") or "")[:200_000]
+    toks = known.tokenize(text)
+    lemmas = {p["lemma"] for p in toks if p.get("lemma")}
+    if body.get("saw"):
+        known.saw(lemmas)
+    st = known.statuses(lemmas)
+    for p in toks:
+        if p.get("lemma"):
+            p["s"] = st.get(p["lemma"], known.NEW)
+    return {"tokens": toks, "coverage": known.coverage(text)}
 
 
 @app.post("/api/lessons/{lesson_id}/cards")

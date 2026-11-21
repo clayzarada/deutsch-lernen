@@ -26,6 +26,11 @@ def _words(l):
     return out
 
 
+def lesson_words(lesson_id):
+    """The words a lesson teaches (dictionary form without the article)."""
+    return _words(BY_ID[lesson_id])
+
+
 def _content(l):
     title, text, examples = l["grammar"]
     return {
