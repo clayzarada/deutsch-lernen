@@ -2426,4 +2426,5 @@ export default {
   'Include the built-in beginner course on Home and in quick plans': 'Yerleşik kursu Ana sayfaya ve hızlı planlara dahil et',
   'Run the welcome setup again': 'Karşılama kurulumunu yeniden çalıştır',
   'No plan yet today. Set your time, then press “Quick plan (free)” for an instant one, or “Plan my day” to have AI build it.': 'Bugün için henüz plan yok. Sürenizi girin; anında bir plan için “Hızlı plan (ücretsiz)” düğmesine, yapay zekânın hazırlaması için “Günümü planla” düğmesine basın.',
+  'needs a few more reviews': 'birkaç tekrar daha gerekiyor',
 };
