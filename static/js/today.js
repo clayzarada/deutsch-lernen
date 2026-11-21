@@ -223,7 +223,7 @@ function renderPlan(plan) {
   $('#plan-quick').classList.toggle('ghost', !!S.settings.has_key);
   if (!plan) {
     $('#plan-meta').textContent = 'A session built from your progress, weak spots and flashcards.';
-    $('#plan').innerHTML = `<div class="plan-empty">${icon('sparkles')}<p>No plan yet today. Set your time and press <b>Plan my day</b>, or <b>Quick plan</b> for an instant one without AI.</p></div>`;
+    $('#plan').innerHTML = `<div class="plan-empty">${icon('sparkles')}<p>No plan yet today. Set your time, then press “Quick plan (free)” for an instant one, or “Plan my day” to have AI build it.</p></div>`;
     return;
   }
   const done = plan.blocks.filter(b => b.status === 'done').length;
