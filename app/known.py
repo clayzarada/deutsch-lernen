@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS known_words(
 CREATE TABLE IF NOT EXISTS known_history(date TEXT PRIMARY KEY, known INTEGER, learning INTEGER);
 """
 
-_WORD = re.compile(r"[A-Za-zÄÖÜäöüß]+(?:-[A-Za-zÄÖÜäöüß]+)*")
+_WORD = re.compile(r"[^\W\d_]+(?:-[^\W\d_]+)*")  # any letters, so "Café" or "Señor" stay one word
 _ARTICLES = {"der", "die", "das"}
 _ready = False
 

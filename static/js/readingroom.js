@@ -1,6 +1,7 @@
 // Reading room: short texts at your level, LingQ-style. Every word is shaded by how well you know it (from the
 // shared known-words record); click a word to look it up, mark it, or make a flashcard. The computer's own voice
 // can read the text aloud sentence by sentence. Your own texts and AI stories live here too.
+import { aiTag } from './aitag.js';
 import { $, $$, S, api, esc, icon, busy, toast, store, registerView, isActive, confirmDialog, promptDialog, hearButton, loading, emptyState, refreshNav } from './core.js';
 import { dictEntryHtml } from './reader.js';
 
@@ -30,7 +31,7 @@ function cardHtml(t) {
     <div class="rr-card-top">
       ${t.level ? `<span class="chip rr-level">${esc(t.level)}</span>` : ''}
       ${t.genre ? `<span class="chip">${esc(t.genre)}</span>` : ''}${t.topic && !own ? `<span class="chip">${esc(t.topic)}</span>` : ''}
-      ${t.source === 'ai' ? `<span class="chip rr-ai">${icon('sparkles')}AI-written</span>` : own ? '<span class="chip">Your text</span>' : ''}
+      ${t.source === 'ai' ? aiTag() : own ? '<span class="chip">Your text</span>' : ''}
       ${isSweet(t) ? `<span class="pill ok">${icon('target')}Good next read</span>` : ''}
       <span class="grow"></span>
       ${t.finished ? `<span class="rr-done" title="Finished">${icon('check')}${t.finished > 1 ? `<span>${t.finished}×</span>` : ''}</span>` : ''}
